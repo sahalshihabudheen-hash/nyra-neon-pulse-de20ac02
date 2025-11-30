@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Repeat, Shuffle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +15,6 @@ interface MusicPlayerProps {
   onPlayPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
-  playerRef: React.RefObject<HTMLIFrameElement>;
 }
 
 const MusicPlayer = ({
@@ -24,12 +23,11 @@ const MusicPlayer = ({
   onPlayPause,
   onNext,
   onPrevious,
-  playerRef,
 }: MusicPlayerProps) => {
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [duration] = useState(240); // Placeholder duration
+  const [duration] = useState(240);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -37,7 +35,6 @@ const MusicPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Simulate progress
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying) {
@@ -48,7 +45,6 @@ const MusicPlayer = ({
     return () => clearInterval(interval);
   }, [isPlaying, duration]);
 
-  // Reset progress when track changes
   useEffect(() => {
     setProgress(0);
   }, [currentTrack?.id]);
@@ -179,13 +175,10 @@ const MusicPlayer = ({
         </div>
       </div>
 
-      {/* Hidden YouTube Player */}
-      <iframe
-        ref={playerRef}
-        id="youtube-player"
-        className="absolute -top-[1px] left-0 w-1 h-[1px] opacity-0 pointer-events-none"
-        allow="autoplay; encrypted-media"
-        allowFullScreen
+      {/* Hidden YouTube Player Container - This div will be replaced by the iframe */}
+      <div 
+        id="youtube-player-container"
+        className="absolute -top-[1px] left-0 w-1 h-[1px] opacity-0 pointer-events-none overflow-hidden"
       />
     </footer>
   );
