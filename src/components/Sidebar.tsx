@@ -1,6 +1,6 @@
-import { Home, Search, ListMusic, Heart, Settings, Music2 } from 'lucide-react';
+import { Home, Search, ListMusic, Heart, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+import nyraLogo from '@/assets/nyra-logo.png';
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -19,9 +19,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     <aside className="fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-border flex flex-col z-40">
       {/* Logo */}
       <div className="p-6 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center neon-glow">
-          <Music2 className="w-6 h-6 text-primary-foreground" />
-        </div>
+        <img src={nyraLogo} alt="NYRA Logo" className="w-10 h-10 rounded-xl object-cover" />
         <span className="text-2xl font-bold neon-text">NYRA</span>
       </div>
 
@@ -52,13 +50,6 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         </ul>
       </nav>
 
-      {/* Bottom Section */}
-      <div className="p-4 border-t border-border">
-        <div className="p-4 rounded-xl bg-secondary/50 border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Upgrade to Premium</p>
-          <p className="text-xs text-muted-foreground/70">Unlock unlimited features</p>
-        </div>
-      </div>
     </aside>
   );
 };
