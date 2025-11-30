@@ -4,7 +4,6 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import TrackGrid from '@/components/TrackGrid';
 import MusicPlayer from '@/components/MusicPlayer';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface Track {
@@ -31,30 +30,51 @@ const Index = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [ytApiReady, setYtApiReady] = useState(false);
   
-  const playerRef = useRef<HTMLIFrameElement>(null);
   const ytPlayerRef = useRef<any>(null);
 
   // Load YouTube IFrame API
   useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    if (window.YT && window.YT.Player) {
+      setYtApiReady(true);
+      return;
     }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
     window.onYouTubeIframeAPIReady = () => {
       console.log('YouTube API Ready');
+      setYtApiReady(true);
     };
   }, []);
 
-  const initializePlayer = useCallback((videoId: string) => {
+  const createPlayer = useCallback((videoId: string) => {
+    // Destroy existing player if any
     if (ytPlayerRef.current) {
-      ytPlayerRef.current.destroy();
+      try {
+        ytPlayerRef.current.destroy();
+      } catch (e) {
+        console.log('Player destroy error:', e);
+      }
+      ytPlayerRef.current = null;
     }
 
-    ytPlayerRef.current = new window.YT.Player('youtube-player', {
+    // Get container and clear it
+    const container = document.getElementById('youtube-player-container');
+    if (!container) {
+      console.error('Player container not found');
+      return;
+    }
+    
+    // Create a new div for the player
+    container.innerHTML = '<div id="yt-player"></div>';
+
+    // Create new player
+    ytPlayerRef.current = new window.YT.Player('yt-player', {
       height: '1',
       width: '1',
       videoId: videoId,
@@ -66,20 +86,29 @@ const Index = () => {
         iv_load_policy: 3,
         modestbranding: 1,
         rel: 0,
+        origin: window.location.origin,
       },
       events: {
         onReady: (event: any) => {
+          console.log('Player ready, starting playback');
+          event.target.setVolume(80);
           event.target.playVideo();
-          setIsPlaying(true);
         },
         onStateChange: (event: any) => {
-          if (event.data === window.YT.PlayerState.ENDED) {
-            handleNext();
-          } else if (event.data === window.YT.PlayerState.PLAYING) {
+          console.log('Player state:', event.data);
+          if (event.data === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
+          } else if (event.data === window.YT.PlayerState.ENDED) {
+            handleNext();
           }
+        },
+        onError: (event: any) => {
+          console.error('YouTube Player Error:', event.data);
+          toast.error('Could not play this track. Trying next...');
+          // Try next track on error
+          setTimeout(() => handleNext(), 1000);
         },
       },
     });
@@ -95,15 +124,6 @@ const Index = () => {
     setSearchPerformed(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('youtube-search', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: undefined,
-      });
-
-      // Since we can't pass query params directly, let's use the URL approach
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(searchQuery)}`,
         {
@@ -124,6 +144,7 @@ const Index = () => {
       }
 
       setTracks(results);
+      toast.success(`Found ${results.length} tracks`);
     } catch (error) {
       console.error('Search error:', error);
       toast.error('Failed to search. Please try again.');
@@ -137,40 +158,50 @@ const Index = () => {
     setCurrentTrack(track);
     setCurrentTrackIndex(index);
 
-    if (window.YT && window.YT.Player) {
-      initializePlayer(track.id);
+    if (ytApiReady && window.YT && window.YT.Player) {
+      createPlayer(track.id);
     } else {
-      // Fallback: wait for API to load
-      const checkYT = setInterval(() => {
-        if (window.YT && window.YT.Player) {
-          clearInterval(checkYT);
-          initializePlayer(track.id);
-        }
-      }, 100);
+      toast.error('YouTube player not ready. Please try again.');
     }
-  }, [tracks, initializePlayer]);
+  }, [tracks, ytApiReady, createPlayer]);
 
   const handlePlayPause = useCallback(() => {
     if (!ytPlayerRef.current) return;
 
-    if (isPlaying) {
-      ytPlayerRef.current.pauseVideo();
-    } else {
-      ytPlayerRef.current.playVideo();
+    try {
+      if (isPlaying) {
+        ytPlayerRef.current.pauseVideo();
+      } else {
+        ytPlayerRef.current.playVideo();
+      }
+    } catch (e) {
+      console.error('Play/pause error:', e);
     }
   }, [isPlaying]);
 
   const handleNext = useCallback(() => {
     if (tracks.length === 0) return;
     const nextIndex = (currentTrackIndex + 1) % tracks.length;
-    handlePlayTrack(tracks[nextIndex]);
-  }, [currentTrackIndex, tracks, handlePlayTrack]);
+    const nextTrack = tracks[nextIndex];
+    setCurrentTrack(nextTrack);
+    setCurrentTrackIndex(nextIndex);
+    
+    if (ytApiReady && window.YT && window.YT.Player) {
+      createPlayer(nextTrack.id);
+    }
+  }, [currentTrackIndex, tracks, ytApiReady, createPlayer]);
 
   const handlePrevious = useCallback(() => {
     if (tracks.length === 0) return;
     const prevIndex = currentTrackIndex <= 0 ? tracks.length - 1 : currentTrackIndex - 1;
-    handlePlayTrack(tracks[prevIndex]);
-  }, [currentTrackIndex, tracks, handlePlayTrack]);
+    const prevTrack = tracks[prevIndex];
+    setCurrentTrack(prevTrack);
+    setCurrentTrackIndex(prevIndex);
+    
+    if (ytApiReady && window.YT && window.YT.Player) {
+      createPlayer(prevTrack.id);
+    }
+  }, [currentTrackIndex, tracks, ytApiReady, createPlayer]);
 
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
@@ -188,7 +219,6 @@ const Index = () => {
         />
 
         <main className="pt-28 pb-32 px-8">
-          {/* Section Header */}
           {searchPerformed && tracks.length > 0 && (
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -200,7 +230,6 @@ const Index = () => {
             </div>
           )}
 
-          {/* Track Grid */}
           <TrackGrid
             tracks={tracks}
             currentTrack={currentTrack}
@@ -217,7 +246,6 @@ const Index = () => {
         onPlayPause={handlePlayPause}
         onNext={handleNext}
         onPrevious={handlePrevious}
-        playerRef={playerRef}
       />
     </div>
   );
