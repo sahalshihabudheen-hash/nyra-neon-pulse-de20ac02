@@ -16,7 +16,7 @@ const menuItems = [
 
 const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-border flex flex-col z-40">
+    <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-border flex-col z-40">
       {/* Logo */}
       <div className="p-6 flex items-center gap-3">
         <img src={nyraLogo} alt="NYRA Logo" className="w-10 h-10 rounded-xl object-cover" />
