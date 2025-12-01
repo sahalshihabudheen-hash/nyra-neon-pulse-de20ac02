@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import TrackGrid from '@/components/TrackGrid';
 import MusicPlayer from '@/components/MusicPlayer';
 import { toast } from 'sonner';
+import { usePlaylist } from '@/hooks/usePlaylist';
 
 interface Track {
   id: string;
@@ -31,8 +32,19 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [ytApiReady, setYtApiReady] = useState(false);
+  const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
   
   const ytPlayerRef = useRef<any>(null);
+
+  const {
+    playlist,
+    addToPlaylist,
+    removeFromPlaylist,
+    clearPlaylist,
+    isInPlaylist,
+    getNextTrack,
+    getPreviousTrack,
+  } = usePlaylist();
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -107,7 +119,6 @@ const Index = () => {
         onError: (event: any) => {
           console.error('YouTube Player Error:', event.data);
           toast.error('Could not play this track. Trying next...');
-          // Try next track on error
           setTimeout(() => handleNext(), 1000);
         },
       },
@@ -122,6 +133,7 @@ const Index = () => {
 
     setIsLoading(true);
     setSearchPerformed(true);
+    setPlayingFromPlaylist(false);
 
     try {
       const response = await fetch(
@@ -157,6 +169,7 @@ const Index = () => {
     const index = tracks.findIndex(t => t.id === track.id);
     setCurrentTrack(track);
     setCurrentTrackIndex(index);
+    setPlayingFromPlaylist(false);
 
     if (ytApiReady && window.YT && window.YT.Player) {
       createPlayer(track.id);
@@ -164,6 +177,17 @@ const Index = () => {
       toast.error('YouTube player not ready. Please try again.');
     }
   }, [tracks, ytApiReady, createPlayer]);
+
+  const handlePlayFromPlaylist = useCallback((track: Track) => {
+    setCurrentTrack(track);
+    setPlayingFromPlaylist(true);
+
+    if (ytApiReady && window.YT && window.YT.Player) {
+      createPlayer(track.id);
+    } else {
+      toast.error('YouTube player not ready. Please try again.');
+    }
+  }, [ytApiReady, createPlayer]);
 
   const handlePlayPause = useCallback(() => {
     if (!ytPlayerRef.current) return;
@@ -180,28 +204,73 @@ const Index = () => {
   }, [isPlaying]);
 
   const handleNext = useCallback(() => {
+    if (playingFromPlaylist && currentTrack) {
+      const nextTrack = getNextTrack(currentTrack.id);
+      if (nextTrack) {
+        setCurrentTrack(nextTrack);
+        if (ytApiReady && window.YT && window.YT.Player) {
+          createPlayer(nextTrack.id);
+        }
+        return;
+      }
+    }
+
+    // Fall back to search results
     if (tracks.length === 0) return;
     const nextIndex = (currentTrackIndex + 1) % tracks.length;
     const nextTrack = tracks[nextIndex];
     setCurrentTrack(nextTrack);
     setCurrentTrackIndex(nextIndex);
+    setPlayingFromPlaylist(false);
     
     if (ytApiReady && window.YT && window.YT.Player) {
       createPlayer(nextTrack.id);
     }
-  }, [currentTrackIndex, tracks, ytApiReady, createPlayer]);
+  }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getNextTrack]);
 
   const handlePrevious = useCallback(() => {
+    if (playingFromPlaylist && currentTrack) {
+      const prevTrack = getPreviousTrack(currentTrack.id);
+      if (prevTrack) {
+        setCurrentTrack(prevTrack);
+        if (ytApiReady && window.YT && window.YT.Player) {
+          createPlayer(prevTrack.id);
+        }
+        return;
+      }
+    }
+
+    // Fall back to search results
     if (tracks.length === 0) return;
     const prevIndex = currentTrackIndex <= 0 ? tracks.length - 1 : currentTrackIndex - 1;
     const prevTrack = tracks[prevIndex];
     setCurrentTrack(prevTrack);
     setCurrentTrackIndex(prevIndex);
+    setPlayingFromPlaylist(false);
     
     if (ytApiReady && window.YT && window.YT.Player) {
       createPlayer(prevTrack.id);
     }
-  }, [currentTrackIndex, tracks, ytApiReady, createPlayer]);
+  }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getPreviousTrack]);
+
+  const handleAddToPlaylist = useCallback((track: Track) => {
+    if (isInPlaylist(track.id)) {
+      toast.info('Track already in playlist');
+      return;
+    }
+    addToPlaylist(track);
+    toast.success('Added to playlist');
+  }, [addToPlaylist, isInPlaylist]);
+
+  const handleRemoveFromPlaylist = useCallback((trackId: string) => {
+    removeFromPlaylist(trackId);
+    toast.success('Removed from playlist');
+  }, [removeFromPlaylist]);
+
+  const handleClearPlaylist = useCallback(() => {
+    clearPlaylist();
+    toast.success('Playlist cleared');
+  }, [clearPlaylist]);
 
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
@@ -211,17 +280,17 @@ const Index = () => {
     <div className="min-h-screen bg-background gradient-bg">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
-      <div className="ml-64">
+      <div className="ml-0 md:ml-64">
         <Navbar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSearch={handleSearch}
         />
 
-        <main className="pt-28 pb-32 px-8">
+        <main className="pt-28 pb-48 md:pb-32 px-4 md:px-8">
           {searchPerformed && tracks.length > 0 && (
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-foreground mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
                 Search Results
               </h1>
               <p className="text-muted-foreground">
@@ -246,6 +315,12 @@ const Index = () => {
         onPlayPause={handlePlayPause}
         onNext={handleNext}
         onPrevious={handlePrevious}
+        onAddToPlaylist={handleAddToPlaylist}
+        isInPlaylist={currentTrack ? isInPlaylist(currentTrack.id) : false}
+        playlist={playlist}
+        onPlayFromPlaylist={handlePlayFromPlaylist}
+        onRemoveFromPlaylist={handleRemoveFromPlaylist}
+        onClearPlaylist={handleClearPlaylist}
       />
     </div>
   );
