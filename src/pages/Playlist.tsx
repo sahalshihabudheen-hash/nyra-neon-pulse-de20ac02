@@ -1,10 +1,19 @@
-import { useState } from 'react';
-import { Play, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Play, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePlaylist } from '@/hooks/usePlaylist';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import MusicPlayer from '@/components/MusicPlayer';
+import Sidebar from '@/components/Sidebar';
+
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
 
 interface Track {
   id: string;
@@ -28,6 +37,85 @@ const Playlist = () => {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [ytApiReady, setYtApiReady] = useState(false);
+  const [activeTab, setActiveTab] = useState('playlists');
+  
+  const ytPlayerRef = useRef<any>(null);
+
+  // Load YouTube IFrame API
+  useEffect(() => {
+    if (window.YT && window.YT.Player) {
+      setYtApiReady(true);
+      return;
+    }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      setYtApiReady(true);
+    };
+  }, []);
+
+  const createPlayer = useCallback((videoId: string) => {
+    if (ytPlayerRef.current) {
+      try {
+        ytPlayerRef.current.destroy();
+      } catch (e) {
+        console.log('Player destroy error:', e);
+      }
+      ytPlayerRef.current = null;
+    }
+
+    const container = document.getElementById('youtube-player-container');
+    if (!container) return;
+    
+    container.innerHTML = '<div id="yt-player"></div>';
+
+    ytPlayerRef.current = new window.YT.Player('yt-player', {
+      height: '1',
+      width: '1',
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        iv_load_policy: 3,
+        modestbranding: 1,
+        rel: 0,
+        origin: window.location.origin,
+      },
+      events: {
+        onReady: (event: any) => {
+          event.target.setVolume(80);
+          event.target.playVideo();
+        },
+        onStateChange: (event: any) => {
+          if (event.data === window.YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+          } else if (event.data === window.YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+          } else if (event.data === window.YT.PlayerState.ENDED) {
+            // Auto-play next song
+            handleNext();
+          }
+        },
+        onError: (event: any) => {
+          toast.error('Could not play this track. Trying next...');
+          setTimeout(() => handleNext(), 1000);
+        },
+      },
+    });
+  }, []);
+
+  useEffect(() => {
+    if (ytApiReady && currentTrack) {
+      createPlayer(currentTrack.id);
+    }
+  }, [ytApiReady, currentTrack, createPlayer]);
 
   const handlePlayTrack = (track: Track) => {
     setCurrentTrack(track);
@@ -35,13 +123,40 @@ const Playlist = () => {
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    if (ytPlayerRef.current) {
+      if (isPlaying) {
+        ytPlayerRef.current.pauseVideo();
+      } else {
+        ytPlayerRef.current.playVideo();
+      }
+    }
   };
 
   const handleNext = () => {
     if (!currentTrack || playlist.length === 0) return;
+    
     const currentIndex = playlist.findIndex(t => t.id === currentTrack.id);
-    const nextIndex = (currentIndex + 1) % playlist.length;
+    let nextIndex: number;
+    
+    if (loopMode === 'one') {
+      // Replay the same song
+      if (ytPlayerRef.current) {
+        ytPlayerRef.current.seekTo(0);
+        ytPlayerRef.current.playVideo();
+      }
+      return;
+    } else if (loopMode === 'all') {
+      // Loop to start when reaching end
+      nextIndex = (currentIndex + 1) % playlist.length;
+    } else {
+      // Stop at end if not looping
+      nextIndex = currentIndex + 1;
+      if (nextIndex >= playlist.length) {
+        setIsPlaying(false);
+        return;
+      }
+    }
+    
     setCurrentTrack(playlist[nextIndex]);
   };
 
@@ -65,10 +180,12 @@ const Playlist = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+      
       <Navbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onSearch={() => {}}
+        onSearch={() => navigate('/')}
       />
       
       <main className="flex-1 md:ml-64 pt-20 pb-32 px-4 md:px-8">
@@ -89,7 +206,15 @@ const Playlist = () => {
             </div>
             
             {/* Controls */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => toast.info('Create named playlists coming soon!')}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-all neon-glow flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Create Playlist</span>
+              </button>
+              
               <button
                 onClick={toggleShuffle}
                 className={cn(
