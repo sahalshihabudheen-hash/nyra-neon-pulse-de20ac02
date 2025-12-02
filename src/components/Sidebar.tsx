@@ -11,7 +11,7 @@ interface SidebarProps {
 const menuItems = [
   { id: 'home', label: 'Home', icon: Home, path: '/' },
   { id: 'search', label: 'Search', icon: Search, path: '/' },
-  { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlist' },
+  { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlists' },
   { id: 'favorites', label: 'Favorites', icon: Heart, path: '/' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/' },
 ];
@@ -33,7 +33,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.id === 'playlists' 
-              ? location.pathname === '/playlist'
+              ? location.pathname.startsWith('/playlist')
               : item.id === activeTab;
             
             return (
@@ -41,9 +41,12 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
                 <button
                   onClick={() => {
                     if (item.id === 'playlists') {
-                      navigate('/playlist');
+                      navigate('/playlists');
                     } else {
                       onTabChange(item.id);
+                      if (item.path !== '/') {
+                        navigate(item.path);
+                      }
                     }
                   }}
                   className={cn(
