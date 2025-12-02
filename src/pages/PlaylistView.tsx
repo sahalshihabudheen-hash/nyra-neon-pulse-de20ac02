@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Play, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { usePlaylist } from '@/hooks/usePlaylist';
-import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
 import MusicPlayer from '@/components/MusicPlayer';
 import Sidebar from '@/components/Sidebar';
@@ -22,25 +23,45 @@ interface Track {
   channel: string;
 }
 
-const Playlist = () => {
-  const navigate = useNavigate();
-  const {
-    playlist,
-    removeFromPlaylist,
-    clearPlaylist,
-    shuffleMode,
-    toggleShuffle,
-    loopMode,
-    cycleLoopMode,
-  } = usePlaylist();
+interface PlaylistItem {
+  id: string;
+  track_id: string;
+  track_title: string;
+  track_thumbnail: string;
+  track_channel: string;
+}
 
+interface Playlist {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+const PlaylistView = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  
+  const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [ytApiReady, setYtApiReady] = useState(false);
   const [activeTab, setActiveTab] = useState('playlists');
+  const [shuffleMode, setShuffleMode] = useState(false);
+  const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>('off');
+  const [loading, setLoading] = useState(true);
   
   const ytPlayerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    } else if (user && id) {
+      fetchPlaylist();
+    }
+  }, [user, authLoading, id, navigate]);
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -58,6 +79,41 @@ const Playlist = () => {
       setYtApiReady(true);
     };
   }, []);
+
+  const fetchPlaylist = async () => {
+    try {
+      const { data: playlistData, error: playlistError } = await supabase
+        .from('playlists')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (playlistError) throw playlistError;
+      setPlaylist(playlistData);
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('playlist_items')
+        .select('*')
+        .eq('playlist_id', id)
+        .order('position', { ascending: true });
+
+      if (itemsError) throw itemsError;
+
+      const playlistTracks = itemsData?.map((item: PlaylistItem) => ({
+        id: item.track_id,
+        title: item.track_title,
+        thumbnail: item.track_thumbnail,
+        channel: item.track_channel,
+      })) || [];
+
+      setTracks(playlistTracks);
+    } catch (error: any) {
+      toast.error('Failed to load playlist');
+      navigate('/playlists');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const createPlayer = useCallback((videoId: string) => {
     if (ytPlayerRef.current) {
@@ -99,7 +155,6 @@ const Playlist = () => {
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
           } else if (event.data === window.YT.PlayerState.ENDED) {
-            // Auto-play next song
             handleNext();
           }
         },
@@ -133,38 +188,52 @@ const Playlist = () => {
   };
 
   const handleNext = () => {
-    if (!currentTrack || playlist.length === 0) return;
+    if (!currentTrack || tracks.length === 0) return;
     
-    const currentIndex = playlist.findIndex(t => t.id === currentTrack.id);
+    const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
     let nextIndex: number;
     
     if (loopMode === 'one') {
-      // Replay the same song
       if (ytPlayerRef.current) {
         ytPlayerRef.current.seekTo(0);
         ytPlayerRef.current.playVideo();
       }
       return;
     } else if (loopMode === 'all') {
-      // Loop to start when reaching end
-      nextIndex = (currentIndex + 1) % playlist.length;
+      nextIndex = (currentIndex + 1) % tracks.length;
     } else {
-      // Stop at end if not looping
       nextIndex = currentIndex + 1;
-      if (nextIndex >= playlist.length) {
+      if (nextIndex >= tracks.length) {
         setIsPlaying(false);
         return;
       }
     }
     
-    setCurrentTrack(playlist[nextIndex]);
+    setCurrentTrack(tracks[nextIndex]);
   };
 
   const handlePrevious = () => {
-    if (!currentTrack || playlist.length === 0) return;
-    const currentIndex = playlist.findIndex(t => t.id === currentTrack.id);
-    const prevIndex = currentIndex <= 0 ? playlist.length - 1 : currentIndex - 1;
-    setCurrentTrack(playlist[prevIndex]);
+    if (!currentTrack || tracks.length === 0) return;
+    const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
+    const prevIndex = currentIndex <= 0 ? tracks.length - 1 : currentIndex - 1;
+    setCurrentTrack(tracks[prevIndex]);
+  };
+
+  const handleRemoveTrack = async (trackId: string) => {
+    try {
+      const { error } = await supabase
+        .from('playlist_items')
+        .delete()
+        .eq('playlist_id', id)
+        .eq('track_id', trackId);
+
+      if (error) throw error;
+
+      toast.success('Track removed');
+      fetchPlaylist();
+    } catch (error: any) {
+      toast.error('Failed to remove track');
+    }
   };
 
   const getLoopIcon = () => {
@@ -178,6 +247,22 @@ const Playlist = () => {
     }
   };
 
+  const cycleLoopMode = () => {
+    setLoopMode(prev => {
+      if (prev === 'off') return 'all';
+      if (prev === 'all') return 'one';
+      return 'off';
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -189,34 +274,27 @@ const Playlist = () => {
       />
       
       <main className="flex-1 md:ml-64 pt-20 pb-32 px-4 md:px-8">
-        {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/playlists')}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            Back to Home
+            Back to Playlists
           </button>
           
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold neon-text mb-2">Your Playlist</h1>
-              <p className="text-muted-foreground">{playlist.length} tracks</p>
+              <h1 className="text-4xl font-bold neon-text mb-2">{playlist?.name}</h1>
+              {playlist?.description && (
+                <p className="text-muted-foreground mb-2">{playlist.description}</p>
+              )}
+              <p className="text-muted-foreground">{tracks.length} tracks</p>
             </div>
             
-            {/* Controls */}
             <div className="flex items-center gap-3 flex-wrap">
               <button
-                onClick={() => toast.info('Create named playlists coming soon!')}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-all neon-glow flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Create Playlist</span>
-              </button>
-              
-              <button
-                onClick={toggleShuffle}
+                onClick={() => setShuffleMode(!shuffleMode)}
                 className={cn(
                   'w-10 h-10 rounded-full flex items-center justify-center transition-all',
                   shuffleMode
@@ -240,29 +318,19 @@ const Playlist = () => {
               >
                 {getLoopIcon()}
               </button>
-              
-              {playlist.length > 0 && (
-                <button
-                  onClick={clearPlaylist}
-                  className="px-4 py-2 text-sm bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-full transition-colors"
-                >
-                  Clear All
-                </button>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Playlist */}
-        {playlist.length === 0 ? (
+        {tracks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <Play className="w-16 h-16 mb-4 opacity-50" />
-            <p className="text-xl font-medium">Your playlist is empty</p>
-            <p className="text-sm">Add songs from the home page to get started</p>
+            <p className="text-xl font-medium">This playlist is empty</p>
+            <p className="text-sm">Add songs from the home page</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {playlist.map((track, index) => (
+            {tracks.map((track, index) => (
               <div
                 key={track.id}
                 className={cn(
@@ -272,7 +340,6 @@ const Playlist = () => {
                     : 'bg-card hover:bg-card/80 border border-transparent'
                 )}
               >
-                {/* Index/Playing indicator */}
                 <div className="w-8 text-center">
                   {currentTrack?.id === track.id ? (
                     <div className="flex items-center justify-center gap-0.5">
@@ -291,14 +358,12 @@ const Playlist = () => {
                   )}
                 </div>
 
-                {/* Thumbnail */}
                 <img
                   src={track.thumbnail}
                   alt={track.title}
                   className="w-16 h-16 rounded-lg object-cover"
                 />
 
-                {/* Track Info */}
                 <div className="flex-1 min-w-0">
                   <p
                     className={cn(
@@ -311,7 +376,6 @@ const Playlist = () => {
                   <p className="text-sm text-muted-foreground truncate">{track.channel}</p>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handlePlayTrack(track)}
@@ -320,7 +384,7 @@ const Playlist = () => {
                     <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
                   </button>
                   <button
-                    onClick={() => removeFromPlaylist(track.id)}
+                    onClick={() => handleRemoveTrack(track.id)}
                     className="w-11 h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -339,14 +403,14 @@ const Playlist = () => {
           onPlayPause={handlePlayPause}
           onNext={handleNext}
           onPrevious={handlePrevious}
-          playlist={playlist}
+          playlist={tracks}
           onPlayFromPlaylist={handlePlayTrack}
-          onRemoveFromPlaylist={removeFromPlaylist}
-          onClearPlaylist={clearPlaylist}
+          onRemoveFromPlaylist={handleRemoveTrack}
+          onClearPlaylist={() => {}}
         />
       )}
     </div>
   );
 };
 
-export default Playlist;
+export default PlaylistView;

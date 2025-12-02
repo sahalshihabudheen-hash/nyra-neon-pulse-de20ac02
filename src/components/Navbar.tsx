@@ -1,5 +1,6 @@
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, LogOut } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavbarProps {
   searchQuery: string;
@@ -8,6 +9,8 @@ interface NavbarProps {
 }
 
 const Navbar = ({ searchQuery, onSearchChange, onSearch }: NavbarProps) => {
+  const { user, signOut } = useAuth();
+  
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       onSearch();
@@ -36,6 +39,17 @@ const Navbar = ({ searchQuery, onSearchChange, onSearch }: NavbarProps) => {
         <button className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
           <Bell className="w-4 h-4 md:w-5 md:h-5" />
         </button>
+        
+        {user && (
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 px-3 py-2 rounded-full bg-secondary text-muted-foreground hover:text-destructive hover:bg-muted transition-all"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="hidden md:inline text-sm">Sign Out</span>
+          </button>
+        )}
       </div>
     </header>
   );

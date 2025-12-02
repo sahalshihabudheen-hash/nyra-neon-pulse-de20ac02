@@ -1,5 +1,6 @@
 import { Play, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AddToPlaylistDialog from './AddToPlaylistDialog';
 
 interface Track {
   id: string;
@@ -68,16 +69,29 @@ const TrackCard = ({ track, isPlaying, onPlay }: TrackCardProps) => {
         <p className="text-sm text-muted-foreground truncate mt-1">{track.channel}</p>
       </div>
 
-      {/* Favorite Button */}
-      <button
-        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
-        onClick={(e) => {
-          e.stopPropagation();
-          // Handle favorite
-        }}
-      >
-        <Heart className="w-4 h-4" />
-      </button>
+      {/* Action Buttons */}
+      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+        <AddToPlaylistDialog
+          track={track}
+          trigger={
+            <button
+              className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary transition-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Heart className="w-4 h-4" />
+            </button>
+          }
+        />
+        <button
+          className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary transition-all"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Handle favorite
+          }}
+        >
+          <Heart className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 };

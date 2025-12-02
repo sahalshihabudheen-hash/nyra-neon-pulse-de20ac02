@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SplashScreen from '@/components/SplashScreen';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
@@ -6,6 +7,8 @@ import TrackGrid from '@/components/TrackGrid';
 import MusicPlayer from '@/components/MusicPlayer';
 import { toast } from 'sonner';
 import { usePlaylist } from '@/hooks/usePlaylist';
+import { useAuth } from '@/hooks/useAuth';
+import { famousSongs } from '@/data/famousSongs';
 
 interface Track {
   id: string;
@@ -22,6 +25,8 @@ declare global {
 }
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +40,20 @@ const Index = () => {
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
   
   const ytPlayerRef = useRef<any>(null);
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  // Show famous songs by default
+  useEffect(() => {
+    if (!searchPerformed && tracks.length === 0) {
+      setTracks(famousSongs);
+    }
+  }, [searchPerformed, tracks.length]);
 
   const {
     playlist,
