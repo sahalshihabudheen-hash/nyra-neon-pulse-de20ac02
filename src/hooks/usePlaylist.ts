@@ -11,6 +11,8 @@ const PLAYLIST_STORAGE_KEY = 'nyra-playlist';
 
 export function usePlaylist() {
   const [playlist, setPlaylist] = useState<Track[]>([]);
+  const [shuffleMode, setShuffleMode] = useState(false);
+  const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>('off');
 
   // Load playlist from localStorage on mount
   useEffect(() => {
@@ -69,6 +71,18 @@ export function usePlaylist() {
     return playlist[prevIndex];
   }, [playlist]);
 
+  const toggleShuffle = useCallback(() => {
+    setShuffleMode(prev => !prev);
+  }, []);
+
+  const cycleLoopMode = useCallback(() => {
+    setLoopMode(prev => {
+      if (prev === 'off') return 'all';
+      if (prev === 'all') return 'one';
+      return 'off';
+    });
+  }, []);
+
   return {
     playlist,
     addToPlaylist,
@@ -78,5 +92,9 @@ export function usePlaylist() {
     getTrackIndex,
     getNextTrack,
     getPreviousTrack,
+    shuffleMode,
+    toggleShuffle,
+    loopMode,
+    cycleLoopMode,
   };
 }
