@@ -1,20 +1,24 @@
 import { Home, Search, ListMusic, Heart, Settings } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import nyraLogo from '@/assets/nyra-logo.png';
+
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
 const menuItems = [
-  { id: 'home', label: 'Home', icon: Home },
-  { id: 'search', label: 'Search', icon: Search },
-  { id: 'playlists', label: 'Playlists', icon: ListMusic },
-  { id: 'favorites', label: 'Favorites', icon: Heart },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'home', label: 'Home', icon: Home, path: '/' },
+  { id: 'search', label: 'Search', icon: Search, path: '/' },
+  { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlist' },
+  { id: 'favorites', label: 'Favorites', icon: Heart, path: '/' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/' },
 ];
 
 const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   return (
     <aside className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-sidebar border-r border-border flex-col z-40">
       {/* Logo */}
@@ -28,12 +32,20 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = item.id === 'playlists' 
+              ? location.pathname === '/playlist'
+              : item.id === activeTab;
             
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => onTabChange(item.id)}
+                  onClick={() => {
+                    if (item.id === 'playlists') {
+                      navigate('/playlist');
+                    } else {
+                      onTabChange(item.id);
+                    }
+                  }}
                   className={cn(
                     'w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300',
                     isActive
