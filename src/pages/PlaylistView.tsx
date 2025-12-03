@@ -1,13 +1,17 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Plus } from 'lucide-react';
+import { Play, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
 import MusicPlayer from '@/components/MusicPlayer';
 import Sidebar from '@/components/Sidebar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 declare global {
   interface Window {
@@ -41,12 +45,16 @@ const PlaylistView = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { settings } = useTheme();
   
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [navSearchQuery, setNavSearchQuery] = useState('');
+  const [playlistSearchQuery, setPlaylistSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Track[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [ytApiReady, setYtApiReady] = useState(false);
   const [activeTab, setActiveTab] = useState('playlists');
   const [shuffleMode, setShuffleMode] = useState(false);
@@ -155,16 +163,22 @@ const PlaylistView = () => {
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
           } else if (event.data === window.YT.PlayerState.ENDED) {
-            handleNext();
+            if (settings.autoPlayNext) {
+              handleNext();
+            } else {
+              setIsPlaying(false);
+            }
           }
         },
         onError: (event: any) => {
           toast.error('Could not play this track. Trying next...');
-          setTimeout(() => handleNext(), 1000);
+          if (settings.autoPlayNext) {
+            setTimeout(() => handleNext(), 1000);
+          }
         },
       },
     });
-  }, []);
+  }, [settings.autoPlayNext]);
 
   useEffect(() => {
     if (ytApiReady && currentTrack) {
@@ -187,7 +201,7 @@ const PlaylistView = () => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (!currentTrack || tracks.length === 0) return;
     
     const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
@@ -205,12 +219,13 @@ const PlaylistView = () => {
       nextIndex = currentIndex + 1;
       if (nextIndex >= tracks.length) {
         setIsPlaying(false);
+        toast.info('Playlist ended');
         return;
       }
     }
     
     setCurrentTrack(tracks[nextIndex]);
-  };
+  }, [currentTrack, tracks, loopMode]);
 
   const handlePrevious = () => {
     if (!currentTrack || tracks.length === 0) return;
@@ -233,6 +248,64 @@ const PlaylistView = () => {
       fetchPlaylist();
     } catch (error: any) {
       toast.error('Failed to remove track');
+    }
+  };
+
+  const handlePlaylistSearch = async () => {
+    if (!playlistSearchQuery.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(playlistSearchQuery)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error('Search failed');
+
+      const results = await response.json();
+      if (results.error) throw new Error(results.error);
+
+      setSearchResults(results);
+    } catch (error) {
+      toast.error('Search failed');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAddToPlaylist = async (track: Track) => {
+    try {
+      // Check if already exists
+      const exists = tracks.some(t => t.id === track.id);
+      if (exists) {
+        toast.info('Track already in playlist');
+        return;
+      }
+
+      const nextPosition = tracks.length;
+
+      const { error } = await supabase.from('playlist_items').insert({
+        playlist_id: id,
+        track_id: track.id,
+        track_title: track.title,
+        track_thumbnail: track.thumbnail,
+        track_channel: track.channel,
+        position: nextPosition,
+      });
+
+      if (error) throw error;
+
+      toast.success('Added to playlist!');
+      fetchPlaylist();
+      setSearchResults([]);
+      setPlaylistSearchQuery('');
+    } catch (error: any) {
+      toast.error('Failed to add track');
     }
   };
 
@@ -264,17 +337,17 @@ const PlaylistView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background/80 flex flex-col">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <Navbar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        searchQuery={navSearchQuery}
+        onSearchChange={setNavSearchQuery}
         onSearch={() => navigate('/')}
       />
       
-      <main className="flex-1 md:ml-64 pt-20 pb-32 px-4 md:px-8">
-        <div className="mb-8">
+      <main className="flex-1 md:ml-64 pt-20 pb-36 px-4 md:px-8">
+        <div className="mb-6">
           <button
             onClick={() => navigate('/playlists')}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 transition-colors"
@@ -283,9 +356,9 @@ const PlaylistView = () => {
             Back to Playlists
           </button>
           
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold neon-text mb-2">{playlist?.name}</h1>
+              <h1 className="text-3xl md:text-4xl font-bold neon-text mb-2">{playlist?.name}</h1>
               {playlist?.description && (
                 <p className="text-muted-foreground mb-2">{playlist.description}</p>
               )}
@@ -322,77 +395,132 @@ const PlaylistView = () => {
           </div>
         </div>
 
+        {/* Search within playlist page */}
+        <div className="mb-6 p-4 bg-card rounded-xl border border-border">
+          <h3 className="text-lg font-semibold mb-3 text-foreground">Add Songs to Playlist</h3>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search YouTube for songs..."
+                value={playlistSearchQuery}
+                onChange={(e) => setPlaylistSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePlaylistSearch()}
+                className="pl-10 bg-secondary border-border"
+              />
+            </div>
+            <Button onClick={handlePlaylistSearch} disabled={isSearching}>
+              {isSearching ? 'Searching...' : 'Search'}
+            </Button>
+          </div>
+
+          {/* Search Results */}
+          {searchResults.length > 0 && (
+            <ScrollArea className="mt-4 max-h-60">
+              <div className="space-y-2">
+                {searchResults.map((track) => (
+                  <div
+                    key={track.id}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+                  >
+                    <img
+                      src={track.thumbnail}
+                      alt={track.title}
+                      className="w-12 h-12 rounded object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{track.channel}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleAddToPlaylist(track)}
+                      className="shrink-0"
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </div>
+
+        {/* Playlist Tracks */}
         {tracks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
             <Play className="w-16 h-16 mb-4 opacity-50" />
             <p className="text-xl font-medium">This playlist is empty</p>
-            <p className="text-sm">Add songs from the home page</p>
+            <p className="text-sm">Use the search above to add songs</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {tracks.map((track, index) => (
-              <div
-                key={track.id}
-                className={cn(
-                  'flex items-center gap-4 p-4 rounded-xl transition-all group',
-                  currentTrack?.id === track.id
-                    ? 'bg-primary/20 border border-primary/30'
-                    : 'bg-card hover:bg-card/80 border border-transparent'
-                )}
-              >
-                <div className="w-8 text-center">
-                  {currentTrack?.id === track.id ? (
-                    <div className="flex items-center justify-center gap-0.5">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="w-1 bg-primary rounded-full soundwave-bar"
-                          style={{ height: '16px' }}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground font-medium">
-                      {index + 1}
-                    </span>
+          <ScrollArea className="h-[calc(100vh-500px)] min-h-64">
+            <div className="space-y-2">
+              {tracks.map((track, index) => (
+                <div
+                  key={track.id}
+                  className={cn(
+                    'flex items-center gap-4 p-3 md:p-4 rounded-xl transition-all group',
+                    currentTrack?.id === track.id
+                      ? 'bg-primary/20 border border-primary/30'
+                      : 'bg-card hover:bg-card/80 border border-transparent'
                   )}
-                </div>
-
-                <img
-                  src={track.thumbnail}
-                  alt={track.title}
-                  className="w-16 h-16 rounded-lg object-cover"
-                />
-
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={cn(
-                      'font-semibold truncate text-lg',
-                      currentTrack?.id === track.id ? 'text-primary' : 'text-foreground'
+                >
+                  <div className="w-8 text-center shrink-0">
+                    {currentTrack?.id === track.id ? (
+                      <div className="flex items-center justify-center gap-0.5">
+                        {[...Array(3)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-1 bg-primary rounded-full soundwave-bar"
+                            style={{ height: '16px' }}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground font-medium">
+                        {index + 1}
+                      </span>
                     )}
-                  >
-                    {track.title}
-                  </p>
-                  <p className="text-sm text-muted-foreground truncate">{track.channel}</p>
-                </div>
+                  </div>
 
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handlePlayTrack(track)}
-                    className="w-11 h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow"
-                  >
-                    <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
-                  </button>
-                  <button
-                    onClick={() => handleRemoveTrack(track.id)}
-                    className="w-11 h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <img
+                    src={track.thumbnail}
+                    alt={track.title}
+                    className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover shrink-0"
+                  />
+
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        'font-semibold truncate text-base md:text-lg',
+                        currentTrack?.id === track.id ? 'text-primary' : 'text-foreground'
+                      )}
+                    >
+                      {track.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground truncate">{track.channel}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handlePlayTrack(track)}
+                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow"
+                    >
+                      <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveTrack(track.id)}
+                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
       </main>
 
@@ -407,6 +535,7 @@ const PlaylistView = () => {
           onPlayFromPlaylist={handlePlayTrack}
           onRemoveFromPlaylist={handleRemoveTrack}
           onClearPlaylist={() => {}}
+          ytPlayerRef={ytPlayerRef}
         />
       )}
     </div>

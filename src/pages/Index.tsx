@@ -5,9 +5,11 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import TrackGrid from '@/components/TrackGrid';
 import MusicPlayer from '@/components/MusicPlayer';
+import TrendingSection from '@/components/TrendingSection';
 import { toast } from 'sonner';
 import { usePlaylist } from '@/hooks/usePlaylist';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
 
 interface Track {
@@ -27,6 +29,7 @@ declare global {
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { settings } = useTheme();
   const [showSplash, setShowSplash] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
@@ -132,17 +135,23 @@ const Index = () => {
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
           } else if (event.data === window.YT.PlayerState.ENDED) {
-            handleNext();
+            if (settings.autoPlayNext) {
+              handleNext();
+            } else {
+              setIsPlaying(false);
+            }
           }
         },
         onError: (event: any) => {
           console.error('YouTube Player Error:', event.data);
           toast.error('Could not play this track. Trying next...');
-          setTimeout(() => handleNext(), 1000);
+          if (settings.autoPlayNext) {
+            setTimeout(() => handleNext(), 1000);
+          }
         },
       },
     });
-  }, []);
+  }, [settings.autoPlayNext]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
@@ -231,12 +240,22 @@ const Index = () => {
           createPlayer(nextTrack.id);
         }
         return;
+      } else {
+        // End of playlist
+        setIsPlaying(false);
+        toast.info('Playlist ended');
+        return;
       }
     }
 
     // Fall back to search results
     if (tracks.length === 0) return;
-    const nextIndex = (currentTrackIndex + 1) % tracks.length;
+    const nextIndex = currentTrackIndex + 1;
+    if (nextIndex >= tracks.length) {
+      setIsPlaying(false);
+      toast.info('End of tracks');
+      return;
+    }
     const nextTrack = tracks[nextIndex];
     setCurrentTrack(nextTrack);
     setCurrentTrackIndex(nextIndex);
@@ -296,7 +315,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background gradient-bg">
+    <div className="min-h-screen bg-background/80 gradient-bg">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <div className="ml-0 md:ml-64">
@@ -306,7 +325,15 @@ const Index = () => {
           onSearch={handleSearch}
         />
 
-        <main className="pt-28 pb-48 md:pb-32 px-4 md:px-8">
+        <main className="pt-28 pb-48 md:pb-36 px-4 md:px-8">
+          {/* Trending Section */}
+          {!searchPerformed && (
+            <TrendingSection 
+              onPlayTrack={handlePlayTrack}
+              currentTrack={currentTrack}
+            />
+          )}
+
           {searchPerformed && tracks.length > 0 && (
             <div className="mb-8">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
@@ -314,6 +341,17 @@ const Index = () => {
               </h1>
               <p className="text-muted-foreground">
                 Found {tracks.length} tracks for "{searchQuery}"
+              </p>
+            </div>
+          )}
+
+          {!searchPerformed && (
+            <div className="mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                Popular Songs
+              </h2>
+              <p className="text-muted-foreground">
+                Discover trending hits and popular tracks
               </p>
             </div>
           )}
@@ -340,6 +378,7 @@ const Index = () => {
         onPlayFromPlaylist={handlePlayFromPlaylist}
         onRemoveFromPlaylist={handleRemoveFromPlaylist}
         onClearPlaylist={handleClearPlaylist}
+        ytPlayerRef={ytPlayerRef}
       />
     </div>
   );
