@@ -29,7 +29,7 @@ const TrendingSection = ({ onPlayTrack, currentTrack }: TrendingSectionProps) =>
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent('trending music 2024 hits')}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent('trending music 2025 hits')}`,
         {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
