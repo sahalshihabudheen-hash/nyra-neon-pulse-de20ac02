@@ -163,8 +163,8 @@ const PlaylistView = () => {
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
           } else if (event.data === window.YT.PlayerState.ENDED) {
-            if (settings.autoPlayNext) {
-              handleNext();
+            if (settings.autoPlayNext && handleNextRef.current) {
+              handleNextRef.current();
             } else {
               setIsPlaying(false);
             }
@@ -172,8 +172,8 @@ const PlaylistView = () => {
         },
         onError: (event: any) => {
           toast.error('Could not play this track. Trying next...');
-          if (settings.autoPlayNext) {
-            setTimeout(() => handleNext(), 1000);
+          if (settings.autoPlayNext && handleNextRef.current) {
+            setTimeout(() => handleNextRef.current?.(), 1000);
           }
         },
       },
@@ -201,6 +201,8 @@ const PlaylistView = () => {
     }
   };
 
+  const handleNextRef = useRef<() => void>();
+  
   const handleNext = useCallback(() => {
     if (!currentTrack || tracks.length === 0) return;
     
@@ -226,6 +228,11 @@ const PlaylistView = () => {
     
     setCurrentTrack(tracks[nextIndex]);
   }, [currentTrack, tracks, loopMode]);
+
+  // Keep ref updated to avoid stale closure in createPlayer
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
 
   const handlePrevious = () => {
     if (!currentTrack || tracks.length === 0) return;

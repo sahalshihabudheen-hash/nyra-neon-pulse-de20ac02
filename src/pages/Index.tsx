@@ -43,6 +43,7 @@ const Index = () => {
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
   
   const ytPlayerRef = useRef<any>(null);
+  const handleNextRef = useRef<() => void>();
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -135,8 +136,8 @@ const Index = () => {
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
           } else if (event.data === window.YT.PlayerState.ENDED) {
-            if (settings.autoPlayNext) {
-              handleNext();
+            if (settings.autoPlayNext && handleNextRef.current) {
+              handleNextRef.current();
             } else {
               setIsPlaying(false);
             }
@@ -145,8 +146,8 @@ const Index = () => {
         onError: (event: any) => {
           console.error('YouTube Player Error:', event.data);
           toast.error('Could not play this track. Trying next...');
-          if (settings.autoPlayNext) {
-            setTimeout(() => handleNext(), 1000);
+          if (settings.autoPlayNext && handleNextRef.current) {
+            setTimeout(() => handleNextRef.current?.(), 1000);
           }
         },
       },
@@ -265,6 +266,11 @@ const Index = () => {
       createPlayer(nextTrack.id);
     }
   }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getNextTrack]);
+
+  // Keep ref updated to avoid stale closure in createPlayer
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
 
   const handlePrevious = useCallback(() => {
     if (playingFromPlaylist && currentTrack) {
