@@ -1,4 +1,4 @@
-import { Play, Trash2, ListMusic, X } from 'lucide-react';
+import { Play, Pause, Trash2, ListMusic, X } from 'lucide-react';
 import {
   Drawer,
   DrawerClose,
@@ -25,6 +25,7 @@ interface PlaylistDrawerProps {
   onClearPlaylist: () => void;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  isPlaying?: boolean;
 }
 
 const PlaylistDrawer = ({
@@ -35,6 +36,7 @@ const PlaylistDrawer = ({
   onClearPlaylist,
   isOpen,
   onOpenChange,
+  isPlaying = false,
 }: PlaylistDrawerProps) => {
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
@@ -134,13 +136,17 @@ const PlaylistDrawer = ({
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => onPlayTrack(track)}
-                      className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform"
+                      className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform active:scale-95"
                     >
-                      <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+                      {currentTrack?.id === track.id && isPlaying ? (
+                        <Pause className="w-4 h-4" fill="currentColor" />
+                      ) : (
+                        <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+                      )}
                     </button>
                     <button
                       onClick={() => onRemoveTrack(track.id)}
-                      className="w-9 h-9 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors"
+                      className="w-9 h-9 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
