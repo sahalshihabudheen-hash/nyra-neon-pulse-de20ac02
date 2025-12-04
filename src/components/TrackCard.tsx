@@ -1,6 +1,7 @@
-import { Play, Heart } from 'lucide-react';
+import { Play, Pause, ListPlus, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddToPlaylistDialog from './AddToPlaylistDialog';
+import { toast } from 'sonner';
 
 interface Track {
   id: string;
@@ -13,9 +14,23 @@ interface TrackCardProps {
   track: Track;
   isPlaying: boolean;
   onPlay: (track: Track) => void;
+  onAddToQueue?: (track: Track) => void;
 }
 
-const TrackCard = ({ track, isPlaying, onPlay }: TrackCardProps) => {
+const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) => {
+  const handleAddToQueue = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onAddToQueue) {
+      onAddToQueue(track);
+      toast.success('Added to queue');
+    }
+  };
+
+  const handlePlayNow = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onPlay(track);
+  };
+
   return (
     <div
       className={cn(
@@ -44,7 +59,11 @@ const TrackCard = ({ track, isPlaying, onPlay }: TrackCardProps) => {
               : 'bg-primary text-primary-foreground scale-0 group-hover:scale-100 hover:neon-glow'
           )}
         >
-          <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+          {isPlaying ? (
+            <Pause className="w-5 h-5" fill="currentColor" />
+          ) : (
+            <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+          )}
         </button>
 
         {/* Equalizer Animation (when playing) */}
@@ -71,26 +90,35 @@ const TrackCard = ({ track, isPlaying, onPlay }: TrackCardProps) => {
 
       {/* Action Buttons */}
       <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+        {/* Play Now */}
+        <button
+          className="w-8 h-8 rounded-full bg-primary/90 flex items-center justify-center text-primary-foreground hover:bg-primary transition-all active:scale-95"
+          onClick={handlePlayNow}
+          title="Play Now"
+        >
+          <PlayCircle className="w-4 h-4" />
+        </button>
+        {/* Add to Queue */}
+        <button
+          className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-background transition-all active:scale-95"
+          onClick={handleAddToQueue}
+          title="Add to Queue"
+        >
+          <ListPlus className="w-4 h-4" />
+        </button>
+        {/* Add to Playlist */}
         <AddToPlaylistDialog
           track={track}
           trigger={
             <button
-              className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary transition-all"
+              className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary transition-all active:scale-95"
               onClick={(e) => e.stopPropagation()}
+              title="Add to Playlist"
             >
-              <Heart className="w-4 h-4" />
+              <ListPlus className="w-4 h-4" />
             </button>
           }
         />
-        <button
-          className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary transition-all"
-          onClick={(e) => {
-            e.stopPropagation();
-            // Handle favorite
-          }}
-        >
-          <Heart className="w-4 h-4" />
-        </button>
       </div>
     </div>
   );

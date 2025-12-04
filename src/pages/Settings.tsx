@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
+import SettingsSoundwave from '@/components/SettingsSoundwave';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
@@ -33,7 +34,8 @@ const Settings = () => {
 
   const handleClearPlaylist = () => {
     localStorage.removeItem('nyra-playlist');
-    toast.success('Playlist cleared');
+    localStorage.removeItem('nyra-queue');
+    toast.success('Playlist and queue cleared');
   };
 
   return (
@@ -50,19 +52,24 @@ const Settings = () => {
         <main className="pt-28 pb-32 px-4 md:px-8">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+            className="flex items-center gap-2 text-muted-foreground hover:text-primary mb-6 transition-colors active:scale-95"
           >
             <ArrowLeft className="w-5 h-5" />
             Back to Home
           </button>
 
-          <h1 className="text-4xl font-bold neon-text mb-8">Settings</h1>
+          <div className="flex items-center gap-4 mb-8">
+            <h1 className="text-4xl font-bold neon-text">Settings</h1>
+            {/* Animated Soundwave in header */}
+            <SettingsSoundwave className="h-8" />
+          </div>
 
           {/* Theme Selection */}
           <section className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <Palette className="w-6 h-6 text-primary" />
               <h2 className="text-2xl font-semibold text-foreground">Theme</h2>
+              <SettingsSoundwave className="h-6 ml-4" />
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -71,7 +78,7 @@ const Settings = () => {
                   key={themeName}
                   onClick={() => setTheme(themeName)}
                   className={cn(
-                    'relative p-4 rounded-xl border-2 transition-all overflow-hidden',
+                    'relative p-4 rounded-xl border-2 transition-all overflow-hidden active:scale-95',
                     currentTheme === themeName
                       ? 'border-primary neon-glow scale-105'
                       : 'border-border hover:border-primary/50'
@@ -114,6 +121,7 @@ const Settings = () => {
                 <Switch
                   checked={settings.soundwaveEnabled}
                   onCheckedChange={(checked) => updateSettings({ soundwaveEnabled: checked })}
+                  className="data-[state=checked]:bg-primary"
                 />
               </div>
 
@@ -126,6 +134,7 @@ const Settings = () => {
                   <Switch
                     checked={settings.autoPlayNext}
                     onCheckedChange={(checked) => updateSettings({ autoPlayNext: checked })}
+                    className="data-[state=checked]:bg-primary"
                   />
                 </div>
               </div>
@@ -139,6 +148,7 @@ const Settings = () => {
                   <Switch
                     checked={settings.miniPlayerMode}
                     onCheckedChange={(checked) => updateSettings({ miniPlayerMode: checked })}
+                    className="data-[state=checked]:bg-primary"
                   />
                 </div>
               </div>
@@ -149,24 +159,44 @@ const Settings = () => {
           <section className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <ListMusic className="w-6 h-6 text-primary" />
-              <h2 className="text-2xl font-semibold text-foreground">Playlist</h2>
+              <h2 className="text-2xl font-semibold text-foreground">Playlist & Queue</h2>
             </div>
 
             <div className="bg-card rounded-xl p-6 border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-foreground">Clear Entire Playlist</p>
-                  <p className="text-sm text-muted-foreground">Remove all tracks from your queue</p>
+                  <p className="font-medium text-foreground">Clear All Data</p>
+                  <p className="text-sm text-muted-foreground">Remove all tracks from playlist and queue</p>
                 </div>
                 <Button
                   variant="destructive"
                   onClick={handleClearPlaylist}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 active:scale-95"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear All
                 </Button>
               </div>
+            </div>
+          </section>
+
+          {/* Decorative Soundwave Section */}
+          <section className="mb-10">
+            <div className="bg-card rounded-xl p-8 border border-border flex flex-col items-center gap-4">
+              <p className="text-lg font-medium text-foreground">Your Music, Your Vibe</p>
+              <div className="flex items-end gap-1 h-16">
+                {[...Array(15)].map((_, index) => (
+                  <div
+                    key={index}
+                    className="w-2 bg-primary rounded-full soundwave-bar"
+                    style={{
+                      height: `${20 + Math.random() * 40}px`,
+                      animationDelay: `${index * 0.08}s`,
+                    }}
+                  />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">NYRA - Feel the Pulse</p>
             </div>
           </section>
         </main>

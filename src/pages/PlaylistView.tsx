@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search } from 'lucide-react';
+import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -513,13 +513,17 @@ const PlaylistView = () => {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handlePlayTrack(track)}
-                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow"
+                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow active:scale-95"
                     >
-                      <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
+                      {currentTrack?.id === track.id && isPlaying ? (
+                        <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+                      ) : (
+                        <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
+                      )}
                     </button>
                     <button
                       onClick={() => handleRemoveTrack(track.id)}
-                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors"
+                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
                     >
                       <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                     </button>

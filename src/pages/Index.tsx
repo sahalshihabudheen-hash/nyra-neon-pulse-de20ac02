@@ -8,6 +8,7 @@ import MusicPlayer from '@/components/MusicPlayer';
 import TrendingSection from '@/components/TrendingSection';
 import { toast } from 'sonner';
 import { usePlaylist } from '@/hooks/usePlaylist';
+import { useQueue } from '@/hooks/useQueue';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
@@ -68,6 +69,17 @@ const Index = () => {
     getNextTrack,
     getPreviousTrack,
   } = usePlaylist();
+
+  const {
+    queue,
+    addToQueue,
+    removeFromQueue,
+    clearQueue,
+    getNextFromQueue,
+    shuffleMode,
+    toggleShuffle,
+    setLastPlayed,
+  } = useQueue();
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -199,24 +211,26 @@ const Index = () => {
     setCurrentTrack(track);
     setCurrentTrackIndex(index);
     setPlayingFromPlaylist(false);
+    setLastPlayed(track.id);
 
     if (ytApiReady && window.YT && window.YT.Player) {
       createPlayer(track.id);
     } else {
       toast.error('YouTube player not ready. Please try again.');
     }
-  }, [tracks, ytApiReady, createPlayer]);
+  }, [tracks, ytApiReady, createPlayer, setLastPlayed]);
 
   const handlePlayFromPlaylist = useCallback((track: Track) => {
     setCurrentTrack(track);
     setPlayingFromPlaylist(true);
+    setLastPlayed(track.id);
 
     if (ytApiReady && window.YT && window.YT.Player) {
       createPlayer(track.id);
     } else {
       toast.error('YouTube player not ready. Please try again.');
     }
-  }, [ytApiReady, createPlayer]);
+  }, [ytApiReady, createPlayer, setLastPlayed]);
 
   const handlePlayPause = useCallback(() => {
     if (!ytPlayerRef.current) return;
@@ -233,10 +247,24 @@ const Index = () => {
   }, [isPlaying]);
 
   const handleNext = useCallback(() => {
+    // First priority: check queue
+    const nextFromQueue = getNextFromQueue(playlist);
+    if (nextFromQueue) {
+      setCurrentTrack(nextFromQueue);
+      setPlayingFromPlaylist(false);
+      setLastPlayed(nextFromQueue.id);
+      if (ytApiReady && window.YT && window.YT.Player) {
+        createPlayer(nextFromQueue.id);
+      }
+      return;
+    }
+
+    // If playing from playlist
     if (playingFromPlaylist && currentTrack) {
       const nextTrack = getNextTrack(currentTrack.id);
       if (nextTrack) {
         setCurrentTrack(nextTrack);
+        setLastPlayed(nextTrack.id);
         if (ytApiReady && window.YT && window.YT.Player) {
           createPlayer(nextTrack.id);
         }
@@ -261,11 +289,12 @@ const Index = () => {
     setCurrentTrack(nextTrack);
     setCurrentTrackIndex(nextIndex);
     setPlayingFromPlaylist(false);
+    setLastPlayed(nextTrack.id);
     
     if (ytApiReady && window.YT && window.YT.Player) {
       createPlayer(nextTrack.id);
     }
-  }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getNextTrack]);
+  }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getNextTrack, getNextFromQueue, playlist, setLastPlayed]);
 
   // Keep ref updated to avoid stale closure in createPlayer
   useEffect(() => {
@@ -277,6 +306,7 @@ const Index = () => {
       const prevTrack = getPreviousTrack(currentTrack.id);
       if (prevTrack) {
         setCurrentTrack(prevTrack);
+        setLastPlayed(prevTrack.id);
         if (ytApiReady && window.YT && window.YT.Player) {
           createPlayer(prevTrack.id);
         }
@@ -291,11 +321,12 @@ const Index = () => {
     setCurrentTrack(prevTrack);
     setCurrentTrackIndex(prevIndex);
     setPlayingFromPlaylist(false);
+    setLastPlayed(prevTrack.id);
     
     if (ytApiReady && window.YT && window.YT.Player) {
       createPlayer(prevTrack.id);
     }
-  }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getPreviousTrack]);
+  }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getPreviousTrack, setLastPlayed]);
 
   const handleAddToPlaylist = useCallback((track: Track) => {
     if (isInPlaylist(track.id)) {
@@ -306,6 +337,10 @@ const Index = () => {
     toast.success('Added to playlist');
   }, [addToPlaylist, isInPlaylist]);
 
+  const handleAddToQueue = useCallback((track: Track) => {
+    addToQueue(track);
+  }, [addToQueue]);
+
   const handleRemoveFromPlaylist = useCallback((trackId: string) => {
     removeFromPlaylist(trackId);
     toast.success('Removed from playlist');
@@ -313,8 +348,9 @@ const Index = () => {
 
   const handleClearPlaylist = useCallback(() => {
     clearPlaylist();
-    toast.success('Playlist cleared');
-  }, [clearPlaylist]);
+    clearQueue();
+    toast.success('Playlist and queue cleared');
+  }, [clearPlaylist, clearQueue]);
 
   if (showSplash) {
     return <SplashScreen onComplete={() => setShowSplash(false)} />;
@@ -337,6 +373,7 @@ const Index = () => {
             <TrendingSection 
               onPlayTrack={handlePlayTrack}
               currentTrack={currentTrack}
+              onAddToQueue={handleAddToQueue}
             />
           )}
 
@@ -366,6 +403,7 @@ const Index = () => {
             tracks={tracks}
             currentTrack={currentTrack}
             onPlayTrack={handlePlayTrack}
+            onAddToQueue={handleAddToQueue}
             isLoading={isLoading}
             searchPerformed={searchPerformed}
           />
@@ -385,6 +423,9 @@ const Index = () => {
         onRemoveFromPlaylist={handleRemoveFromPlaylist}
         onClearPlaylist={handleClearPlaylist}
         ytPlayerRef={ytPlayerRef}
+        shuffleMode={shuffleMode}
+        onToggleShuffle={toggleShuffle}
+        queue={queue}
       />
     </div>
   );
