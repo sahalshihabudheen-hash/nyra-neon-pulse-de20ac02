@@ -14,9 +14,10 @@ interface Track {
 interface TrendingSectionProps {
   onPlayTrack: (track: Track) => void;
   currentTrack: Track | null;
+  onAddToQueue?: (track: Track) => void;
 }
 
-const TrendingSection = ({ onPlayTrack, currentTrack }: TrendingSectionProps) => {
+const TrendingSection = ({ onPlayTrack, currentTrack, onAddToQueue }: TrendingSectionProps) => {
   const [trendingTracks, setTrendingTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -137,14 +138,18 @@ const TrendingSection = ({ onPlayTrack, currentTrack }: TrendingSectionProps) =>
                   >
                     <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
                   </button>
-                  <AddToPlaylistDialog
-                    track={track}
-                    trigger={
-                      <button className="w-10 h-10 rounded-full bg-secondary/80 text-foreground flex items-center justify-center hover:bg-secondary transition-colors">
-                        <ListPlus className="w-5 h-5" />
-                      </button>
-                    }
-                  />
+                  {onAddToQueue && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToQueue(track);
+                      }}
+                      className="w-10 h-10 rounded-full bg-secondary/80 text-foreground flex items-center justify-center hover:bg-secondary transition-colors active:scale-95"
+                      title="Add to Queue"
+                    >
+                      <ListPlus className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
               {currentTrack?.id === track.id && (
