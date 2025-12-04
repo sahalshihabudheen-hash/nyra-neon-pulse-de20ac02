@@ -25,6 +25,9 @@ interface MusicPlayerProps {
   onRemoveFromPlaylist?: (trackId: string) => void;
   onClearPlaylist?: () => void;
   ytPlayerRef?: React.MutableRefObject<any>;
+  shuffleMode?: boolean;
+  onToggleShuffle?: () => void;
+  queue?: Track[];
 }
 
 const MusicPlayer = ({
@@ -40,6 +43,9 @@ const MusicPlayer = ({
   onRemoveFromPlaylist,
   onClearPlaylist,
   ytPlayerRef,
+  shuffleMode = false,
+  onToggleShuffle,
+  queue = [],
 }: MusicPlayerProps) => {
   const { settings } = useTheme();
   const [volume, setVolume] = useState(80);
@@ -116,6 +122,8 @@ const MusicPlayer = ({
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
     setProgress(value);
+    // Immediate seek on touch/change
+    handleSeek(value);
   };
 
   const handleProgressMouseDown = () => {
@@ -126,6 +134,12 @@ const MusicPlayer = ({
     setIsDragging(false);
     const target = e.target as HTMLInputElement;
     handleSeek(Number(target.value));
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    setVolume(value);
+    setIsMuted(false);
   };
 
   const handleVolumeUp = () => {
@@ -218,13 +232,20 @@ const MusicPlayer = ({
         )}>
           <div className="flex items-center gap-3 md:gap-4">
             {!isMiniMode && (
-              <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+              <button 
+                onClick={onToggleShuffle}
+                className={cn(
+                  'w-8 h-8 flex items-center justify-center transition-colors rounded-full active:scale-95',
+                  shuffleMode ? 'text-primary bg-primary/20' : 'text-muted-foreground hover:text-primary'
+                )}
+                title={shuffleMode ? 'Shuffle On' : 'Shuffle Off'}
+              >
                 <Shuffle className="w-4 h-4" />
               </button>
             )}
             <button
               onClick={onPrevious}
-              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors"
+              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-95"
             >
               <SkipBack className="w-5 h-5" fill="currentColor" />
             </button>
@@ -234,7 +255,7 @@ const MusicPlayer = ({
               <button
                 onClick={handleAddToPlaylist}
                 className={cn(
-                  'w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all',
+                  'w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all active:scale-95',
                   isInPlaylist
                     ? 'bg-primary/20 text-primary border border-primary/50'
                     : 'bg-secondary text-muted-foreground hover:text-primary hover:bg-secondary/80'
@@ -252,11 +273,11 @@ const MusicPlayer = ({
             <button
               onClick={onPlayPause}
               className={cn(
-                'rounded-full flex items-center justify-center transition-all',
+                'rounded-full flex items-center justify-center transition-all active:scale-95',
                 isMiniMode ? 'w-10 h-10' : 'w-12 h-12',
                 isPlaying
                   ? 'bg-primary text-primary-foreground neon-glow'
-                  : 'bg-foreground text-background hover:bg-primary hover:text-primary-foreground'
+                  : 'bg-primary text-primary-foreground hover:neon-glow'
               )}
             >
               {isPlaying ? (
@@ -267,12 +288,12 @@ const MusicPlayer = ({
             </button>
             <button
               onClick={onNext}
-              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors"
+              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-95"
             >
               <SkipForward className="w-5 h-5" fill="currentColor" />
             </button>
             {!isMiniMode && (
-              <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+              <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-95 rounded-full">
                 <Repeat className="w-4 h-4" />
               </button>
             )}
@@ -295,7 +316,7 @@ const MusicPlayer = ({
                 onMouseUp={handleProgressMouseUp}
                 onTouchStart={handleProgressMouseDown}
                 onTouchEnd={handleProgressMouseUp}
-                className="flex-1 cursor-pointer touch-pan-y"
+                className="flex-1 cursor-pointer touch-none"
                 style={{
                   background: `linear-gradient(to right, hsl(var(--primary)) ${(progress / (duration || 100)) * 100}%, hsl(0 0% 25%) ${(progress / (duration || 100)) * 100}%)`
                 }}
@@ -327,6 +348,7 @@ const MusicPlayer = ({
               onClearPlaylist={onClearPlaylist || (() => {})}
               isOpen={playlistOpen}
               onOpenChange={setPlaylistOpen}
+              isPlaying={isPlaying}
             />
           )}
 
@@ -334,14 +356,14 @@ const MusicPlayer = ({
           <div className="flex items-center gap-1">
             <button
               onClick={handleVolumeDown}
-              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-secondary"
+              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-95"
               title="Volume Down"
             >
               <Minus className="w-3 h-3" />
             </button>
             <button
               onClick={toggleMute}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-primary transition-colors active:scale-95"
               title={isMuted ? 'Unmute' : 'Mute'}
             >
               {getVolumeIcon()}
@@ -351,18 +373,15 @@ const MusicPlayer = ({
               min="0"
               max="100"
               value={isMuted ? 0 : volume}
-              onChange={(e) => {
-                setVolume(Number(e.target.value));
-                setIsMuted(false);
-              }}
-              className="w-16"
+              onChange={handleVolumeChange}
+              className="w-16 touch-none"
               style={{
                 background: `linear-gradient(to right, hsl(var(--primary)) ${isMuted ? 0 : volume}%, hsl(0 0% 25%) ${isMuted ? 0 : volume}%)`
               }}
             />
             <button
               onClick={handleVolumeUp}
-              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-secondary"
+              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-95"
               title="Volume Up"
             >
               <Plus className="w-3 h-3" />
@@ -385,19 +404,20 @@ const MusicPlayer = ({
               onClearPlaylist={onClearPlaylist || (() => {})}
               isOpen={playlistOpen}
               onOpenChange={setPlaylistOpen}
+              isPlaying={isPlaying}
             />
 
             {/* Mobile Volume */}
             <div className="flex items-center gap-2">
               <button
                 onClick={handleVolumeDown}
-                className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-95"
               >
                 <Minus className="w-3 h-3" />
               </button>
               <button
                 onClick={toggleMute}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-muted-foreground hover:text-primary transition-colors active:scale-95"
               >
                 {getVolumeIcon()}
               </button>
@@ -406,15 +426,15 @@ const MusicPlayer = ({
                 min="0"
                 max="100"
                 value={isMuted ? 0 : volume}
-                onChange={(e) => {
-                  setVolume(Number(e.target.value));
-                  setIsMuted(false);
+                onChange={handleVolumeChange}
+                className="w-16 touch-none"
+                style={{
+                  background: `linear-gradient(to right, hsl(var(--primary)) ${isMuted ? 0 : volume}%, hsl(0 0% 25%) ${isMuted ? 0 : volume}%)`
                 }}
-                className="w-16"
               />
               <button
                 onClick={handleVolumeUp}
-                className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-95"
               >
                 <Plus className="w-3 h-3" />
               </button>
