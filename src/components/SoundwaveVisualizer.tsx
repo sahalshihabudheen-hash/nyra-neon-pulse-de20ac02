@@ -52,20 +52,21 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
     };
   }, [isPlaying]);
 
-  // Bars Shape (Classic)
+  // Bars Shape (Classic) - MORE VISIBLE
   if (shape === 'bars') {
     return (
-      <div className={cn('flex items-end justify-center gap-[2px] h-8', className)}>
+      <div className={cn('flex items-end justify-center gap-[3px] h-8', className)}>
         {barHeights.map((height, index) => (
           <div
             key={index}
             className={cn(
-              'w-[3px] rounded-full transition-all duration-75',
-              isPlaying ? 'bg-primary' : 'bg-primary/30'
+              'w-[4px] rounded-full transition-all duration-75',
+              isPlaying ? 'bg-primary' : 'bg-primary/50'
             )}
             style={{
-              height: `${isPlaying ? height : 20}%`,
-              boxShadow: isPlaying ? '0 0 6px hsl(var(--primary) / 0.5)' : 'none',
+              height: `${isPlaying ? height : 30}%`,
+              boxShadow: isPlaying ? '0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)' : '0 0 4px hsl(var(--primary) / 0.3)',
+              minHeight: '4px',
             }}
           />
         ))}

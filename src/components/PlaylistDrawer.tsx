@@ -143,9 +143,9 @@ const PlaylistDrawer = ({
                     dragOverIndex === index && draggedIndex !== index && 'border-primary border-2 border-dashed'
                   )}
                 >
-                  {/* Drag Handle */}
+                  {/* Drag Handle - MORE VISIBLE */}
                   {onReorderPlaylist && (
-                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground touch-manipulation flex-shrink-0">
+                    <div className="cursor-grab active:cursor-grabbing text-primary hover:text-primary/80 touch-manipulation flex-shrink-0 bg-primary/20 rounded p-1">
                       <GripVertical className="w-5 h-5" />
                     </div>
                   )}
