@@ -209,12 +209,20 @@ const MusicPlayer = ({
                   {currentTrack.title}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{currentTrack.channel}</p>
-                {/* Next Up indicator */}
-                {!isMiniMode && nextUpTrack && (
-                  <p className="text-xs text-primary truncate mt-0.5 flex items-center gap-1">
-                    <span>⌛</span>
-                    <span className="opacity-70">Next:</span> {nextUpTrack.title.slice(0, 25)}...
-                  </p>
+                {/* Next Up indicator - ALWAYS VISIBLE */}
+                {!isMiniMode && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-base">⌛</span>
+                    {nextUpTrack ? (
+                      <p className="text-xs text-primary truncate">
+                        <span className="opacity-70">Next:</span> {nextUpTrack.title.slice(0, 20)}...
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/50 italic">
+                        Queue empty - add songs!
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             </>
@@ -305,16 +313,18 @@ const MusicPlayer = ({
             )}
           </div>
 
-          {/* Progress Bar */}
+          {/* Progress Bar - ALWAYS VISIBLE */}
           {!isMiniMode && (
             <div className="w-full max-w-xl flex items-center gap-2 md:gap-3 px-2">
-              <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
+              <span className="text-xs text-foreground/70 w-10 text-right tabular-nums font-mono">
                 {formatTime(progress)}
               </span>
-              <div className="relative flex-1 h-2 group">
-                <div className="absolute inset-0 rounded-full bg-secondary/50" />
+              <div className="relative flex-1 h-3 group rounded-full bg-white/10 border border-white/20 overflow-hidden">
+                {/* Background track */}
+                <div className="absolute inset-0 bg-muted/30" />
+                {/* Progress fill */}
                 <div 
-                  className="absolute left-0 top-0 h-full rounded-full bg-primary transition-all"
+                  className="absolute left-0 top-0 h-full rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))] transition-all"
                   style={{ width: `${progressPercent}%` }}
                 />
                 <input
@@ -330,13 +340,13 @@ const MusicPlayer = ({
                   onTouchEnd={handleProgressMouseUp}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
                 />
-                {/* Progress handle */}
+                {/* Progress handle - always visible */}
                 <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                  style={{ left: `calc(${progressPercent}% - 8px)` }}
+                  className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
+                  style={{ left: `calc(${progressPercent}% - 10px)` }}
                 />
               </div>
-              <span className="text-xs text-muted-foreground w-10 tabular-nums">
+              <span className="text-xs text-foreground/70 w-10 tabular-nums font-mono">
                 {formatTime(duration)}
               </span>
             </div>
@@ -348,9 +358,11 @@ const MusicPlayer = ({
           'items-center gap-3 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
-          {/* Desktop Soundwave Visualizer */}
+          {/* Desktop Soundwave Visualizer - MORE VISIBLE */}
           {settings.soundwaveEnabled && !isMiniMode && (
-            <SoundwaveVisualizer isPlaying={isPlaying} className="h-6" />
+            <div className="bg-black/30 rounded-lg px-3 py-2 border border-primary/30">
+              <SoundwaveVisualizer isPlaying={isPlaying} className="h-8" />
+            </div>
           )}
 
           {/* Playlist Drawer Trigger */}
@@ -415,9 +427,11 @@ const MusicPlayer = ({
         {/* Mobile Bottom Row */}
         {!isMiniMode && (
           <div className="flex md:hidden items-center justify-between w-full px-2 gap-2">
-            {/* Mobile Soundwave */}
+            {/* Mobile Soundwave - MORE VISIBLE */}
             {settings.soundwaveEnabled && (
-              <SoundwaveVisualizer isPlaying={isPlaying} className="h-5 flex-shrink-0" />
+              <div className="bg-black/30 rounded-lg px-2 py-1 border border-primary/30">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 flex-shrink-0" />
+              </div>
             )}
 
             {/* Mobile Playlist Button */}
