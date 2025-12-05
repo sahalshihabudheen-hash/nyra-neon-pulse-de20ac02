@@ -68,6 +68,7 @@ const Index = () => {
     isInPlaylist,
     getNextTrack,
     getPreviousTrack,
+    reorderPlaylist,
   } = usePlaylist();
 
   const {
@@ -422,6 +423,7 @@ const Index = () => {
         onPlayFromPlaylist={handlePlayFromPlaylist}
         onRemoveFromPlaylist={handleRemoveFromPlaylist}
         onClearPlaylist={handleClearPlaylist}
+        onReorderPlaylist={reorderPlaylist}
         ytPlayerRef={ytPlayerRef}
         shuffleMode={shuffleMode}
         onToggleShuffle={toggleShuffle}

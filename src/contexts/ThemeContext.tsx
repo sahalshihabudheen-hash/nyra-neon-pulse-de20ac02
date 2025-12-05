@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { SoundwaveShape } from '@/components/SoundwaveVisualizer';
 
 export type ThemeName = 'yellow' | 'blue' | 'green' | 'purple' | 'red';
 
@@ -46,6 +47,7 @@ interface AppSettings {
   soundwaveEnabled: boolean;
   autoPlayNext: boolean;
   miniPlayerMode: boolean;
+  soundwaveShape: SoundwaveShape;
 }
 
 interface ThemeContextType {
@@ -75,6 +77,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       soundwaveEnabled: true,
       autoPlayNext: true,
       miniPlayerMode: false,
+      soundwaveShape: 'bars' as SoundwaveShape,
     };
   });
 
