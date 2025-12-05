@@ -83,6 +83,15 @@ export function usePlaylist() {
     });
   }, []);
 
+  const reorderPlaylist = useCallback((startIndex: number, endIndex: number) => {
+    setPlaylist(prev => {
+      const result = [...prev];
+      const [removed] = result.splice(startIndex, 1);
+      result.splice(endIndex, 0, removed);
+      return result;
+    });
+  }, []);
+
   return {
     playlist,
     addToPlaylist,
@@ -96,5 +105,6 @@ export function usePlaylist() {
     toggleShuffle,
     loopMode,
     cycleLoopMode,
+    reorderPlaylist,
   };
 }

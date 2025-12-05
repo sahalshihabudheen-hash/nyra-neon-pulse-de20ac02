@@ -1,4 +1,5 @@
-import { Play, Pause, Trash2, ListMusic, X } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Play, Pause, Trash2, ListMusic, X, GripVertical } from 'lucide-react';
 import {
   Drawer,
   DrawerClose,
@@ -26,6 +27,7 @@ interface PlaylistDrawerProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   isPlaying?: boolean;
+  onReorderPlaylist?: (startIndex: number, endIndex: number) => void;
 }
 
 const PlaylistDrawer = ({
@@ -37,15 +39,47 @@ const PlaylistDrawer = ({
   isOpen,
   onOpenChange,
   isPlaying = false,
+  onReorderPlaylist,
 }: PlaylistDrawerProps) => {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    if (dragIndex !== dropIndex && onReorderPlaylist) {
+      onReorderPlaylist(dragIndex, dropIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, [onReorderPlaylist]);
+
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
-        <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors relative">
+        <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary text-foreground transition-colors relative active:scale-95 touch-manipulation">
           <ListMusic className="w-5 h-5" />
+          <span className="text-sm hidden sm:inline">Playlist</span>
           {playlist.length > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-              {playlist.length}
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+              {playlist.length > 99 ? '99+' : playlist.length}
             </span>
           )}
         </button>
@@ -64,18 +98,23 @@ const PlaylistDrawer = ({
               {playlist.length > 0 && (
                 <button
                   onClick={onClearPlaylist}
-                  className="px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 rounded-lg transition-colors active:scale-95 touch-manipulation"
                 >
                   Clear All
                 </button>
               )}
               <DrawerClose asChild>
-                <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-secondary">
+                <button className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-secondary active:scale-95 touch-manipulation">
                   <X className="w-5 h-5" />
                 </button>
               </DrawerClose>
             </div>
           </div>
+          {onReorderPlaylist && playlist.length > 1 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Drag tracks to reorder
+            </p>
+          )}
         </DrawerHeader>
 
         <ScrollArea className="flex-1 h-[60vh] px-4 py-4">
@@ -90,21 +129,35 @@ const PlaylistDrawer = ({
               {playlist.map((track, index) => (
                 <div
                   key={track.id}
+                  draggable={!!onReorderPlaylist}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDrop={(e) => handleDrop(e, index)}
                   className={cn(
-                    'flex items-center gap-3 p-3 rounded-xl transition-all group',
+                    'flex items-center gap-2 md:gap-3 p-3 rounded-xl transition-all group',
                     currentTrack?.id === track.id
                       ? 'bg-primary/20 border border-primary/30'
-                      : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent'
+                      : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent',
+                    draggedIndex === index && 'opacity-50 scale-95',
+                    dragOverIndex === index && draggedIndex !== index && 'border-primary border-2 border-dashed'
                   )}
                 >
+                  {/* Drag Handle */}
+                  {onReorderPlaylist && (
+                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-muted-foreground touch-manipulation flex-shrink-0">
+                      <GripVertical className="w-5 h-5" />
+                    </div>
+                  )}
+
                   {/* Index/Playing indicator */}
-                  <div className="w-6 text-center">
-                    {currentTrack?.id === track.id ? (
+                  <div className="w-6 text-center flex-shrink-0">
+                    {currentTrack?.id === track.id && isPlaying ? (
                       <div className="flex items-center justify-center gap-0.5">
                         {[...Array(3)].map((_, i) => (
                           <div
                             key={i}
-                            className="w-0.5 bg-primary rounded-full soundwave-bar"
+                            className="w-0.5 bg-primary rounded-full equalizer-bar"
                             style={{ height: '12px' }}
                           />
                         ))}
@@ -118,25 +171,25 @@ const PlaylistDrawer = ({
                   <img
                     src={track.thumbnail}
                     alt={track.title}
-                    className="w-12 h-12 rounded-lg object-cover"
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover flex-shrink-0"
                   />
 
                   {/* Track Info */}
                   <div className="flex-1 min-w-0">
                     <p className={cn(
-                      'font-medium truncate',
+                      'font-medium truncate text-sm md:text-base',
                       currentTrack?.id === track.id ? 'text-primary' : 'text-foreground'
                     )}>
                       {track.title}
                     </p>
-                    <p className="text-sm text-muted-foreground truncate">{track.channel}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground truncate">{track.channel}</p>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Actions - always visible on mobile */}
+                  <div className="flex items-center gap-1.5 md:gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
                     <button
                       onClick={() => onPlayTrack(track)}
-                      className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform active:scale-95"
+                      className="w-10 h-10 md:w-9 md:h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform active:scale-90 touch-manipulation"
                     >
                       {currentTrack?.id === track.id && isPlaying ? (
                         <Pause className="w-4 h-4" fill="currentColor" />
@@ -146,7 +199,7 @@ const PlaylistDrawer = ({
                     </button>
                     <button
                       onClick={() => onRemoveTrack(track.id)}
-                      className="w-9 h-9 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
+                      className="w-10 h-10 md:w-9 md:h-9 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-90 touch-manipulation"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

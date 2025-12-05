@@ -22,7 +22,7 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
     e.stopPropagation();
     if (onAddToQueue) {
       onAddToQueue(track);
-      toast.success('Added to queue');
+      toast.success('⌛ Added to queue - plays next!');
     }
   };
 
@@ -34,8 +34,8 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
   return (
     <div
       className={cn(
-        'group relative bg-card rounded-2xl overflow-hidden border border-border transition-all duration-300 tilt-card cursor-pointer',
-        isPlaying && 'neon-border'
+        'group relative bg-card rounded-2xl overflow-hidden border border-border transition-all duration-300 tilt-card cursor-pointer hover:scale-[1.02] hover:shadow-xl',
+        isPlaying && 'neon-border ring-2 ring-primary/50'
       )}
       onClick={() => onPlay(track)}
     >
@@ -47,16 +47,16 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         {/* Play Button */}
         <button
           className={cn(
-            'absolute bottom-4 right-4 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300',
+            'absolute bottom-3 right-3 w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-300 touch-manipulation',
             isPlaying
               ? 'bg-primary text-primary-foreground neon-glow scale-100'
-              : 'bg-primary text-primary-foreground scale-0 group-hover:scale-100 hover:neon-glow'
+              : 'bg-primary text-primary-foreground scale-0 group-hover:scale-100 hover:neon-glow active:scale-95'
           )}
         >
           {isPlaying ? (
@@ -68,7 +68,7 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
 
         {/* Equalizer Animation (when playing) */}
         {isPlaying && (
-          <div className="absolute top-4 left-4 flex items-end gap-0.5 h-4">
+          <div className="absolute top-3 left-3 flex items-end gap-0.5 h-4">
             {[...Array(5)].map((_, i) => (
               <div
                 key={i}
@@ -81,37 +81,37 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
       </div>
 
       {/* Info */}
-      <div className="p-4">
-        <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+      <div className="p-3 md:p-4">
+        <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors text-sm md:text-base">
           {track.title}
         </h3>
-        <p className="text-sm text-muted-foreground truncate mt-1">{track.channel}</p>
+        <p className="text-xs md:text-sm text-muted-foreground truncate mt-1">{track.channel}</p>
       </div>
 
-      {/* Action Buttons */}
-      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+      {/* Action Buttons - Always visible on mobile */}
+      <div className="absolute top-3 right-3 flex gap-2 md:opacity-0 md:group-hover:opacity-100 transition-all">
         {/* Play Now */}
         <button
-          className="w-8 h-8 rounded-full bg-primary/90 flex items-center justify-center text-primary-foreground hover:bg-primary transition-all active:scale-95"
+          className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-primary/90 flex items-center justify-center text-primary-foreground hover:bg-primary transition-all active:scale-90 touch-manipulation shadow-lg"
           onClick={handlePlayNow}
           title="Play Now"
         >
           <PlayCircle className="w-4 h-4" />
         </button>
-        {/* Add to Queue */}
+        {/* Add to Queue with emoji */}
         <button
-          className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-background transition-all active:scale-95"
+          className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-background/90 flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 touch-manipulation shadow-lg border border-primary/30"
           onClick={handleAddToQueue}
           title="Add to Queue"
         >
-          <ListPlus className="w-4 h-4" />
+          <span className="text-base">⌛</span>
         </button>
         {/* Add to Playlist */}
         <AddToPlaylistDialog
           track={track}
           trigger={
             <button
-              className="w-8 h-8 rounded-full bg-background/80 flex items-center justify-center text-muted-foreground hover:text-primary transition-all active:scale-95"
+              className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-background/90 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/20 transition-all active:scale-90 touch-manipulation shadow-lg"
               onClick={(e) => e.stopPropagation()}
               title="Add to Playlist"
             >

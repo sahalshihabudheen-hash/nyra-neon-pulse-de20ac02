@@ -24,6 +24,7 @@ interface MusicPlayerProps {
   onPlayFromPlaylist?: (track: Track) => void;
   onRemoveFromPlaylist?: (trackId: string) => void;
   onClearPlaylist?: () => void;
+  onReorderPlaylist?: (startIndex: number, endIndex: number) => void;
   ytPlayerRef?: React.MutableRefObject<any>;
   shuffleMode?: boolean;
   onToggleShuffle?: () => void;
@@ -42,6 +43,7 @@ const MusicPlayer = ({
   onPlayFromPlaylist,
   onRemoveFromPlaylist,
   onClearPlaylist,
+  onReorderPlaylist,
   ytPlayerRef,
   shuffleMode = false,
   onToggleShuffle,
@@ -63,6 +65,9 @@ const MusicPlayer = ({
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Get next up track
+  const nextUpTrack = queue.length > 0 ? queue[0] : null;
 
   // Update progress from YouTube player
   useEffect(() => {
@@ -122,7 +127,6 @@ const MusicPlayer = ({
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
     setProgress(value);
-    // Immediate seek on touch/change
     handleSeek(value);
   };
 
@@ -171,19 +175,20 @@ const MusicPlayer = ({
   };
 
   const isMiniMode = settings.miniPlayerMode;
+  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
 
   return (
     <footer className={cn(
       'fixed bottom-0 left-0 md:left-64 right-0 glass-dark border-t border-border z-40 transition-all',
-      isMiniMode ? 'h-16' : 'h-auto md:h-28'
+      isMiniMode ? 'h-16' : 'h-auto'
     )}>
       <div className={cn(
-        'h-full px-4 md:px-6 flex items-center',
-        isMiniMode ? 'gap-4' : 'flex-col md:flex-row gap-4 md:gap-6 py-3 md:py-0'
+        'h-full px-3 md:px-6 flex items-center',
+        isMiniMode ? 'gap-4' : 'flex-col gap-3 py-3 md:flex-row md:gap-6 md:py-0'
       )}>
         {/* Track Info */}
         <div className={cn(
-          'flex items-center gap-3 md:gap-4',
+          'flex items-center gap-3',
           isMiniMode ? 'flex-1' : 'w-full md:w-72'
         )}>
           {currentTrack ? (
@@ -192,31 +197,32 @@ const MusicPlayer = ({
                 src={currentTrack.thumbnail}
                 alt={currentTrack.title}
                 className={cn(
-                  'rounded-lg object-cover',
-                  isMiniMode ? 'w-10 h-10' : 'w-12 h-12 md:w-14 md:h-14'
+                  'rounded-lg object-cover flex-shrink-0',
+                  isMiniMode ? 'w-10 h-10' : 'w-12 h-12'
                 )}
               />
               <div className="flex-1 min-w-0">
                 <p className={cn(
                   'font-medium text-foreground truncate',
-                  isMiniMode ? 'text-sm' : 'text-sm md:text-base'
+                  isMiniMode ? 'text-sm' : 'text-sm'
                 )}>
                   {currentTrack.title}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{currentTrack.channel}</p>
-                {/* Soundwave below track name on mobile (non-mini mode) */}
-                {!isMiniMode && settings.soundwaveEnabled && (
-                  <div className="block md:hidden mt-1">
-                    <SoundwaveVisualizer isPlaying={isPlaying} className="h-4" />
-                  </div>
+                {/* Next Up indicator */}
+                {!isMiniMode && nextUpTrack && (
+                  <p className="text-xs text-primary truncate mt-0.5 flex items-center gap-1">
+                    <span>⌛</span>
+                    <span className="opacity-70">Next:</span> {nextUpTrack.title.slice(0, 25)}...
+                  </p>
                 )}
               </div>
             </>
           ) : (
-            <div className="flex items-center gap-3 md:gap-4">
+            <div className="flex items-center gap-3">
               <div className={cn(
-                'rounded-lg bg-secondary flex items-center justify-center',
-                isMiniMode ? 'w-10 h-10' : 'w-12 h-12 md:w-14 md:h-14'
+                'rounded-lg bg-secondary flex items-center justify-center flex-shrink-0',
+                isMiniMode ? 'w-10 h-10' : 'w-12 h-12'
               )}>
                 <span className="text-muted-foreground text-xl">♪</span>
               </div>
@@ -228,14 +234,14 @@ const MusicPlayer = ({
         {/* Controls */}
         <div className={cn(
           'flex flex-col items-center gap-2',
-          isMiniMode ? '' : 'flex-1 w-full md:w-auto'
+          isMiniMode ? '' : 'flex-1 w-full'
         )}>
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {!isMiniMode && (
               <button 
                 onClick={onToggleShuffle}
                 className={cn(
-                  'w-8 h-8 flex items-center justify-center transition-colors rounded-full active:scale-95',
+                  'w-9 h-9 md:w-8 md:h-8 flex items-center justify-center transition-colors rounded-full active:scale-90 touch-manipulation',
                   shuffleMode ? 'text-primary bg-primary/20' : 'text-muted-foreground hover:text-primary'
                 )}
                 title={shuffleMode ? 'Shuffle On' : 'Shuffle Off'}
@@ -245,7 +251,7 @@ const MusicPlayer = ({
             )}
             <button
               onClick={onPrevious}
-              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-95"
+              className="w-10 h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-90 touch-manipulation"
             >
               <SkipBack className="w-5 h-5" fill="currentColor" />
             </button>
@@ -255,7 +261,7 @@ const MusicPlayer = ({
               <button
                 onClick={handleAddToPlaylist}
                 className={cn(
-                  'w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all active:scale-95',
+                  'w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
                   isInPlaylist
                     ? 'bg-primary/20 text-primary border border-primary/50'
                     : 'bg-secondary text-muted-foreground hover:text-primary hover:bg-secondary/80'
@@ -273,27 +279,27 @@ const MusicPlayer = ({
             <button
               onClick={onPlayPause}
               className={cn(
-                'rounded-full flex items-center justify-center transition-all active:scale-95',
-                isMiniMode ? 'w-10 h-10' : 'w-12 h-12',
+                'rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
+                isMiniMode ? 'w-10 h-10' : 'w-14 h-14',
                 isPlaying
                   ? 'bg-primary text-primary-foreground neon-glow'
                   : 'bg-primary text-primary-foreground hover:neon-glow'
               )}
             >
               {isPlaying ? (
-                <Pause className="w-5 h-5" fill="currentColor" />
+                <Pause className={cn(isMiniMode ? 'w-5 h-5' : 'w-6 h-6')} fill="currentColor" />
               ) : (
-                <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+                <Play className={cn(isMiniMode ? 'w-5 h-5' : 'w-6 h-6', 'ml-0.5')} fill="currentColor" />
               )}
             </button>
             <button
               onClick={onNext}
-              className="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-95"
+              className="w-10 h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-90 touch-manipulation"
             >
               <SkipForward className="w-5 h-5" fill="currentColor" />
             </button>
             {!isMiniMode && (
-              <button className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-95 rounded-full">
+              <button className="w-9 h-9 md:w-8 md:h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-90 rounded-full touch-manipulation">
                 <Repeat className="w-4 h-4" />
               </button>
             )}
@@ -301,27 +307,36 @@ const MusicPlayer = ({
 
           {/* Progress Bar */}
           {!isMiniMode && (
-            <div className="w-full max-w-xl flex items-center gap-3">
-              <span className="text-xs text-muted-foreground w-10 text-right">
+            <div className="w-full max-w-xl flex items-center gap-2 md:gap-3 px-2">
+              <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
                 {formatTime(progress)}
               </span>
-              <input
-                ref={progressRef}
-                type="range"
-                min="0"
-                max={duration || 100}
-                value={progress}
-                onChange={handleProgressChange}
-                onMouseDown={handleProgressMouseDown}
-                onMouseUp={handleProgressMouseUp}
-                onTouchStart={handleProgressMouseDown}
-                onTouchEnd={handleProgressMouseUp}
-                className="flex-1 cursor-pointer touch-none"
-                style={{
-                  background: `linear-gradient(to right, hsl(var(--primary)) ${(progress / (duration || 100)) * 100}%, hsl(0 0% 25%) ${(progress / (duration || 100)) * 100}%)`
-                }}
-              />
-              <span className="text-xs text-muted-foreground w-10">
+              <div className="relative flex-1 h-2 group">
+                <div className="absolute inset-0 rounded-full bg-secondary/50" />
+                <div 
+                  className="absolute left-0 top-0 h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${progressPercent}%` }}
+                />
+                <input
+                  ref={progressRef}
+                  type="range"
+                  min="0"
+                  max={duration || 100}
+                  value={progress}
+                  onChange={handleProgressChange}
+                  onMouseDown={handleProgressMouseDown}
+                  onMouseUp={handleProgressMouseUp}
+                  onTouchStart={handleProgressMouseDown}
+                  onTouchEnd={handleProgressMouseUp}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
+                />
+                {/* Progress handle */}
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  style={{ left: `calc(${progressPercent}% - 8px)` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground w-10 tabular-nums">
                 {formatTime(duration)}
               </span>
             </div>
@@ -330,7 +345,7 @@ const MusicPlayer = ({
 
         {/* Volume, Soundwave & Playlist */}
         <div className={cn(
-          'items-center gap-4 justify-end',
+          'items-center gap-3 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
           {/* Desktop Soundwave Visualizer */}
@@ -349,6 +364,7 @@ const MusicPlayer = ({
               isOpen={playlistOpen}
               onOpenChange={setPlaylistOpen}
               isPlaying={isPlaying}
+              onReorderPlaylist={onReorderPlaylist}
             />
           )}
 
@@ -356,37 +372,41 @@ const MusicPlayer = ({
           <div className="flex items-center gap-1">
             <button
               onClick={handleVolumeDown}
-              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-95"
+              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-90 touch-manipulation"
               title="Volume Down"
             >
               <Minus className="w-3 h-3" />
             </button>
             <button
               onClick={toggleMute}
-              className="text-muted-foreground hover:text-primary transition-colors active:scale-95"
+              className="text-muted-foreground hover:text-primary transition-colors active:scale-90 touch-manipulation"
               title={isMuted ? 'Unmute' : 'Mute'}
             >
               {getVolumeIcon()}
             </button>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={isMuted ? 0 : volume}
-              onChange={handleVolumeChange}
-              className="w-16 touch-none"
-              style={{
-                background: `linear-gradient(to right, hsl(var(--primary)) ${isMuted ? 0 : volume}%, hsl(0 0% 25%) ${isMuted ? 0 : volume}%)`
-              }}
-            />
+            <div className="relative w-16 h-2 group">
+              <div className="absolute inset-0 rounded-full bg-secondary/50" />
+              <div 
+                className="absolute left-0 top-0 h-full rounded-full bg-primary"
+                style={{ width: `${isMuted ? 0 : volume}%` }}
+              />
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
+              />
+            </div>
             <button
               onClick={handleVolumeUp}
-              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-95"
+              className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-90 touch-manipulation"
               title="Volume Up"
             >
               <Plus className="w-3 h-3" />
             </button>
-            <span className="text-xs text-muted-foreground w-8 text-center">
+            <span className="text-xs text-muted-foreground w-8 text-center tabular-nums">
               {isMuted ? 0 : volume}%
             </span>
           </div>
@@ -394,7 +414,12 @@ const MusicPlayer = ({
 
         {/* Mobile Bottom Row */}
         {!isMiniMode && (
-          <div className="flex md:hidden items-center justify-between w-full px-2">
+          <div className="flex md:hidden items-center justify-between w-full px-2 gap-2">
+            {/* Mobile Soundwave */}
+            {settings.soundwaveEnabled && (
+              <SoundwaveVisualizer isPlaying={isPlaying} className="h-5 flex-shrink-0" />
+            )}
+
             {/* Mobile Playlist Button */}
             <PlaylistDrawer
               playlist={playlist}
@@ -405,39 +430,32 @@ const MusicPlayer = ({
               isOpen={playlistOpen}
               onOpenChange={setPlaylistOpen}
               isPlaying={isPlaying}
+              onReorderPlaylist={onReorderPlaylist}
             />
 
             {/* Mobile Volume */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleVolumeDown}
-                className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-95"
-              >
-                <Minus className="w-3 h-3" />
-              </button>
+            <div className="flex items-center gap-1">
               <button
                 onClick={toggleMute}
-                className="text-muted-foreground hover:text-primary transition-colors active:scale-95"
+                className="text-muted-foreground hover:text-primary transition-colors active:scale-90 touch-manipulation"
               >
                 {getVolumeIcon()}
               </button>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={isMuted ? 0 : volume}
-                onChange={handleVolumeChange}
-                className="w-16 touch-none"
-                style={{
-                  background: `linear-gradient(to right, hsl(var(--primary)) ${isMuted ? 0 : volume}%, hsl(0 0% 25%) ${isMuted ? 0 : volume}%)`
-                }}
-              />
-              <button
-                onClick={handleVolumeUp}
-                className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-95"
-              >
-                <Plus className="w-3 h-3" />
-              </button>
+              <div className="relative w-20 h-2">
+                <div className="absolute inset-0 rounded-full bg-secondary/50" />
+                <div 
+                  className="absolute left-0 top-0 h-full rounded-full bg-primary"
+                  style={{ width: `${isMuted ? 0 : volume}%` }}
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
+                />
+              </div>
             </div>
           </div>
         )}
