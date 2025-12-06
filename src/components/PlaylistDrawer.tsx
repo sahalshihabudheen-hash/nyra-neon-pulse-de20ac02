@@ -43,7 +43,10 @@ const PlaylistDrawer = ({
 }: PlaylistDrawerProps) => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
 
+  // Desktop drag handlers
   const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
@@ -70,6 +73,38 @@ const PlaylistDrawer = ({
     setDraggedIndex(null);
     setDragOverIndex(null);
   }, [onReorderPlaylist]);
+
+  // Touch drag handlers for mobile
+  const handleTouchStart = useCallback((index: number, e: React.TouchEvent) => {
+    setTouchStartY(e.touches[0].clientY);
+    setTouchDragIndex(index);
+    setDraggedIndex(index);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchDragIndex === null || touchStartY === null) return;
+    
+    const touch = e.touches[0];
+    const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+    const trackItem = elements.find(el => el.getAttribute('data-track-index'));
+    
+    if (trackItem) {
+      const newIndex = parseInt(trackItem.getAttribute('data-track-index') || '0');
+      if (newIndex !== dragOverIndex) {
+        setDragOverIndex(newIndex);
+      }
+    }
+  }, [touchDragIndex, touchStartY, dragOverIndex]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchDragIndex !== null && dragOverIndex !== null && touchDragIndex !== dragOverIndex && onReorderPlaylist) {
+      onReorderPlaylist(touchDragIndex, dragOverIndex);
+    }
+    setTouchStartY(null);
+    setTouchDragIndex(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  }, [touchDragIndex, dragOverIndex, onReorderPlaylist]);
 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
@@ -129,24 +164,30 @@ const PlaylistDrawer = ({
               {playlist.map((track, index) => (
                 <div
                   key={track.id}
+                  data-track-index={index}
                   draggable={!!onReorderPlaylist}
                   onDragStart={(e) => handleDragStart(e, index)}
                   onDragOver={(e) => handleDragOver(e, index)}
                   onDragEnd={handleDragEnd}
                   onDrop={(e) => handleDrop(e, index)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   className={cn(
-                    'flex items-center gap-2 md:gap-3 p-3 rounded-xl transition-all group',
+                    'flex items-center gap-2 md:gap-3 p-3 rounded-xl transition-all group select-none',
                     currentTrack?.id === track.id
                       ? 'bg-primary/20 border border-primary/30'
                       : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent',
-                    draggedIndex === index && 'opacity-50 scale-95',
-                    dragOverIndex === index && draggedIndex !== index && 'border-primary border-2 border-dashed'
+                    draggedIndex === index && 'opacity-50 scale-95 bg-primary/10',
+                    dragOverIndex === index && draggedIndex !== index && 'border-primary border-2 border-dashed bg-primary/5'
                   )}
                 >
-                  {/* Drag Handle - MORE VISIBLE */}
+                  {/* Drag Handle - Touch friendly */}
                   {onReorderPlaylist && (
-                    <div className="cursor-grab active:cursor-grabbing text-primary hover:text-primary/80 touch-manipulation flex-shrink-0 bg-primary/20 rounded p-1">
-                      <GripVertical className="w-5 h-5" />
+                    <div 
+                      className="cursor-grab active:cursor-grabbing text-primary hover:text-primary/80 touch-manipulation flex-shrink-0 bg-primary/30 rounded-lg p-2"
+                      onTouchStart={(e) => handleTouchStart(index, e)}
+                    >
+                      <GripVertical className="w-6 h-6" />
                     </div>
                   )}
 
