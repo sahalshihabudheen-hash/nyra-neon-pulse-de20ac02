@@ -76,6 +76,7 @@ const PlaylistDrawer = ({
 
   // Touch drag handlers for mobile
   const handleTouchStart = useCallback((index: number, e: React.TouchEvent) => {
+    e.stopPropagation();
     setTouchStartY(e.touches[0].clientY);
     setTouchDragIndex(index);
     setDraggedIndex(index);
@@ -184,10 +185,12 @@ const PlaylistDrawer = ({
                   {/* Drag Handle - Touch friendly */}
                   {onReorderPlaylist && (
                     <div 
-                      className="cursor-grab active:cursor-grabbing text-primary hover:text-primary/80 touch-manipulation flex-shrink-0 bg-primary/30 rounded-lg p-2"
+                      className="cursor-grab active:cursor-grabbing text-primary-foreground touch-manipulation flex-shrink-0 bg-primary rounded-lg p-2.5 shadow-lg"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
                       onTouchStart={(e) => handleTouchStart(index, e)}
                     >
-                      <GripVertical className="w-6 h-6" />
+                      <GripVertical className="w-5 h-5" />
                     </div>
                   )}
 
