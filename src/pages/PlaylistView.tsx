@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search } from 'lucide-react';
+import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search, GripVertical } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -60,6 +60,9 @@ const PlaylistView = () => {
   const [shuffleMode, setShuffleMode] = useState(false);
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>('off');
   const [loading, setLoading] = useState(true);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
   
   const ytPlayerRef = useRef<any>(null);
 
@@ -335,6 +338,93 @@ const PlaylistView = () => {
     });
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+  };
+
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    const reorderedTracks = [...tracks];
+    const [removed] = reorderedTracks.splice(draggedIndex, 1);
+    reorderedTracks.splice(dropIndex, 0, removed);
+    setTracks(reorderedTracks);
+    setDraggedIndex(null);
+
+    // Update positions in database
+    try {
+      for (let i = 0; i < reorderedTracks.length; i++) {
+        await supabase
+          .from('playlist_items')
+          .update({ position: i })
+          .eq('playlist_id', id)
+          .eq('track_id', reorderedTracks[i].id);
+      }
+    } catch (error) {
+      console.error('Failed to save order:', error);
+    }
+  };
+
+  // Touch drag handlers for mobile
+  const handleTouchStart = (index: number, e: React.TouchEvent) => {
+    e.stopPropagation();
+    setTouchStartY(e.touches[0].clientY);
+    setTouchDragIndex(index);
+    setDraggedIndex(index);
+  };
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchDragIndex === null || touchStartY === null) return;
+    
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY;
+    const itemHeight = 80;
+    const moveCount = Math.round(diff / itemHeight);
+    
+    if (moveCount !== 0) {
+      const newIndex = Math.max(0, Math.min(tracks.length - 1, touchDragIndex + moveCount));
+      if (newIndex !== touchDragIndex) {
+        const reorderedTracks = [...tracks];
+        const [removed] = reorderedTracks.splice(touchDragIndex, 1);
+        reorderedTracks.splice(newIndex, 0, removed);
+        setTracks(reorderedTracks);
+        setTouchDragIndex(newIndex);
+        setTouchStartY(currentY);
+      }
+    }
+  }, [touchDragIndex, touchStartY, tracks]);
+
+  const handleTouchEnd = async () => {
+    if (touchDragIndex !== null) {
+      // Update positions in database
+      try {
+        for (let i = 0; i < tracks.length; i++) {
+          await supabase
+            .from('playlist_items')
+            .update({ position: i })
+            .eq('playlist_id', id)
+            .eq('track_id', tracks[i].id);
+        }
+      } catch (error) {
+        console.error('Failed to save order:', error);
+      }
+    }
+    setTouchStartY(null);
+    setTouchDragIndex(null);
+    setDraggedIndex(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -467,14 +557,34 @@ const PlaylistView = () => {
               {tracks.map((track, index) => (
                 <div
                   key={track.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
+                  onDragEnd={() => setDraggedIndex(null)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   className={cn(
-                    'flex items-center gap-4 p-3 md:p-4 rounded-xl transition-all group',
+                    'flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all group',
                     currentTrack?.id === track.id
                       ? 'bg-primary/20 border border-primary/30'
-                      : 'bg-card hover:bg-card/80 border border-transparent'
+                      : 'bg-card hover:bg-card/80 border border-transparent',
+                    draggedIndex === index && 'opacity-50 scale-[0.98]'
                   )}
                 >
-                  <div className="w-8 text-center shrink-0">
+                  {/* Drag Handle - YouTube style 3 lines */}
+                  <div 
+                    className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 bg-primary/20 hover:bg-primary/40 rounded-lg p-2.5 md:p-3 transition-all border border-primary/50"
+                    onTouchStart={(e) => handleTouchStart(index, e)}
+                  >
+                    <div className="flex flex-col gap-1 w-4 md:w-5">
+                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                    </div>
+                  </div>
+
+                  <div className="w-6 md:w-8 text-center shrink-0">
                     {currentTrack?.id === track.id ? (
                       <div className="flex items-center justify-center gap-0.5">
                         {[...Array(3)].map((_, i) => (
