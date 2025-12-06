@@ -622,7 +622,13 @@ const PlaylistView = () => {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handlePlayTrack(track)}
+                      onClick={() => {
+                        if (currentTrack?.id === track.id) {
+                          handlePlayPause();
+                        } else {
+                          handlePlayTrack(track);
+                        }
+                      }}
                       className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow active:scale-95"
                     >
                       {currentTrack?.id === track.id && isPlaying ? (
