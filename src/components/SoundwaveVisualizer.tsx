@@ -74,32 +74,50 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
     );
   }
 
-  // Waves Shape (Sine wave style)
+  // Waves Shape (Smooth animated wave)
   if (shape === 'waves') {
+    const points = barHeights.map((h, i) => {
+      const x = (i / (barHeights.length - 1)) * 100;
+      const y = isPlaying ? 20 + ((h - 50) / 3) : 20;
+      return `${x},${y}`;
+    });
+    const pathData = `M 0,20 L ${points.join(' L ')} L 100,20`;
+    
     return (
-      <div className={cn('flex items-center justify-center h-8 overflow-hidden', className)}>
+      <div className={cn('flex items-center justify-center h-10 overflow-hidden', className)}>
         <svg viewBox="0 0 100 40" className="w-full h-full" preserveAspectRatio="none">
           <defs>
             <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
               <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="1" />
-              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.4" />
             </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
           </defs>
           <path
-            d={`M 0 20 ${barHeights.map((h, i) => {
-              const x = (i / (barHeights.length - 1)) * 100;
-              const y = isPlaying ? 20 - (h - 50) / 4 : 20;
-              return `Q ${x - 3} ${y - 5}, ${x} ${y}`;
-            }).join(' ')}`}
+            d={pathData}
             fill="none"
             stroke="url(#waveGradient)"
             strokeWidth="3"
             strokeLinecap="round"
-            className="transition-all duration-100"
+            strokeLinejoin="round"
+            className="transition-all duration-75"
             style={{
-              filter: isPlaying ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none',
+              filter: isPlaying ? 'url(#glow)' : 'none',
             }}
+          />
+          {/* Fill under the wave */}
+          <path
+            d={`${pathData} L 100,40 L 0,40 Z`}
+            fill="url(#waveGradient)"
+            opacity={isPlaying ? 0.2 : 0.05}
+            className="transition-all duration-75"
           />
         </svg>
       </div>

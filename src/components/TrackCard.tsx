@@ -31,13 +31,23 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
     onPlay(track);
   };
 
+  const handleCardClick = () => {
+    onPlay(track);
+  };
+
   return (
     <div
       className={cn(
-        'group relative bg-card rounded-2xl overflow-hidden border border-border transition-all duration-300 tilt-card cursor-pointer hover:scale-[1.02] hover:shadow-xl',
+        'group relative bg-card rounded-2xl overflow-hidden border border-border transition-all duration-300 tilt-card cursor-pointer hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] touch-manipulation',
         isPlaying && 'neon-border ring-2 ring-primary/50'
       )}
-      onClick={() => onPlay(track)}
+      onClick={handleCardClick}
+      onTouchEnd={(e) => {
+        // Prevent double-firing on touch devices
+        if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.track-card-main')) {
+          e.preventDefault();
+        }
+      }}
     >
       {/* Thumbnail */}
       <div className="relative aspect-square overflow-hidden">
