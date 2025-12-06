@@ -182,15 +182,20 @@ const PlaylistDrawer = ({
                     dragOverIndex === index && draggedIndex !== index && 'border-primary border-2 border-dashed bg-primary/5'
                   )}
                 >
-                  {/* Drag Handle - Touch friendly */}
+                  {/* Drag Handle - YouTube style 3-line grip */}
                   {onReorderPlaylist && (
                     <div 
-                      className="cursor-grab active:cursor-grabbing text-primary-foreground touch-manipulation flex-shrink-0 bg-primary rounded-lg p-2.5 shadow-lg"
+                      className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 bg-primary/20 hover:bg-primary/40 rounded-lg p-3 shadow-lg border border-primary/50 transition-all duration-200"
                       draggable
                       onDragStart={(e) => handleDragStart(e, index)}
                       onTouchStart={(e) => handleTouchStart(index, e)}
                     >
-                      <GripVertical className="w-5 h-5" />
+                      {/* 3 horizontal lines like YouTube */}
+                      <div className="flex flex-col gap-1 w-5">
+                        <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                        <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                        <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                      </div>
                     </div>
                   )}
 
