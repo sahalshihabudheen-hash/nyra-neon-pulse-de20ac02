@@ -355,13 +355,13 @@ const MusicPlayer = ({
 
         {/* Volume, Soundwave & Playlist */}
         <div className={cn(
-          'items-center gap-3 justify-end',
+          'flex items-center gap-3 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
-          {/* Desktop Soundwave Visualizer - MORE VISIBLE */}
+          {/* Desktop Soundwave Visualizer */}
           {settings.soundwaveEnabled && !isMiniMode && (
-            <div className="bg-black/30 rounded-lg px-3 py-2 border border-primary/30">
-              <SoundwaveVisualizer isPlaying={isPlaying} className="h-8" />
+            <div className="bg-black/30 rounded-lg px-3 py-2 border border-primary/30 flex-shrink-0">
+              <SoundwaveVisualizer isPlaying={isPlaying} className="h-8 w-24" />
             </div>
           )}
 
@@ -427,10 +427,10 @@ const MusicPlayer = ({
         {/* Mobile Bottom Row */}
         {!isMiniMode && (
           <div className="flex md:hidden items-center justify-between w-full px-2 gap-2">
-            {/* Mobile Soundwave - MORE VISIBLE */}
+            {/* Mobile Soundwave */}
             {settings.soundwaveEnabled && (
-              <div className="bg-black/30 rounded-lg px-2 py-1 border border-primary/30">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 flex-shrink-0" />
+              <div className="bg-black/30 rounded-lg px-2 py-1 border border-primary/30 flex-shrink-0">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 w-20" />
               </div>
             )}
 
