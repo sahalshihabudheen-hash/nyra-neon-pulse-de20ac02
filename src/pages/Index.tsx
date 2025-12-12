@@ -12,6 +12,7 @@ import { useQueue } from '@/hooks/useQueue';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
+import { useMediaSession } from '@/hooks/useMediaSession';
 
 interface Track {
   id: string;
@@ -247,6 +248,19 @@ const Index = () => {
     }
   }, [isPlaying]);
 
+  // Handle play action for media session
+  const handleMediaPlay = useCallback(() => {
+    if (ytPlayerRef.current) {
+      ytPlayerRef.current.playVideo();
+    }
+  }, []);
+
+  // Handle pause action for media session
+  const handleMediaPause = useCallback(() => {
+    if (ytPlayerRef.current) {
+      ytPlayerRef.current.pauseVideo();
+    }
+  }, []);
   const handleNext = useCallback(() => {
     // First priority: check queue
     const nextFromQueue = getNextFromQueue(playlist);
@@ -328,6 +342,16 @@ const Index = () => {
       createPlayer(prevTrack.id);
     }
   }, [currentTrackIndex, tracks, ytApiReady, createPlayer, playingFromPlaylist, currentTrack, getPreviousTrack, setLastPlayed]);
+
+  // Media Session API for background playback and lock screen controls
+  useMediaSession({
+    currentTrack,
+    isPlaying,
+    onPlay: handleMediaPlay,
+    onPause: handleMediaPause,
+    onNext: handleNext,
+    onPrevious: handlePrevious,
+  });
 
   const handleAddToPlaylist = useCallback((track: Track) => {
     if (isInPlaylist(track.id)) {
