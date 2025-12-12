@@ -27,8 +27,8 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
     }
 
     const animate = () => {
-      // Bars animation
-      const newHeights = Array(16).fill(0).map(() => Math.random() * 80 + 20);
+      // Bars animation - faster updates for smoother equalizer effect
+      const newHeights = Array(16).fill(0).map(() => Math.random() * 100);
       setBarHeights(newHeights);
       
       // Dots animation
@@ -39,7 +39,7 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
       setPulseScale(0.8 + Math.random() * 0.4);
       
       animationRef.current = requestAnimationFrame(() => {
-        setTimeout(animate, 80);
+        setTimeout(animate, 50); // Faster animation (was 80ms)
       });
     };
 
@@ -52,21 +52,21 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
     };
   }, [isPlaying]);
 
-  // Bars Shape (Classic) - MORE VISIBLE
+  // Bars Shape (Classic) - PROPER EQUALIZER
   if (shape === 'bars') {
     return (
-      <div className={cn('flex items-end justify-center gap-[3px] h-8', className)}>
-        {barHeights.map((height, index) => (
+      <div className={cn('flex items-end justify-center gap-1 h-8', className)}>
+        {barHeights.slice(0, 12).map((height, index) => (
           <div
             key={index}
-            className={cn(
-              'w-[4px] rounded-full transition-all duration-75',
-              isPlaying ? 'bg-primary' : 'bg-primary/50'
-            )}
+            className="w-1 rounded-full bg-primary"
             style={{
-              height: `${isPlaying ? height : 30}%`,
-              boxShadow: isPlaying ? '0 0 8px hsl(var(--primary)), 0 0 16px hsl(var(--primary) / 0.5)' : '0 0 4px hsl(var(--primary) / 0.3)',
-              minHeight: '4px',
+              height: isPlaying ? `${Math.max(15, height)}%` : '20%',
+              boxShadow: isPlaying 
+                ? '0 0 6px hsl(var(--primary)), 0 0 12px hsl(var(--primary) / 0.6)' 
+                : '0 0 3px hsl(var(--primary) / 0.4)',
+              transition: 'height 0.08s ease-out',
+              opacity: isPlaying ? 1 : 0.5,
             }}
           />
         ))}
