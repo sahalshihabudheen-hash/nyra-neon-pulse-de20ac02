@@ -565,7 +565,7 @@ const PlaylistView = () => {
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={cn(
-                    'flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all group',
+                    'flex items-center gap-2 md:gap-4 p-2 md:p-4 rounded-xl transition-all group',
                     currentTrack?.id === track.id
                       ? 'bg-primary/20 border border-primary/30'
                       : 'bg-card hover:bg-card/80 border border-transparent',
@@ -574,29 +574,29 @@ const PlaylistView = () => {
                 >
                   {/* Drag Handle - YouTube style 3 lines */}
                   <div 
-                    className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 bg-primary/20 hover:bg-primary/40 rounded-lg p-2.5 md:p-3 transition-all border border-primary/50"
+                    className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 bg-primary/20 hover:bg-primary/40 rounded-lg p-2 md:p-3 transition-all border border-primary/50"
                     onTouchStart={(e) => handleTouchStart(index, e)}
                   >
-                    <div className="flex flex-col gap-1 w-4 md:w-5">
+                    <div className="flex flex-col gap-0.5 md:gap-1 w-3 md:w-5">
                       <div className="h-0.5 w-full bg-primary rounded-full"></div>
                       <div className="h-0.5 w-full bg-primary rounded-full"></div>
                       <div className="h-0.5 w-full bg-primary rounded-full"></div>
                     </div>
                   </div>
 
-                  <div className="w-6 md:w-8 text-center shrink-0">
+                  <div className="w-5 md:w-8 text-center shrink-0">
                     {currentTrack?.id === track.id ? (
                       <div className="flex items-center justify-center gap-0.5">
                         {[...Array(3)].map((_, i) => (
                           <div
                             key={i}
-                            className="w-1 bg-primary rounded-full soundwave-bar"
-                            style={{ height: '16px' }}
+                            className="w-0.5 md:w-1 bg-primary rounded-full soundwave-bar"
+                            style={{ height: '14px' }}
                           />
                         ))}
                       </div>
                     ) : (
-                      <span className="text-sm text-muted-foreground font-medium">
+                      <span className="text-xs md:text-sm text-muted-foreground font-medium">
                         {index + 1}
                       </span>
                     )}
@@ -605,7 +605,7 @@ const PlaylistView = () => {
                   <img
                     src={track.thumbnail}
                     alt={track.title}
-                    className="w-12 h-12 md:w-16 md:h-16 rounded-lg object-cover shrink-0"
+                    className="w-10 h-10 md:w-16 md:h-16 rounded-lg object-cover shrink-0"
                   />
 
                   <div className="flex-1 min-w-0">
@@ -620,7 +620,7 @@ const PlaylistView = () => {
                     <p className="text-sm text-muted-foreground truncate">{track.channel}</p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-auto">
                     <button
                       onClick={() => {
                         if (currentTrack?.id === track.id) {
@@ -629,7 +629,7 @@ const PlaylistView = () => {
                           handlePlayTrack(track);
                         }
                       }}
-                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow active:scale-95"
+                      className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow active:scale-95"
                     >
                       {currentTrack?.id === track.id && isPlaying ? (
                         <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
@@ -639,7 +639,7 @@ const PlaylistView = () => {
                     </button>
                     <button
                       onClick={() => handleRemoveTrack(track.id)}
-                      className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
+                      className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
                     >
                       <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
