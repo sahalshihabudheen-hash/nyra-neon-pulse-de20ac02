@@ -315,56 +315,58 @@ const MusicPlayer = ({
 
           {/* Progress Bar - ALWAYS VISIBLE */}
           {!isMiniMode && (
-            <div className="w-full max-w-xl flex items-center gap-2 md:gap-3 px-2">
-              <span className="text-xs text-foreground/70 w-10 text-right tabular-nums font-mono">
-                {formatTime(progress)}
-              </span>
-              <div className="relative flex-1 h-3 group rounded-full bg-white/10 border border-white/20 overflow-hidden">
-                {/* Background track */}
-                <div className="absolute inset-0 bg-muted/30" />
-                {/* Progress fill */}
-                <div 
-                  className="absolute left-0 top-0 h-full rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))] transition-all"
-                  style={{ width: `${progressPercent}%` }}
-                />
-                <input
-                  ref={progressRef}
-                  type="range"
-                  min="0"
-                  max={duration || 100}
-                  value={progress}
-                  onChange={handleProgressChange}
-                  onMouseDown={handleProgressMouseDown}
-                  onMouseUp={handleProgressMouseUp}
-                  onTouchStart={handleProgressMouseDown}
-                  onTouchEnd={handleProgressMouseUp}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
-                />
-                {/* Progress handle - always visible */}
-                <div 
-                  className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
-                  style={{ left: `calc(${progressPercent}% - 10px)` }}
-                />
+            <>
+              <div className="w-full max-w-xl flex items-center gap-2 md:gap-3 px-2">
+                <span className="text-xs text-foreground/70 w-10 text-right tabular-nums font-mono">
+                  {formatTime(progress)}
+                </span>
+                <div className="relative flex-1 h-3 group rounded-full bg-white/10 border border-white/20 overflow-hidden">
+                  {/* Background track */}
+                  <div className="absolute inset-0 bg-muted/30" />
+                  {/* Progress fill */}
+                  <div 
+                    className="absolute left-0 top-0 h-full rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))] transition-all"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                  <input
+                    ref={progressRef}
+                    type="range"
+                    min="0"
+                    max={duration || 100}
+                    value={progress}
+                    onChange={handleProgressChange}
+                    onMouseDown={handleProgressMouseDown}
+                    onMouseUp={handleProgressMouseUp}
+                    onTouchStart={handleProgressMouseDown}
+                    onTouchEnd={handleProgressMouseUp}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
+                  />
+                  {/* Progress handle - always visible */}
+                  <div 
+                    className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
+                    style={{ left: `calc(${progressPercent}% - 10px)` }}
+                  />
+                </div>
+                <span className="text-xs text-foreground/70 w-10 tabular-nums font-mono">
+                  {formatTime(duration)}
+                </span>
               </div>
-              <span className="text-xs text-foreground/70 w-10 tabular-nums font-mono">
-                {formatTime(duration)}
-              </span>
-            </div>
+              {settings.soundwaveEnabled && (
+                <div className="mt-1 flex w-full justify-center">
+                  <div className="bg-black/30 rounded-lg px-3 py-1 border border-primary/30">
+                    <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 w-32" />
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Volume, Soundwave & Playlist */}
+        {/* Playlist & Volume (Desktop) */}
         <div className={cn(
           'flex items-center gap-3 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
-          {/* Desktop Soundwave Visualizer */}
-          {settings.soundwaveEnabled && !isMiniMode && (
-            <div className="bg-black/30 rounded-lg px-3 py-2 border border-primary/30 flex-shrink-0">
-              <SoundwaveVisualizer isPlaying={isPlaying} className="h-8 w-24" />
-            </div>
-          )}
-
           {/* Playlist Drawer Trigger */}
           {!isMiniMode && (
             <PlaylistDrawer
