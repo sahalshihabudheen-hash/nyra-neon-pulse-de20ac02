@@ -352,7 +352,7 @@ const MusicPlayer = ({
                 </span>
               </div>
               {settings.soundwaveEnabled && (
-                <div className="mt-1 flex w-full justify-center">
+                <div className="mt-1 hidden md:flex w-full justify-center">
                   <div className="bg-black/30 rounded-lg px-3 py-1 border border-primary/30">
                     <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 w-32" />
                   </div>
