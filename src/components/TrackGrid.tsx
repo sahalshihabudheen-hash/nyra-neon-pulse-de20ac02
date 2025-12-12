@@ -36,7 +36,7 @@ const TrackGrid = ({ tracks, currentTrack, onPlayTrack, onAddToQueue, isLoading,
     );
   }
 
-  if (!searchPerformed) {
+  if (!searchPerformed && tracks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mb-6">
