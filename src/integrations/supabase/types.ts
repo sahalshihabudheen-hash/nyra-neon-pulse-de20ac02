@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      albums: {
+        Row: {
+          album_name: string
+          artist_id: string
+          cover_image_url: string | null
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          album_name: string
+          artist_id: string
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          album_name?: string
+          artist_id?: string
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "albums_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artists: {
+        Row: {
+          artist_name: string
+          bio: string | null
+          created_at: string
+          id: string
+          profile_image_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          artist_name: string
+          bio?: string | null
+          created_at?: string
+          id?: string
+          profile_image_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          artist_name?: string
+          bio?: string | null
+          created_at?: string
+          id?: string
+          profile_image_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       playlist_items: {
         Row: {
           created_at: string
@@ -81,6 +146,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      songs: {
+        Row: {
+          album_id: string
+          audio_url: string
+          created_at: string
+          description: string | null
+          duration: number | null
+          id: string
+          title: string
+        }
+        Insert: {
+          album_id: string
+          audio_url: string
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          title: string
+        }
+        Update: {
+          album_id?: string
+          audio_url?: string
+          created_at?: string
+          description?: string | null
+          duration?: number | null
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "songs_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
