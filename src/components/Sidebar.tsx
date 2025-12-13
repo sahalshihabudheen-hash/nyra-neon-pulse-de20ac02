@@ -1,4 +1,4 @@
-import { Home, Search, ListMusic, Heart, Settings, Menu, X } from 'lucide-react';
+import { Home, Search, ListMusic, Heart, Settings, Menu, X, Users, Mic } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ interface SidebarProps {
 const menuItems = [
   { id: 'home', label: 'Home', icon: Home, path: '/' },
   { id: 'search', label: 'Search', icon: Search, path: '/' },
+  { id: 'artists', label: 'Artists', icon: Users, path: '/artists' },
   { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlists' },
   { id: 'favorites', label: 'Favorites', icon: Heart, path: '/' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
@@ -31,6 +32,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const isItemActive = (item: typeof menuItems[0]) => {
     if (item.path === '/settings' && location.pathname === '/settings') return true;
     if (item.id === 'playlists' && location.pathname.startsWith('/playlist')) return true;
+    if (item.id === 'artists' && (location.pathname === '/artists' || location.pathname.startsWith('/artist'))) return true;
     if (item.path === '/' && location.pathname === '/' && item.id === activeTab) return true;
     return false;
   };

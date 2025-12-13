@@ -1,0 +1,94 @@
+import { useAllArtists } from "@/hooks/useArtist";
+import ArtistCard from "@/components/ArtistCard";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Music, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+
+const Artists = () => {
+  const { artists, loading } = useAllArtists();
+  const { user } = useAuth();
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border/30 bg-card/30 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Artists</h1>
+                <p className="text-sm text-muted-foreground">Discover amazing artists and their music</p>
+              </div>
+            </div>
+            {user && (
+              <Link to="/become-artist">
+                <Button variant="outline" className="gap-2">
+                  <Music className="h-4 w-4" />
+                  Become an Artist
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Artists Grid */}
+      <div className="container mx-auto px-4 py-8">
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="aspect-square rounded-xl" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : artists.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="p-4 rounded-full bg-muted/50 mb-4">
+              <Music className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">No Artists Yet</h2>
+            <p className="text-muted-foreground max-w-md mb-6">
+              Be the first to share your music with the world!
+            </p>
+            {user && (
+              <Link to="/become-artist">
+                <Button className="gap-2">
+                  <Music className="h-4 w-4" />
+                  Become an Artist
+                </Button>
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {artists.map((artist) => {
+              const latestAlbum = artist.albums[0];
+              const totalSongs = artist.albums.reduce((acc, album) => acc + album.songs.length, 0);
+
+              return (
+                <ArtistCard
+                  key={artist.id}
+                  id={artist.id}
+                  artistName={artist.artist_name}
+                  albumName={latestAlbum?.album_name}
+                  coverImageUrl={latestAlbum?.cover_image_url || artist.profile_image_url}
+                  songCount={totalSongs}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Artists;
