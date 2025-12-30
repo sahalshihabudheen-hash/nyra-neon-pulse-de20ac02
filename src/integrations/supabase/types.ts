@@ -79,6 +79,36 @@ export type Database = {
         }
         Relationships: []
       }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          track_channel: string
+          track_id: string
+          track_thumbnail: string
+          track_title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          track_channel: string
+          track_id: string
+          track_thumbnail: string
+          track_title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          track_channel?: string
+          track_id?: string
+          track_thumbnail?: string
+          track_title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       playlist_items: {
         Row: {
           created_at: string

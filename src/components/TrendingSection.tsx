@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, Play, ListPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Play, ListPlus, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import AddToPlaylistDialog from './AddToPlaylistDialog';
@@ -15,9 +15,11 @@ interface TrendingSectionProps {
   onPlayTrack: (track: Track) => void;
   currentTrack: Track | null;
   onAddToQueue?: (track: Track) => void;
+  isFavorite?: (trackId: string) => boolean;
+  onToggleFavorite?: (track: Track) => Promise<boolean>;
 }
 
-const TrendingSection = ({ onPlayTrack, currentTrack, onAddToQueue }: TrendingSectionProps) => {
+const TrendingSection = ({ onPlayTrack, currentTrack, onAddToQueue, isFavorite, onToggleFavorite }: TrendingSectionProps) => {
   const [trendingTracks, setTrendingTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -148,6 +150,23 @@ const TrendingSection = ({ onPlayTrack, currentTrack, onAddToQueue }: TrendingSe
                       title="Add to Queue"
                     >
                       <ListPlus className="w-5 h-5" />
+                    </button>
+                  )}
+                  {onToggleFavorite && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(track);
+                      }}
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center transition-colors active:scale-95",
+                        isFavorite?.(track.id) 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-secondary/80 text-foreground hover:bg-secondary"
+                      )}
+                      title={isFavorite?.(track.id) ? "Remove from Favorites" : "Add to Favorites"}
+                    >
+                      <Heart className="w-5 h-5" fill={isFavorite?.(track.id) ? 'currentColor' : 'none'} />
                     </button>
                   )}
                 </div>
