@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music, Upload, Disc, Plus, Loader2, Image, ArrowLeft, Trash2 } from "lucide-react";
+import { Music, Upload, Disc, Plus, Loader2, Image, ArrowLeft, Trash2, UserX } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,8 +27,9 @@ import { toast } from "sonner";
 const BecomeArtist = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { myArtistProfile, myAlbums, loading, registerAsArtist, createAlbum, uploadSong, deleteAlbum, refetch } = useArtist();
+  const { myArtistProfile, myAlbums, loading, registerAsArtist, createAlbum, uploadSong, deleteAlbum, deleteArtistProfile, refetch } = useArtist();
   const [deletingAlbumId, setDeletingAlbumId] = useState<string | null>(null);
+  const [deletingProfile, setDeletingProfile] = useState(false);
 
   // Registration form
   const [artistName, setArtistName] = useState("");
@@ -202,9 +203,47 @@ const BecomeArtist = () => {
             <h1 className="text-3xl font-bold text-foreground">Artist Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {myArtistProfile.artist_name}</p>
           </div>
-          <Link to={`/artist/${myArtistProfile.id}`}>
-            <Button variant="outline">View Public Profile</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to={`/artist/${myArtistProfile.id}`}>
+              <Button variant="outline">View Public Profile</Button>
+            </Link>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <UserX className="h-4 w-4 mr-2" />
+                  Delete Profile
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Artist Profile</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete your artist profile? This will permanently delete all your albums and songs. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={async () => {
+                      setDeletingProfile(true);
+                      const success = await deleteArtistProfile();
+                      setDeletingProfile(false);
+                      if (success) {
+                        navigate('/artists');
+                      }
+                    }}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deletingProfile ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Delete Everything"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
 
         <Tabs defaultValue="albums" className="space-y-6">
