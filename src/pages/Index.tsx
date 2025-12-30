@@ -9,6 +9,7 @@ import TrendingSection from '@/components/TrendingSection';
 import { toast } from 'sonner';
 import { usePlaylist } from '@/hooks/usePlaylist';
 import { useQueue } from '@/hooks/useQueue';
+import { useFavorites } from '@/hooks/useFavorites';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
@@ -82,6 +83,8 @@ const Index = () => {
     toggleShuffle,
     setLastPlayed,
   } = useQueue();
+
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -399,6 +402,8 @@ const Index = () => {
               onPlayTrack={handlePlayTrack}
               currentTrack={currentTrack}
               onAddToQueue={handleAddToQueue}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
             />
           )}
 
@@ -431,6 +436,8 @@ const Index = () => {
             onAddToQueue={handleAddToQueue}
             isLoading={isLoading}
             searchPerformed={searchPerformed}
+            isFavorite={isFavorite}
+            onToggleFavorite={toggleFavorite}
           />
         </main>
       </div>

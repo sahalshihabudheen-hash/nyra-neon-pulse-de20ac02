@@ -1,4 +1,4 @@
-import { Play, Pause, ListPlus, PlayCircle } from 'lucide-react';
+import { Play, Pause, ListPlus, PlayCircle, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddToPlaylistDialog from './AddToPlaylistDialog';
 import { toast } from 'sonner';
@@ -15,9 +15,11 @@ interface TrackCardProps {
   isPlaying: boolean;
   onPlay: (track: Track) => void;
   onAddToQueue?: (track: Track) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (track: Track) => Promise<boolean>;
 }
 
-const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) => {
+const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false, onToggleFavorite }: TrackCardProps) => {
   const handleAddToQueue = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onAddToQueue) {
@@ -33,6 +35,13 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
 
   const handleCardClick = () => {
     onPlay(track);
+  };
+
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      await onToggleFavorite(track);
+    }
   };
 
   return (
@@ -100,6 +109,21 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue }: TrackCardProps) =
 
       {/* Action Buttons - Always visible on mobile */}
       <div className="absolute top-3 right-3 flex gap-2 md:opacity-0 md:group-hover:opacity-100 transition-all">
+        {/* Favorite Heart */}
+        {onToggleFavorite && (
+          <button
+            className={cn(
+              'w-9 h-9 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation shadow-lg',
+              isFavorite
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-background/90 text-muted-foreground hover:text-primary hover:bg-primary/20'
+            )}
+            onClick={handleToggleFavorite}
+            title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+          >
+            <Heart className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} />
+          </button>
+        )}
         {/* Play Now */}
         <button
           className="w-9 h-9 md:w-8 md:h-8 rounded-full bg-primary/90 flex items-center justify-center text-primary-foreground hover:bg-primary transition-all active:scale-90 touch-manipulation shadow-lg"

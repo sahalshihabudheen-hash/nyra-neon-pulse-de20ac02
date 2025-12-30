@@ -14,7 +14,7 @@ const menuItems = [
   { id: 'search', label: 'Search', icon: Search, path: '/' },
   { id: 'artists', label: 'Artists', icon: Users, path: '/artists' },
   { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlists' },
-  { id: 'favorites', label: 'Favorites', icon: Heart, path: '/' },
+  { id: 'favorites', label: 'Favorites', icon: Heart, path: '/favorites' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
