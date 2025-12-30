@@ -166,7 +166,8 @@ const PlaylistView = () => {
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             setIsPlaying(false);
           } else if (event.data === window.YT.PlayerState.ENDED) {
-            if (settings.autoPlayNext && handleNextRef.current) {
+            // Always autoplay next in playlist
+            if (handleNextRef.current) {
               handleNextRef.current();
             } else {
               setIsPlaying(false);
@@ -175,13 +176,11 @@ const PlaylistView = () => {
         },
         onError: (event: any) => {
           toast.error('Could not play this track. Trying next...');
-          if (settings.autoPlayNext && handleNextRef.current) {
-            setTimeout(() => handleNextRef.current?.(), 1000);
-          }
+          setTimeout(() => handleNextRef.current?.(), 1000);
         },
       },
     });
-  }, [settings.autoPlayNext]);
+  }, []);
 
   useEffect(() => {
     if (ytApiReady && currentTrack) {
