@@ -9,14 +9,26 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Music, Upload, Disc, Plus, Loader2, Image, ArrowLeft } from "lucide-react";
+import { Music, Upload, Disc, Plus, Loader2, Image, ArrowLeft, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 const BecomeArtist = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { myArtistProfile, myAlbums, loading, registerAsArtist, createAlbum, uploadSong, refetch } = useArtist();
+  const { myArtistProfile, myAlbums, loading, registerAsArtist, createAlbum, uploadSong, deleteAlbum, refetch } = useArtist();
+  const [deletingAlbumId, setDeletingAlbumId] = useState<string | null>(null);
 
   // Registration form
   const [artistName, setArtistName] = useState("");
@@ -256,8 +268,8 @@ const BecomeArtist = () => {
 
             {/* Existing Albums */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myAlbums.map((album) => (
-                <Card key={album.id} className="overflow-hidden">
+            {myAlbums.map((album) => (
+                <Card key={album.id} className="overflow-hidden group">
                   <div className="aspect-square relative">
                     {album.cover_image_url ? (
                       <img
@@ -270,6 +282,45 @@ const BecomeArtist = () => {
                         <Image className="h-12 w-12 text-primary/30" />
                       </div>
                     )}
+                    {/* Delete button overlay */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="rounded-full"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Album</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{album.album_name}"? This will also delete all songs in this album. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                setDeletingAlbumId(album.id);
+                                await deleteAlbum(album.id);
+                                setDeletingAlbumId(null);
+                              }}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {deletingAlbumId === album.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Delete"
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                   <CardContent className="p-4">
                     <h3 className="font-semibold truncate">{album.album_name}</h3>
