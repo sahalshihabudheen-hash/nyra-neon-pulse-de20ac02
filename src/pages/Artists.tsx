@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Users, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,9 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ArtistCard from '@/components/ArtistCard';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
+import SoundwaveVisualizer from '@/components/SoundwaveVisualizer';
 import { useAllArtists } from '@/hooks/useArtist';
 import { useAuth } from '@/hooks/useAuth';
-import { useState } from 'react';
 
 const Artists = () => {
   const { artists, loading } = useAllArtists();
@@ -38,11 +39,14 @@ const Artists = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="p-2 rounded-lg bg-primary/10 relative">
                   <Users className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-foreground">Artists</h1>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold text-foreground">Artists</h1>
+                    <SoundwaveVisualizer isPlaying={true} className="h-6" />
+                  </div>
                   <p className="text-sm text-muted-foreground">Discover amazing artists and their music</p>
                 </div>
               </div>
