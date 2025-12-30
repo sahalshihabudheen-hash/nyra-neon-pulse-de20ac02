@@ -263,6 +263,39 @@ export const useArtist = () => {
     }
   };
 
+  const deleteArtistProfile = async () => {
+    if (!myArtistProfile) {
+      toast.error("No artist profile found");
+      return false;
+    }
+
+    try {
+      // Delete all songs in all albums first
+      for (const album of myAlbums) {
+        await supabase.from("songs").delete().eq("album_id", album.id);
+      }
+
+      // Delete all albums
+      await supabase.from("albums").delete().eq("artist_id", myArtistProfile.id);
+
+      // Delete the artist profile
+      const { error } = await supabase
+        .from("artists")
+        .delete()
+        .eq("id", myArtistProfile.id);
+
+      if (error) throw error;
+
+      setMyArtistProfile(null);
+      setMyAlbums([]);
+      toast.success("Artist profile deleted!");
+      return true;
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete artist profile");
+      return false;
+    }
+  };
+
   return {
     myArtistProfile,
     myAlbums,
@@ -272,6 +305,7 @@ export const useArtist = () => {
     uploadSong,
     updateAlbum,
     deleteAlbum,
+    deleteArtistProfile,
     refetch: fetchMyArtistProfile,
   };
 };
