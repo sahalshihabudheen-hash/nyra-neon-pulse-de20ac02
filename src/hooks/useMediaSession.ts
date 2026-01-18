@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 interface Track {
   id: string;
@@ -14,6 +14,7 @@ interface UseMediaSessionProps {
   onPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
+  audioRef?: React.MutableRefObject<HTMLAudioElement | null>;
 }
 
 export function useMediaSession({
@@ -23,7 +24,40 @@ export function useMediaSession({
   onPause,
   onNext,
   onPrevious,
+  audioRef,
 }: UseMediaSessionProps) {
+  // Keep a silent audio element running to maintain background state
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Create and maintain a silent audio context for background
+  useEffect(() => {
+    // Create a silent audio element that keeps the audio session alive
+    if (!silentAudioRef.current) {
+      const silentAudio = new Audio();
+      // Use a data URI for a short silent audio
+      silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      silentAudio.loop = true;
+      silentAudio.volume = 0.01;
+      silentAudioRef.current = silentAudio;
+    }
+
+    return () => {
+      if (silentAudioRef.current) {
+        silentAudioRef.current.pause();
+        silentAudioRef.current = null;
+      }
+    };
+  }, []);
+
+  // Keep silent audio playing when main audio is playing (helps maintain background state)
+  useEffect(() => {
+    if (isPlaying && silentAudioRef.current) {
+      silentAudioRef.current.play().catch(() => {});
+    } else if (!isPlaying && silentAudioRef.current) {
+      silentAudioRef.current.pause();
+    }
+  }, [isPlaying]);
+
   // Update media session metadata when track changes
   useEffect(() => {
     if (!('mediaSession' in navigator) || !currentTrack) return;
@@ -60,6 +94,26 @@ export function useMediaSession({
       ['previoustrack', () => onPrevious()],
       ['nexttrack', () => onNext()],
       ['stop', () => onPause()],
+      ['seekto', (details) => {
+        if (audioRef?.current && details.seekTime !== undefined) {
+          audioRef.current.currentTime = details.seekTime;
+        }
+      }],
+      ['seekbackward', (details) => {
+        if (audioRef?.current) {
+          const skipTime = details.seekOffset || 10;
+          audioRef.current.currentTime = Math.max(audioRef.current.currentTime - skipTime, 0);
+        }
+      }],
+      ['seekforward', (details) => {
+        if (audioRef?.current) {
+          const skipTime = details.seekOffset || 10;
+          audioRef.current.currentTime = Math.min(
+            audioRef.current.currentTime + skipTime,
+            audioRef.current.duration || 0
+          );
+        }
+      }],
     ];
 
     for (const [action, handler] of actionHandlers) {
@@ -80,9 +134,9 @@ export function useMediaSession({
         }
       }
     };
-  }, [onPlay, onPause, onNext, onPrevious]);
+  }, [onPlay, onPause, onNext, onPrevious, audioRef]);
 
-  // Update position state (optional, for seek bar on lock screen)
+  // Update position state (for seek bar on lock screen)
   const updatePositionState = useCallback((duration: number, position: number) => {
     if (!('mediaSession' in navigator)) return;
 

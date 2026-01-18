@@ -26,6 +26,7 @@ interface MusicPlayerProps {
   onClearPlaylist?: () => void;
   onReorderPlaylist?: (startIndex: number, endIndex: number) => void;
   ytPlayerRef?: React.MutableRefObject<any>;
+  audioRef?: React.MutableRefObject<HTMLAudioElement | null>;
   shuffleMode?: boolean;
   onToggleShuffle?: () => void;
   queue?: Track[];
@@ -45,6 +46,7 @@ const MusicPlayer = ({
   onClearPlaylist,
   onReorderPlaylist,
   ytPlayerRef,
+  audioRef,
   shuffleMode = false,
   onToggleShuffle,
   queue = [],
@@ -69,21 +71,30 @@ const MusicPlayer = ({
   // Get next up track
   const nextUpTrack = queue.length > 0 ? queue[0] : null;
 
-  // Update progress from YouTube player
+  // Update progress from audio element or YouTube player
   useEffect(() => {
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
     }
 
-    if (isPlaying && ytPlayerRef?.current && !isDragging) {
+    if (isPlaying && !isDragging) {
       progressIntervalRef.current = setInterval(() => {
-        try {
-          const currentTime = ytPlayerRef.current.getCurrentTime?.() || 0;
-          const totalDuration = ytPlayerRef.current.getDuration?.() || 0;
-          setProgress(currentTime);
-          setDuration(totalDuration);
-        } catch (e) {
-          // Player not ready
+        // Try audio element first
+        if (audioRef?.current && audioRef.current.src && !isNaN(audioRef.current.duration)) {
+          setProgress(audioRef.current.currentTime);
+          setDuration(audioRef.current.duration);
+          return;
+        }
+        // Fall back to YouTube player
+        if (ytPlayerRef?.current) {
+          try {
+            const currentTime = ytPlayerRef.current.getCurrentTime?.() || 0;
+            const totalDuration = ytPlayerRef.current.getDuration?.() || 0;
+            setProgress(currentTime);
+            setDuration(totalDuration);
+          } catch (e) {
+            // Player not ready
+          }
         }
       }, 250);
     }
@@ -93,7 +104,7 @@ const MusicPlayer = ({
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [isPlaying, ytPlayerRef, isDragging]);
+  }, [isPlaying, ytPlayerRef, audioRef, isDragging]);
 
   // Reset progress when track changes
   useEffect(() => {
@@ -101,20 +112,30 @@ const MusicPlayer = ({
     setDuration(0);
   }, [currentTrack?.id]);
 
-  // Sync volume with YouTube player
+  // Sync volume with audio element and YouTube player
   useEffect(() => {
+    const actualVolume = isMuted ? 0 : volume;
+    
+    if (audioRef?.current) {
+      audioRef.current.volume = actualVolume / 100;
+    }
     if (ytPlayerRef?.current) {
       try {
-        const actualVolume = isMuted ? 0 : volume;
         ytPlayerRef.current.setVolume?.(actualVolume);
       } catch (e) {
         // Player not ready
       }
     }
-  }, [volume, isMuted, ytPlayerRef]);
+  }, [volume, isMuted, ytPlayerRef, audioRef]);
 
   const handleSeek = useCallback((value: number) => {
     setProgress(value);
+    // Try audio element first
+    if (audioRef?.current && audioRef.current.src) {
+      audioRef.current.currentTime = value;
+      return;
+    }
+    // Fall back to YouTube
     if (ytPlayerRef?.current) {
       try {
         ytPlayerRef.current.seekTo?.(value, true);
@@ -122,7 +143,7 @@ const MusicPlayer = ({
         console.error('Seek error:', e);
       }
     }
-  }, [ytPlayerRef]);
+  }, [ytPlayerRef, audioRef]);
 
   const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
