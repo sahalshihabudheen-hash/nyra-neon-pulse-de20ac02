@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves } from 'lucide-react';
+import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Pipette, Blend } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import SettingsSoundwave from '@/components/SettingsSoundwave';
@@ -18,6 +19,7 @@ const themePreview: Record<ThemeName, { label: string; color: string }> = {
   green: { label: 'Forest Green', color: 'hsl(142 76% 45%)' },
   purple: { label: 'Royal Purple', color: 'hsl(280 100% 60%)' },
   red: { label: 'Fire Red', color: 'hsl(0 100% 50%)' },
+  custom: { label: 'Custom', color: 'linear-gradient(135deg, #ff0080, #7928ca)' },
 };
 
 const soundwaveShapes: { value: SoundwaveShape; label: string; icon: string }[] = [
@@ -28,10 +30,24 @@ const soundwaveShapes: { value: SoundwaveShape; label: string; icon: string }[] 
   { value: 'spectrum', label: 'Spectrum', icon: '◂▸' },
 ];
 
+const presetColors = [
+  '#ffd300', '#ff6b00', '#ff0080', '#7928ca', '#00d4ff', 
+  '#00ff88', '#ff3366', '#ffcc00', '#9945ff', '#14f195'
+];
+
 const Settings = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { currentTheme, setTheme, settings, updateSettings } = useTheme();
+  const { 
+    currentTheme, 
+    setTheme, 
+    settings, 
+    updateSettings,
+    customColor,
+    setCustomColor,
+    gradient,
+    setGradient,
+  } = useTheme();
   const [activeTab, setActiveTab] = useState('settings');
   const [searchQuery, setSearchQuery] = useState('');
   const [previewPlaying, setPreviewPlaying] = useState(true);
@@ -81,8 +97,8 @@ const Settings = () => {
               <SettingsSoundwave className="h-6 ml-4" />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
-              {(Object.keys(themes) as ThemeName[]).map((themeName) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 md:gap-4">
+              {(Object.keys(themes) as ThemeName[]).filter(t => t !== 'custom').map((themeName) => (
                 <button
                   key={themeName}
                   onClick={() => setTheme(themeName)}
@@ -111,6 +127,140 @@ const Settings = () => {
                   </div>
                 </button>
               ))}
+            </div>
+          </section>
+
+          {/* Custom Color Picker */}
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <Pipette className="w-6 h-6 text-primary" />
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground">Custom Color</h2>
+            </div>
+
+            <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
+              {/* Color Picker */}
+              <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={customColor}
+                    onChange={(e) => setCustomColor(e.target.value)}
+                    className="w-20 h-20 rounded-xl cursor-pointer border-2 border-border hover:border-primary transition-colors"
+                    style={{ backgroundColor: customColor }}
+                  />
+                  <div 
+                    className="absolute inset-0 rounded-xl pointer-events-none"
+                    style={{ 
+                      boxShadow: currentTheme === 'custom' ? `0 0 20px ${customColor}80` : 'none',
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground mb-2">Pick any color you like</p>
+                  <p className="text-xs font-mono text-foreground bg-background/50 px-3 py-1.5 rounded-lg inline-block">
+                    {customColor.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Preset Colors */}
+              <div className="flex flex-wrap gap-2">
+                {presetColors.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setCustomColor(color)}
+                    className={cn(
+                      'w-10 h-10 rounded-full border-2 transition-all active:scale-95 touch-manipulation',
+                      customColor === color && currentTheme === 'custom'
+                        ? 'border-white scale-110'
+                        : 'border-transparent hover:scale-110'
+                    )}
+                    style={{ 
+                      backgroundColor: color,
+                      boxShadow: customColor === color && currentTheme === 'custom' ? `0 0 15px ${color}` : 'none',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Gradient Settings */}
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <Blend className="w-6 h-6 text-primary" />
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground">Gradient Effects</h2>
+            </div>
+
+            <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
+              {/* Enable Gradient */}
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground text-sm md:text-base">Enable Gradient</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Apply gradient to UI elements</p>
+                </div>
+                <Switch
+                  checked={gradient.enabled}
+                  onCheckedChange={(checked) => setGradient({ enabled: checked })}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+
+              {/* Gradient Preview */}
+              <div 
+                className="h-16 rounded-xl mb-6 border border-border transition-all"
+                style={{
+                  background: gradient.enabled 
+                    ? `linear-gradient(${gradient.angle}deg, ${gradient.startColor}, ${gradient.endColor})`
+                    : 'hsl(var(--muted))',
+                }}
+              />
+
+              {/* Gradient Colors */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Start Color</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={gradient.startColor}
+                      onChange={(e) => setGradient({ startColor: e.target.value })}
+                      className="w-12 h-12 rounded-lg cursor-pointer border-2 border-border"
+                      disabled={!gradient.enabled}
+                    />
+                    <span className="text-xs font-mono text-foreground">{gradient.startColor.toUpperCase()}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">End Color</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={gradient.endColor}
+                      onChange={(e) => setGradient({ endColor: e.target.value })}
+                      className="w-12 h-12 rounded-lg cursor-pointer border-2 border-border"
+                      disabled={!gradient.enabled}
+                    />
+                    <span className="text-xs font-mono text-foreground">{gradient.endColor.toUpperCase()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gradient Angle */}
+              <div>
+                <label className="text-sm text-muted-foreground mb-3 block">
+                  Angle: {gradient.angle}°
+                </label>
+                <Slider
+                  value={[gradient.angle]}
+                  onValueChange={([value]) => setGradient({ angle: value })}
+                  min={0}
+                  max={360}
+                  step={15}
+                  disabled={!gradient.enabled}
+                  className="w-full"
+                />
+              </div>
             </div>
           </section>
 
