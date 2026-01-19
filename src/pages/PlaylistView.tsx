@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search, GripVertical } from 'lucide-react';
+import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useMediaSession } from '@/hooks/useMediaSession';
 import { cn } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
 import MusicPlayer from '@/components/MusicPlayer';
@@ -65,6 +66,9 @@ const PlaylistView = () => {
   const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
   
   const ytPlayerRef = useRef<any>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const handleNextRef = useRef<() => void>();
+  const [useBackgroundAudio, setUseBackgroundAudio] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -73,6 +77,52 @@ const PlaylistView = () => {
       fetchPlaylist();
     }
   }, [user, authLoading, id, navigate]);
+
+  // Create background audio element (best-effort for mobile minimize/lock-screen)
+  useEffect(() => {
+    if (!audioRef.current) {
+      const audio = new Audio();
+      audio.preload = 'auto';
+      (audio as any).playsInline = true;
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+      audioRef.current = audio;
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
+  }, []);
+
+  // Audio events: ended => autoplay next, error => fallback to YouTube
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleEnded = () => {
+      if (handleNextRef.current) {
+        handleNextRef.current();
+      } else {
+        setIsPlaying(false);
+      }
+    };
+
+    const handleError = () => {
+      console.error('Audio error, falling back to YouTube player');
+      setUseBackgroundAudio(false);
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+    };
+  }, []);
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -182,18 +232,99 @@ const PlaylistView = () => {
     });
   }, []);
 
+  // Fetch audio URL for background playback
+  const fetchAudioUrl = useCallback(async (videoId: string): Promise<string | null> => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (data.fallback || data.error || !data.audioUrl) return null;
+      return data.audioUrl;
+    } catch (error) {
+      console.error('Failed to fetch audio URL:', error);
+      return null;
+    }
+  }, []);
+
+  // Play track with background audio support (fallback to YouTube if unavailable)
+  const playWithBackgroundAudio = useCallback(async (videoId: string) => {
+    // If background audio is disabled/failing, use YouTube directly
+    if (!useBackgroundAudio) {
+      if (ytApiReady && window.YT && window.YT.Player) {
+        createPlayer(videoId);
+      }
+      return;
+    }
+
+    const audioUrl = await fetchAudioUrl(videoId);
+
+    if (audioUrl && audioRef.current) {
+      // Stop YouTube player if running
+      if (ytPlayerRef.current) {
+        try {
+          ytPlayerRef.current.pauseVideo();
+        } catch (_) {}
+      }
+
+      audioRef.current.src = audioUrl;
+      audioRef.current.load();
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((error) => {
+          console.error('Background audio failed:', error);
+          setUseBackgroundAudio(false);
+          if (ytApiReady && window.YT && window.YT.Player) {
+            createPlayer(videoId);
+          }
+        });
+
+      return;
+    }
+
+    // No audio URL => fallback to YouTube
+    setUseBackgroundAudio(false);
+    if (ytApiReady && window.YT && window.YT.Player) {
+      createPlayer(videoId);
+    }
+  }, [useBackgroundAudio, fetchAudioUrl, ytApiReady, createPlayer]);
+
   useEffect(() => {
-    if (ytApiReady && currentTrack) {
+    // Only create the YouTube player when we're not using background audio
+    if (ytApiReady && currentTrack && !useBackgroundAudio) {
       createPlayer(currentTrack.id);
     }
-  }, [ytApiReady, currentTrack, createPlayer]);
+  }, [ytApiReady, currentTrack, createPlayer, useBackgroundAudio]);
 
-  const handlePlayTrack = (track: Track) => {
+  const handlePlayTrack = useCallback((track: Track) => {
     setCurrentTrack(track);
     setIsPlaying(true);
-  };
+    playWithBackgroundAudio(track.id);
+  }, [playWithBackgroundAudio]);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = useCallback(() => {
+    // Prefer background audio when available
+    if (audioRef.current && audioRef.current.src) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {
+          setUseBackgroundAudio(false);
+          if (currentTrack) createPlayer(currentTrack.id);
+        });
+      }
+      return;
+    }
+
+    // Fallback to YouTube player
     if (ytPlayerRef.current) {
       if (isPlaying) {
         ytPlayerRef.current.pauseVideo();
@@ -201,18 +332,21 @@ const PlaylistView = () => {
         ytPlayerRef.current.playVideo();
       }
     }
-  };
+  }, [isPlaying, currentTrack, createPlayer]);
 
-  const handleNextRef = useRef<() => void>();
-  
   const handleNext = useCallback(() => {
     if (!currentTrack || tracks.length === 0) return;
-    
+
     const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
     let nextIndex: number;
-    
+
     if (loopMode === 'one') {
-      if (ytPlayerRef.current) {
+      // Restart current track
+      if (audioRef.current && audioRef.current.src) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+        setIsPlaying(true);
+      } else if (ytPlayerRef.current) {
         ytPlayerRef.current.seekTo(0);
         ytPlayerRef.current.playVideo();
       }
@@ -227,21 +361,55 @@ const PlaylistView = () => {
         return;
       }
     }
-    
-    setCurrentTrack(tracks[nextIndex]);
-  }, [currentTrack, tracks, loopMode]);
+
+    const nextTrack = tracks[nextIndex];
+    setCurrentTrack(nextTrack);
+    setIsPlaying(true);
+    playWithBackgroundAudio(nextTrack.id);
+  }, [currentTrack, tracks, loopMode, playWithBackgroundAudio]);
 
   // Keep ref updated to avoid stale closure in createPlayer
   useEffect(() => {
     handleNextRef.current = handleNext;
   }, [handleNext]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (!currentTrack || tracks.length === 0) return;
     const currentIndex = tracks.findIndex(t => t.id === currentTrack.id);
     const prevIndex = currentIndex <= 0 ? tracks.length - 1 : currentIndex - 1;
-    setCurrentTrack(tracks[prevIndex]);
-  };
+    const prevTrack = tracks[prevIndex];
+    setCurrentTrack(prevTrack);
+    setIsPlaying(true);
+    playWithBackgroundAudio(prevTrack.id);
+  }, [currentTrack, tracks, playWithBackgroundAudio]);
+
+  // Media Session (lock screen controls)
+  const handleMediaPlay = useCallback(() => {
+    if (audioRef.current && audioRef.current.src) {
+      audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+    } else if (ytPlayerRef.current) {
+      ytPlayerRef.current.playVideo();
+    }
+  }, []);
+
+  const handleMediaPause = useCallback(() => {
+    if (audioRef.current && audioRef.current.src) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else if (ytPlayerRef.current) {
+      ytPlayerRef.current.pauseVideo();
+    }
+  }, []);
+
+  useMediaSession({
+    currentTrack,
+    isPlaying,
+    onPlay: handleMediaPlay,
+    onPause: handleMediaPause,
+    onNext: handleNext,
+    onPrevious: handlePrevious,
+    audioRef,
+  });
 
   const handleRemoveTrack = async (trackId: string) => {
     try {
@@ -551,7 +719,7 @@ const PlaylistView = () => {
             <p className="text-sm">Use the search above to add songs</p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-500px)] min-h-64">
+          <div className="h-[calc(100vh-500px)] min-h-64 overflow-y-auto pr-2">
             <div className="space-y-2">
               {tracks.map((track, index) => (
                 <div
@@ -564,7 +732,7 @@ const PlaylistView = () => {
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={cn(
-                    'flex items-center gap-2 md:gap-4 p-2 md:p-4 rounded-xl transition-all group',
+                    'w-full flex items-center gap-2 md:gap-4 p-2 md:p-4 rounded-xl transition-all group',
                     currentTrack?.id === track.id
                       ? 'bg-primary/20 border border-primary/30'
                       : 'bg-card hover:bg-card/80 border border-transparent',
@@ -572,7 +740,7 @@ const PlaylistView = () => {
                   )}
                 >
                   {/* Drag Handle - compact on mobile */}
-                  <div 
+                  <div
                     className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 bg-primary/20 hover:bg-primary/40 rounded p-1 md:p-3 transition-all border border-primary/50"
                     onTouchStart={(e) => handleTouchStart(index, e)}
                   >
@@ -583,13 +751,34 @@ const PlaylistView = () => {
                     </div>
                   </div>
 
-                  <img
-                    src={track.thumbnail}
-                    alt={track.title}
-                    className="w-10 h-10 md:w-16 md:h-16 rounded-lg object-cover shrink-0"
-                  />
+                  {/* Thumbnail + Play (always visible on mobile) */}
+                  <div className="relative shrink-0">
+                    <img
+                      src={track.thumbnail}
+                      alt={track.title}
+                      className="w-10 h-10 md:w-16 md:h-16 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                    <button
+                      onClick={() => {
+                        if (currentTrack?.id === track.id) {
+                          handlePlayPause();
+                        } else {
+                          handlePlayTrack(track);
+                        }
+                      }}
+                      aria-label={currentTrack?.id === track.id && isPlaying ? 'Pause' : 'Play'}
+                      className="absolute -bottom-1 -right-1 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center neon-glow active:scale-95 touch-manipulation"
+                    >
+                      {currentTrack?.id === track.id && isPlaying ? (
+                        <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+                      ) : (
+                        <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
+                      )}
+                    </button>
+                  </div>
 
-                  {/* Title - flex-1 with min-w-0 for proper truncation */}
+                  {/* Title */}
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <p
                       className={cn(
@@ -602,26 +791,11 @@ const PlaylistView = () => {
                     <p className="text-[10px] md:text-sm text-muted-foreground truncate">{track.channel}</p>
                   </div>
 
-                  {/* Buttons - always visible, guaranteed space */}
+                  {/* Actions */}
                   <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                     <button
-                      onClick={() => {
-                        if (currentTrack?.id === track.id) {
-                          handlePlayPause();
-                        } else {
-                          handlePlayTrack(track);
-                        }
-                      }}
-                      className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition-transform neon-glow active:scale-95"
-                    >
-                      {currentTrack?.id === track.id && isPlaying ? (
-                        <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
-                      ) : (
-                        <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
-                      )}
-                    </button>
-                    <button
                       onClick={() => handleRemoveTrack(track.id)}
+                      aria-label="Remove from playlist"
                       className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
                     >
                       <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
@@ -630,7 +804,7 @@ const PlaylistView = () => {
                 </div>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         )}
       </main>
 
@@ -646,6 +820,7 @@ const PlaylistView = () => {
           onRemoveFromPlaylist={handleRemoveTrack}
           onClearPlaylist={() => {}}
           ytPlayerRef={ytPlayerRef}
+          audioRef={audioRef}
         />
       )}
     </div>
