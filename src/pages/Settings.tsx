@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Pipette, Blend } from 'lucide-react';
+import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
@@ -30,10 +30,6 @@ const soundwaveShapes: { value: SoundwaveShape; label: string; icon: string }[] 
   { value: 'spectrum', label: 'Spectrum', icon: '◂▸' },
 ];
 
-const presetColors = [
-  '#ffd300', '#ff6b00', '#ff0080', '#7928ca', '#00d4ff', 
-  '#00ff88', '#ff3366', '#ffcc00', '#9945ff', '#14f195'
-];
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -43,8 +39,6 @@ const Settings = () => {
     setTheme, 
     settings, 
     updateSettings,
-    customColor,
-    setCustomColor,
     gradient,
     setGradient,
   } = useTheme();
@@ -127,61 +121,6 @@ const Settings = () => {
                   </div>
                 </button>
               ))}
-            </div>
-          </section>
-
-          {/* Custom Color Picker */}
-          <section className="mb-10">
-            <div className="flex items-center gap-3 mb-6">
-              <Pipette className="w-6 h-6 text-primary" />
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground">Custom Color</h2>
-            </div>
-
-            <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
-              {/* Color Picker */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-                <div className="relative">
-                  <input
-                    type="color"
-                    value={customColor}
-                    onChange={(e) => setCustomColor(e.target.value)}
-                    className="w-20 h-20 rounded-xl cursor-pointer border-2 border-border hover:border-primary transition-colors"
-                    style={{ backgroundColor: customColor }}
-                  />
-                  <div 
-                    className="absolute inset-0 rounded-xl pointer-events-none"
-                    style={{ 
-                      boxShadow: currentTheme === 'custom' ? `0 0 20px ${customColor}80` : 'none',
-                    }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground mb-2">Pick any color you like</p>
-                  <p className="text-xs font-mono text-foreground bg-background/50 px-3 py-1.5 rounded-lg inline-block">
-                    {customColor.toUpperCase()}
-                  </p>
-                </div>
-              </div>
-
-              {/* Preset Colors */}
-              <div className="flex flex-wrap gap-2">
-                {presetColors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setCustomColor(color)}
-                    className={cn(
-                      'w-10 h-10 rounded-full border-2 transition-all active:scale-95 touch-manipulation',
-                      customColor === color && currentTheme === 'custom'
-                        ? 'border-white scale-110'
-                        : 'border-transparent hover:scale-110'
-                    )}
-                    style={{ 
-                      backgroundColor: color,
-                      boxShadow: customColor === color && currentTheme === 'custom' ? `0 0 15px ${color}` : 'none',
-                    }}
-                  />
-                ))}
-              </div>
             </div>
           </section>
 

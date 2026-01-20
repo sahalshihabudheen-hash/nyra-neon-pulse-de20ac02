@@ -144,7 +144,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     
     let primaryHsl: string;
     
-    if (currentTheme === 'custom') {
+    // If gradient is enabled, use the start color as primary
+    if (gradient.enabled) {
+      primaryHsl = hexToHsl(gradient.startColor);
+    } else if (currentTheme === 'custom') {
       primaryHsl = hexToHsl(customColor);
     } else {
       primaryHsl = themes[currentTheme].primary;
