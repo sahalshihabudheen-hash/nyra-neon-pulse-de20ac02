@@ -88,6 +88,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
                         ? 'bg-primary text-primary-foreground neon-glow'
                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     )}
+                    style={isActive ? { background: 'var(--theme-gradient, hsl(var(--primary)))' } : undefined}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>
