@@ -66,7 +66,12 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         <div className="p-6 flex items-center gap-3">
           <img src={nyraLogo} alt="NYRA Logo" className="w-10 h-10 rounded-xl object-cover" />
           <div>
-            <span className="text-2xl font-bold neon-text">NYRA</span>
+            <span 
+              className="text-2xl font-bold bg-clip-text text-transparent"
+              style={{ background: 'var(--theme-gradient, hsl(var(--primary)))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
+            >
+              NYRA
+            </span>
             <p className="text-[10px] text-muted-foreground tracking-widest">FEEL THE PULSE</p>
           </div>
         </div>
@@ -103,7 +108,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground text-center">
             <p>© 2025 NYRA</p>
-            <p className="mt-1">Music for everyone</p>
+            <p className="mt-1">Powered by Jarvis</p>
           </div>
         </div>
       </aside>
