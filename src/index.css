@@ -95,12 +95,25 @@
   .theme-gradient {
     background: var(--theme-gradient, hsl(var(--primary))) !important;
   }
+
+  /* Gradient text - shows gradient when enabled, solid color otherwise */
+  .theme-gradient-text {
+    color: hsl(var(--primary));
+  }
 }
 
 /* Apply gradient to primary backgrounds when --theme-gradient is set */
 :root:has([style*="--theme-gradient"]) .bg-primary,
 :root[style*="--theme-gradient"] .bg-primary {
   background: var(--theme-gradient) !important;
+}
+
+/* Apply gradient text effect when gradient is enabled */
+:root[style*="--theme-gradient"] .theme-gradient-text {
+  background: var(--theme-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Apply gradient to slider thumb when gradient is set */
