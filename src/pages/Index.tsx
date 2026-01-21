@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import TrackGrid from '@/components/TrackGrid';
 import MusicPlayer from '@/components/MusicPlayer';
 import TrendingSection from '@/components/TrendingSection';
+import HeroSection from '@/components/HeroSection';
 import { toast } from 'sonner';
 import { usePlaylist } from '@/hooks/usePlaylist';
 import { useQueue } from '@/hooks/useQueue';
@@ -514,7 +515,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background/80 gradient-bg">
+    <div className="min-h-screen bg-background/80 gradient-bg noise-overlay">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <div className="ml-0 md:ml-64">
@@ -524,12 +525,21 @@ const Index = () => {
           onSearch={handleSearch}
         />
 
-        <main className="pt-28 pb-48 md:pb-36 px-4 md:px-8">
+        <main className="pt-24 md:pt-28 pb-48 md:pb-36 px-4 md:px-8">
+          {/* Hero Section - only on home without search */}
+          {!searchPerformed && (
+            <HeroSection 
+              onPlayTrack={handlePlayTrack}
+              featuredTrack={tracks[0] || null}
+            />
+          )}
+
           {/* Trending Section */}
           {!searchPerformed && (
             <TrendingSection 
               onPlayTrack={handlePlayTrack}
               currentTrack={currentTrack}
+              isPlaying={isPlaying}
               onAddToQueue={handleAddToQueue}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
@@ -537,22 +547,25 @@ const Index = () => {
           )}
 
           {searchPerformed && tracks.length > 0 && (
-            <div className="mb-8">
+            <div className="mb-8 animate-in-up">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
                 Search Results
               </h1>
               <p className="text-muted-foreground">
-                Found {tracks.length} tracks for "{searchQuery}"
+                Found {tracks.length} tracks for "<span className="text-primary">{searchQuery}</span>"
               </p>
             </div>
           )}
 
           {!searchPerformed && (
             <div className="mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-                Popular Songs
-              </h2>
-              <p className="text-muted-foreground">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-1 h-8 rounded-full bg-primary" />
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                  Popular Songs
+                </h2>
+              </div>
+              <p className="text-muted-foreground ml-4">
                 Discover trending hits and popular tracks
               </p>
             </div>

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { TrendingUp, Play, ListPlus, ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { TrendingUp, Play, ListPlus, ChevronLeft, ChevronRight, Heart, Pause, Flame } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import AddToPlaylistDialog from './AddToPlaylistDialog';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Track {
   id: string;
@@ -14,15 +14,19 @@ interface Track {
 interface TrendingSectionProps {
   onPlayTrack: (track: Track) => void;
   currentTrack: Track | null;
+  isPlaying?: boolean;
   onAddToQueue?: (track: Track) => void;
   isFavorite?: (trackId: string) => boolean;
   onToggleFavorite?: (track: Track) => Promise<boolean>;
 }
 
-const TrendingSection = ({ onPlayTrack, currentTrack, onAddToQueue, isFavorite, onToggleFavorite }: TrendingSectionProps) => {
+const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, isFavorite, onToggleFavorite }: TrendingSectionProps) => {
+  const { gradient } = useTheme();
   const [trendingTracks, setTrendingTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
-  const [scrollPosition, setScrollPosition] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   useEffect(() => {
     fetchTrending();
@@ -48,38 +52,54 @@ const TrendingSection = ({ onPlayTrack, currentTrack, onAddToQueue, isFavorite, 
       setTrendingTracks(results.slice(0, 20));
     } catch (error) {
       console.error('Trending fetch error:', error);
-      // Fallback to some default trending tracks
       setTrendingTracks([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const scrollContainer = (direction: 'left' | 'right') => {
-    const container = document.getElementById('trending-scroll');
-    if (container) {
-      const scrollAmount = 300;
-      const newPosition = direction === 'left' 
-        ? Math.max(0, scrollPosition - scrollAmount)
-        : scrollPosition + scrollAmount;
-      container.scrollTo({ left: newPosition, behavior: 'smooth' });
-      setScrollPosition(newPosition);
+  const updateScrollButtons = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
     }
   };
+
+  const scrollContainer = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 320;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (container) {
+      container.addEventListener('scroll', updateScrollButtons);
+      updateScrollButtons();
+      return () => container.removeEventListener('scroll', updateScrollButtons);
+    }
+  }, [trendingTracks]);
 
   if (loading) {
     return (
       <section className="mb-10">
         <div className="flex items-center gap-3 mb-6">
-          <TrendingUp className="w-6 h-6 text-primary" />
+          <div className="relative">
+            <Flame className="w-6 h-6 text-primary glow-pulse" />
+          </div>
           <h2 className="text-2xl font-bold text-foreground">Trending Now</h2>
         </div>
         <div className="flex gap-4 overflow-hidden">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex-shrink-0 w-44 animate-pulse">
-              <div className="w-full aspect-square rounded-xl bg-secondary" />
-              <div className="mt-3 h-4 bg-secondary rounded w-3/4" />
-              <div className="mt-2 h-3 bg-secondary rounded w-1/2" />
+            <div key={i} className="flex-shrink-0 w-40 md:w-48 animate-pulse" style={{ animationDelay: `${i * 0.1}s` }}>
+              <div className="w-full aspect-square rounded-2xl bg-secondary shimmer" />
+              <div className="mt-3 h-4 bg-secondary rounded-lg w-3/4" />
+              <div className="mt-2 h-3 bg-secondary rounded-lg w-1/2" />
             </div>
           ))}
         </div>
@@ -90,101 +110,179 @@ const TrendingSection = ({ onPlayTrack, currentTrack, onAddToQueue, isFavorite, 
   if (trendingTracks.length === 0) return null;
 
   return (
-    <section className="mb-10">
+    <section className="mb-10 relative">
+      {/* Section Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <TrendingUp className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-bold text-foreground">Trending Now</h2>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-primary/30 blur-lg" />
+            <div 
+              className="relative w-10 h-10 rounded-full flex items-center justify-center"
+              style={gradient.enabled ? { background: 'var(--theme-gradient)' } : { backgroundColor: 'hsl(var(--primary))' }}
+            >
+              <Flame className="w-5 h-5 text-primary-foreground" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">Trending Now</h2>
+            <p className="text-xs text-muted-foreground hidden md:block">Hot tracks everyone's listening to</p>
+          </div>
         </div>
+        
+        {/* Navigation Arrows */}
         <div className="hidden md:flex items-center gap-2">
           <button
             onClick={() => scrollContainer('left')}
-            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+            disabled={!canScrollLeft}
+            className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+              canScrollLeft 
+                ? "bg-secondary hover:bg-primary hover:text-primary-foreground" 
+                : "bg-secondary/50 text-muted-foreground cursor-not-allowed"
+            )}
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={() => scrollContainer('right')}
-            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+            disabled={!canScrollRight}
+            className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center transition-all",
+              canScrollRight 
+                ? "bg-secondary hover:bg-primary hover:text-primary-foreground" 
+                : "bg-secondary/50 text-muted-foreground cursor-not-allowed"
+            )}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      <div
-        id="trending-scroll"
-        className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        onScroll={(e) => setScrollPosition((e.target as HTMLDivElement).scrollLeft)}
-      >
-        {trendingTracks.map((track) => (
-          <div
-            key={track.id}
-            className={cn(
-              'flex-shrink-0 w-40 md:w-44 group cursor-pointer',
-              currentTrack?.id === track.id && 'scale-105'
-            )}
-          >
-            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-secondary">
-              <img
-                src={track.thumbnail}
-                alt={track.title}
-                className="w-full h-full object-cover transition-transform group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
-                  <button
-                    onClick={() => onPlayTrack(track)}
-                    className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-110 transition-transform neon-glow"
-                  >
-                    <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
-                  </button>
-                  {onAddToQueue && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAddToQueue(track);
-                      }}
-                      className="w-10 h-10 rounded-full bg-secondary/80 text-foreground flex items-center justify-center hover:bg-secondary transition-colors active:scale-95"
-                      title="Add to Queue"
-                    >
-                      <ListPlus className="w-5 h-5" />
-                    </button>
-                  )}
-                  {onToggleFavorite && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite(track);
-                      }}
-                      className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center transition-colors active:scale-95",
-                        isFavorite?.(track.id) 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-secondary/80 text-foreground hover:bg-secondary"
+      {/* Scrollable Track List */}
+      <div className="relative">
+        {/* Left fade */}
+        {canScrollLeft && (
+          <div className="absolute left-0 top-0 bottom-4 w-16 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none hidden md:block" />
+        )}
+        
+        <div
+          ref={scrollRef}
+          className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide scroll-smooth -mx-2 px-2"
+        >
+          {trendingTracks.map((track, index) => {
+            const isCurrentTrack = currentTrack?.id === track.id;
+            const isTrackPlaying = isCurrentTrack && isPlaying;
+            
+            return (
+              <div
+                key={track.id}
+                className={cn(
+                  'flex-shrink-0 w-40 md:w-48 group cursor-pointer animate-in-up',
+                )}
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <div className={cn(
+                  "relative w-full aspect-square rounded-2xl overflow-hidden bg-secondary transition-all duration-300",
+                  isCurrentTrack ? "ring-2 ring-primary neon-glow scale-105" : "card-glow"
+                )}>
+                  <img
+                    src={track.thumbnail}
+                    alt={track.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  
+                  {/* Overlay */}
+                  <div className={cn(
+                    "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity",
+                    isCurrentTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  )}>
+                    {/* Action buttons */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
+                      <button
+                        onClick={() => onPlayTrack(track)}
+                        className={cn(
+                          "w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg",
+                          isTrackPlaying 
+                            ? "bg-primary text-primary-foreground neon-glow" 
+                            : "bg-primary text-primary-foreground hover:neon-glow active:scale-95"
+                        )}
+                      >
+                        {isTrackPlaying ? (
+                          <Pause className="w-5 h-5" fill="currentColor" />
+                        ) : (
+                          <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+                        )}
+                      </button>
+                      
+                      {onAddToQueue && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddToQueue(track);
+                            toast.success('Added to queue!');
+                          }}
+                          className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/30 transition-colors active:scale-95"
+                          title="Add to Queue"
+                        >
+                          <ListPlus className="w-4 h-4" />
+                        </button>
                       )}
-                      title={isFavorite?.(track.id) ? "Remove from Favorites" : "Add to Favorites"}
-                    >
-                      <Heart className="w-5 h-5" fill={isFavorite?.(track.id) ? 'currentColor' : 'none'} />
-                    </button>
+                      
+                      {onToggleFavorite && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(track);
+                          }}
+                          className={cn(
+                            "w-9 h-9 rounded-full flex items-center justify-center transition-colors active:scale-95 backdrop-blur-sm",
+                            isFavorite?.(track.id) 
+                              ? "bg-primary text-primary-foreground" 
+                              : "bg-white/20 text-white hover:bg-white/30"
+                          )}
+                          title={isFavorite?.(track.id) ? "Remove from Favorites" : "Add to Favorites"}
+                        >
+                          <Heart className="w-4 h-4" fill={isFavorite?.(track.id) ? 'currentColor' : 'none'} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Playing indicator */}
+                  {isTrackPlaying && (
+                    <div className="absolute top-3 left-3 flex items-end gap-0.5 h-4 bg-primary/90 rounded-lg px-2 py-1">
+                      {[...Array(4)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-1 bg-primary-foreground rounded-full equalizer-bar"
+                          style={{ height: '100%' }}
+                        />
+                      ))}
+                    </div>
                   )}
+                  
+                  {/* Rank badge */}
+                  <div className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                    <span className="text-xs font-bold text-white">#{index + 1}</span>
+                  </div>
                 </div>
+                
+                {/* Track info */}
+                <h3 className="mt-3 text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+                  {track.title}
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+                  {track.channel}
+                </p>
               </div>
-              {currentTrack?.id === track.id && (
-                <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
-                  Playing
-                </div>
-              )}
-            </div>
-            <h3 className="mt-3 text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-              {track.title}
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
-              {track.channel}
-            </p>
-          </div>
-        ))}
+            );
+          })}
+        </div>
+        
+        {/* Right fade */}
+        {canScrollRight && (
+          <div className="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none hidden md:block" />
+        )}
       </div>
     </section>
   );
