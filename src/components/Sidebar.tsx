@@ -66,10 +66,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         <div className="p-6 flex items-center gap-3">
           <img src={nyraLogo} alt="NYRA Logo" className="w-10 h-10 rounded-xl object-cover" />
           <div>
-            <span 
-              className="text-2xl font-bold bg-clip-text text-transparent"
-              style={{ background: 'var(--theme-gradient, hsl(var(--primary)))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-            >
+            <span className="text-2xl font-bold text-primary theme-gradient-text">
               NYRA
             </span>
             <p className="text-[10px] text-muted-foreground tracking-widest">FEEL THE PULSE</p>
