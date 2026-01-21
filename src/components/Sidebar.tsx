@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import nyraLogo from '@/assets/nyra-logo.png';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface SidebarProps {
   activeTab: string;
@@ -22,6 +23,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { gradient } = useTheme();
 
   const handleNavClick = (item: typeof menuItems[0]) => {
     onTabChange(item.id);
@@ -90,7 +92,13 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
                         ? 'bg-primary text-primary-foreground neon-glow'
                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     )}
-                    style={isActive ? { background: 'var(--theme-gradient, hsl(var(--primary)))' } : undefined}
+                    style={
+                      isActive
+                        ? gradient.enabled
+                          ? { background: 'var(--theme-gradient)' }
+                          : { backgroundColor: 'hsl(var(--primary))' }
+                        : undefined
+                    }
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>

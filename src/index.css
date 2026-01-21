@@ -102,8 +102,7 @@
   }
 }
 
-/* Apply gradient to primary backgrounds when --theme-gradient is set */
-:root:has([style*="--theme-gradient"]) .bg-primary,
+/* Apply gradient to primary backgrounds only when the root actually defines --theme-gradient */
 :root[style*="--theme-gradient"] .bg-primary {
   background: var(--theme-gradient) !important;
 }
