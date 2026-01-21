@@ -1,4 +1,4 @@
-import { Play, Pause, ListPlus, PlayCircle, Heart } from 'lucide-react';
+import { Play, Pause, ListPlus, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AddToPlaylistDialog from './AddToPlaylistDialog';
 import { toast } from 'sonner';
@@ -47,8 +47,8 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
   return (
     <div
       className={cn(
-        'group relative bg-card rounded-2xl overflow-hidden border border-border transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] touch-manipulation',
-        isPlaying && 'ring-2 ring-primary/50'
+        'group relative bg-card rounded-2xl overflow-hidden border border-border transition-all duration-300 cursor-pointer card-glow touch-manipulation',
+        isPlaying && 'ring-2 ring-primary/60 neon-glow'
       )}
       onClick={handleCardClick}
     >
@@ -60,30 +60,33 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         
-        {/* Gradient Overlay - always visible on mobile */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-background/60 md:from-background/95 md:via-background/30 md:to-transparent md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300" />
+        {/* Gradient Overlay - enhanced */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent opacity-60 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300" />
+        
+        {/* Shimmer effect on hover */}
+        <div className="absolute inset-0 shimmer opacity-0 group-hover:opacity-100 transition-opacity" />
         
         {/* Play Button - Bottom right */}
         <button
           onClick={handlePlayNow}
           className={cn(
-            'absolute bottom-2 right-2 md:bottom-3 md:right-3 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-300 touch-manipulation shadow-lg',
+            'absolute bottom-3 right-3 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 touch-manipulation shadow-xl',
             isPlaying
-              ? 'bg-primary text-primary-foreground scale-100'
-              : 'bg-primary text-primary-foreground md:scale-0 md:group-hover:scale-100 active:scale-95'
+              ? 'bg-primary text-primary-foreground scale-100 neon-glow'
+              : 'bg-primary text-primary-foreground md:scale-0 md:group-hover:scale-100 active:scale-95 hover:neon-glow'
           )}
         >
           {isPlaying ? (
-            <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+            <Pause className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" />
           ) : (
-            <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
+            <Play className="w-5 h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" />
           )}
         </button>
 
         {/* Equalizer Animation (when playing) */}
         {isPlaying && (
-          <div className="absolute top-2 left-2 flex items-end gap-0.5 h-4 bg-background/60 rounded px-1 py-0.5">
-            {[...Array(4)].map((_, i) => (
+          <div className="absolute top-3 left-3 flex items-end gap-0.5 h-5 bg-background/80 backdrop-blur-sm rounded-lg px-2 py-1">
+            {[...Array(5)].map((_, i) => (
               <div
                 key={i}
                 className="w-1 bg-primary rounded-full equalizer-bar"
@@ -93,15 +96,15 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
           </div>
         )}
 
-        {/* Action Buttons - Top area, always visible */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1.5 md:flex-row md:gap-2 md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
+        {/* Action Buttons - Top area */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 md:flex-row md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
           {/* Favorite Heart */}
           {onToggleFavorite && (
             <button
               className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation shadow-md backdrop-blur-sm',
+                'w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation shadow-lg backdrop-blur-sm',
                 isFavorite
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground glow-pulse'
                   : 'bg-background/80 text-foreground hover:text-primary hover:bg-background'
               )}
               onClick={handleToggleFavorite}
@@ -112,18 +115,18 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
           )}
           {/* Add to Queue */}
           <button
-            className="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 touch-manipulation shadow-md"
+            className="w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 touch-manipulation shadow-lg"
             onClick={handleAddToQueue}
             title="Add to Queue"
           >
-            <span className="text-sm">⌛</span>
+            <span className="text-base">⌛</span>
           </button>
           {/* Add to Playlist */}
           <AddToPlaylistDialog
             track={track}
             trigger={
               <button
-                className="w-8 h-8 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:text-primary hover:bg-background transition-all active:scale-90 touch-manipulation shadow-md"
+                className="w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:text-primary hover:bg-background transition-all active:scale-90 touch-manipulation shadow-lg"
                 onClick={(e) => e.stopPropagation()}
                 title="Add to Playlist"
               >
@@ -134,12 +137,15 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
         </div>
       </div>
 
-      {/* Info */}
-      <div className="p-2.5 md:p-4">
-        <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors text-xs md:text-base">
+      {/* Info - Enhanced */}
+      <div className="p-3 md:p-4 relative">
+        {/* Subtle glow line */}
+        <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        
+        <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors text-sm md:text-base">
           {track.title}
         </h3>
-        <p className="text-[10px] md:text-sm text-muted-foreground truncate mt-0.5 md:mt-1">{track.channel}</p>
+        <p className="text-xs md:text-sm text-muted-foreground truncate mt-1">{track.channel}</p>
       </div>
     </div>
   );

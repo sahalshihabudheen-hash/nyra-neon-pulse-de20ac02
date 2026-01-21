@@ -91,6 +91,13 @@
     backdrop-filter: blur(20px);
   }
 
+  /* Premium glass morphism */
+  .glass-premium {
+    background: linear-gradient(135deg, hsl(0 0% 10% / 0.8), hsl(0 0% 5% / 0.9));
+    backdrop-filter: blur(30px);
+    border: 1px solid hsl(0 0% 20% / 0.3);
+  }
+
   /* Gradient theme support - applies gradient to elements with bg-primary when gradient is enabled */
   .theme-gradient {
     background: var(--theme-gradient, hsl(var(--primary))) !important;
@@ -100,6 +107,64 @@
   .theme-gradient-text {
     color: hsl(var(--primary));
   }
+
+  /* Floating animation */
+  .float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Shimmer effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Glow pulse */
+  .glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  /* Card hover glow */
+  .card-glow {
+    transition: all 0.3s ease;
+  }
+
+  .card-glow:hover {
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.2), 0 20px 40px hsl(0 0% 0% / 0.5);
+    transform: translateY(-4px);
+  }
+
+  /* Smooth entrance animations */
+  .animate-in-up {
+    animation: fade-in-up 0.5s ease-out forwards;
+  }
+
+  .animate-in-scale {
+    animation: scale-in 0.3s ease-out forwards;
+  }
+
+  /* Stagger children animations */
+  .stagger-children > * {
+    opacity: 0;
+    animation: fade-in-up 0.5s ease-out forwards;
+  }
+
+  .stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+  .stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+  .stagger-children > *:nth-child(7) { animation-delay: 0.35s; }
+  .stagger-children > *:nth-child(8) { animation-delay: 0.4s; }
+  .stagger-children > *:nth-child(9) { animation-delay: 0.45s; }
+  .stagger-children > *:nth-child(10) { animation-delay: 0.5s; }
 }
 
 /* Apply gradient to primary backgrounds only when the root actually defines --theme-gradient */
@@ -132,6 +197,36 @@
 /* Apply gradient to switches */
 :root[style*="--theme-gradient"] [role="switch"][data-state="checked"] {
   background: var(--theme-gradient) !important;
+}
+
+/* ============= ANIMATIONS ============= */
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Glow pulse */
+@keyframes glow-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3), 0 0 40px hsl(var(--primary) / 0.1);
+  }
+  50% { 
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.5), 0 0 80px hsl(var(--primary) / 0.2);
+  }
+}
+
+/* Scale in animation */
+@keyframes scale-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* Soundwave Animation */
@@ -172,18 +267,18 @@
   transform: perspective(1000px) rotateX(5deg) rotateY(-5deg) scale(1.02);
 }
 
-/* Equalizer Animation */
+/* Equalizer Animation - Enhanced */
 @keyframes equalizer {
-  0%, 100% { height: 10%; }
-  10% { height: 30%; }
-  20% { height: 60%; }
-  30% { height: 40%; }
-  40% { height: 80%; }
-  50% { height: 50%; }
-  60% { height: 90%; }
-  70% { height: 30%; }
-  80% { height: 70%; }
-  90% { height: 20%; }
+  0%, 100% { height: 15%; }
+  10% { height: 40%; }
+  20% { height: 70%; }
+  30% { height: 50%; }
+  40% { height: 90%; }
+  50% { height: 60%; }
+  60% { height: 100%; }
+  70% { height: 40%; }
+  80% { height: 80%; }
+  90% { height: 30%; }
 }
 
 .equalizer-bar {
@@ -221,10 +316,67 @@
   animation: fade-out 0.5s ease-out forwards;
 }
 
+/* Rotating glow ring */
+@keyframes rotate-glow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.rotate-glow {
+  animation: rotate-glow 8s linear infinite;
+}
+
+/* Breathing effect */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.02); opacity: 1; }
+}
+
+.breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* ============= BACKGROUNDS ============= */
+
 /* Gradient Background */
 .gradient-bg {
   background: radial-gradient(ellipse at top, hsl(0 0% 10%) 0%, hsl(0 0% 4%) 50%);
 }
+
+/* Animated gradient background */
+.gradient-animated {
+  background: linear-gradient(
+    -45deg,
+    hsl(0 0% 4%),
+    hsl(0 0% 8%),
+    hsl(var(--primary) / 0.1),
+    hsl(0 0% 6%)
+  );
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Noise texture overlay */
+.noise-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============= SCROLLBAR ============= */
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
@@ -241,8 +393,20 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(50 100% 50%);
+  background: hsl(var(--primary));
 }
+
+/* Hide scrollbar for trending section */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ============= RANGE INPUTS ============= */
 
 /* Timeline Progress */
 input[type="range"] {
@@ -301,23 +465,40 @@ input[type="range"]::-moz-range-thumb:active {
 /* Mobile touch optimization */
 @media (pointer: coarse) {
   input[type="range"]::-webkit-slider-thumb {
-    width: 24px;
-    height: 24px;
-    margin-top: -8px;
+    width: 28px;
+    height: 28px;
+    margin-top: -10px;
   }
   
   input[type="range"]::-moz-range-thumb {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
   }
 }
 
-/* Hide scrollbar for trending section */
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+/* ============= MOBILE OPTIMIZATIONS ============= */
+
+/* Better touch targets */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Swipe gesture hint */
+.swipe-hint {
+  position: relative;
+  overflow: hidden;
+}
+
+.swipe-hint::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(to left, hsl(0 0% 4%), transparent);
+  pointer-events: none;
 }

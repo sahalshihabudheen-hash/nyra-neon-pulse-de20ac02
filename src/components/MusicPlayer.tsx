@@ -200,12 +200,15 @@ const MusicPlayer = ({
 
   return (
     <footer className={cn(
-      'fixed bottom-0 left-0 md:left-64 right-0 glass-dark border-t border-border z-40 transition-all',
+      'fixed bottom-0 left-0 md:left-64 right-0 glass-premium border-t border-primary/10 z-40 transition-all',
       isMiniMode ? 'h-16' : 'h-auto'
     )}>
+      {/* Top glow line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      
       <div className={cn(
         'h-full px-3 md:px-6 flex items-center',
-        isMiniMode ? 'gap-4' : 'flex-col gap-3 py-3 md:flex-row md:gap-6 md:py-0'
+        isMiniMode ? 'gap-4' : 'flex-col gap-3 py-3 md:flex-row md:gap-6 md:py-4'
       )}>
         {/* Track Info */}
         <div className={cn(
@@ -214,33 +217,50 @@ const MusicPlayer = ({
         )}>
           {currentTrack ? (
             <>
-              <img
-                src={currentTrack.thumbnail}
-                alt={currentTrack.title}
-                className={cn(
-                  'rounded-lg object-cover flex-shrink-0',
-                  isMiniMode ? 'w-10 h-10' : 'w-12 h-12'
+              <div className="relative group">
+                <div className={cn(
+                  "absolute -inset-1 rounded-lg bg-primary/30 blur-sm transition-opacity",
+                  isPlaying ? "opacity-100 glow-pulse" : "opacity-0"
+                )} />
+                <img
+                  src={currentTrack.thumbnail}
+                  alt={currentTrack.title}
+                  className={cn(
+                    'relative rounded-lg object-cover flex-shrink-0 transition-all',
+                    isMiniMode ? 'w-10 h-10' : 'w-14 h-14'
+                  )}
+                />
+                {isPlaying && !isMiniMode && (
+                  <div className="absolute bottom-1 right-1 flex gap-0.5">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-0.5 bg-primary rounded-full equalizer-bar"
+                        style={{ height: '8px' }}
+                      />
+                    ))}
+                  </div>
                 )}
-              />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className={cn(
-                  'font-medium text-foreground truncate',
-                  isMiniMode ? 'text-sm' : 'text-sm'
+                  'font-semibold text-foreground truncate',
+                  isMiniMode ? 'text-sm' : 'text-sm md:text-base'
                 )}>
                   {currentTrack.title}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{currentTrack.channel}</p>
                 {/* Next Up indicator - ALWAYS VISIBLE */}
                 {!isMiniMode && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-base">⌛</span>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-sm">⏭️</span>
                     {nextUpTrack ? (
-                      <p className="text-xs text-primary truncate">
-                        <span className="opacity-70">Next:</span> {nextUpTrack.title.slice(0, 20)}...
+                      <p className="text-xs text-primary truncate font-medium">
+                        Next: {nextUpTrack.title.slice(0, 25)}...
                       </p>
                     ) : (
-                      <p className="text-xs text-muted-foreground/50 italic">
-                        Queue empty - add songs!
+                      <p className="text-xs text-muted-foreground/60 italic">
+                        Queue empty
                       </p>
                     )}
                   </div>
@@ -250,10 +270,10 @@ const MusicPlayer = ({
           ) : (
             <div className="flex items-center gap-3">
               <div className={cn(
-                'rounded-lg bg-secondary flex items-center justify-center flex-shrink-0',
-                isMiniMode ? 'w-10 h-10' : 'w-12 h-12'
+                'rounded-lg bg-secondary/50 flex items-center justify-center flex-shrink-0 border border-border',
+                isMiniMode ? 'w-10 h-10' : 'w-14 h-14'
               )}>
-                <span className="text-muted-foreground text-xl">♪</span>
+                <span className="text-muted-foreground text-2xl">♪</span>
               </div>
               <p className="text-muted-foreground text-sm">No track selected</p>
             </div>
@@ -308,18 +328,29 @@ const MusicPlayer = ({
             <button
               onClick={onPlayPause}
               className={cn(
-                'rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
-                isMiniMode ? 'w-10 h-10' : 'w-14 h-14',
-                isPlaying
-                  ? 'bg-primary text-primary-foreground neon-glow'
-                  : 'bg-primary text-primary-foreground hover:neon-glow'
+                'rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation relative',
+                isMiniMode ? 'w-12 h-12' : 'w-16 h-16',
               )}
+              style={{
+                background: isPlaying 
+                  ? 'var(--theme-gradient, hsl(var(--primary)))' 
+                  : 'hsl(var(--primary))'
+              }}
             >
-              {isPlaying ? (
-                <Pause className={cn(isMiniMode ? 'w-5 h-5' : 'w-6 h-6')} fill="currentColor" />
-              ) : (
-                <Play className={cn(isMiniMode ? 'w-5 h-5' : 'w-6 h-6', 'ml-0.5')} fill="currentColor" />
+              {/* Glow ring when playing */}
+              {isPlaying && (
+                <div className="absolute inset-0 rounded-full bg-primary/30 blur-md animate-pulse" />
               )}
+              <div className={cn(
+                'relative flex items-center justify-center text-primary-foreground',
+                isPlaying && 'neon-glow rounded-full'
+              )}>
+                {isPlaying ? (
+                  <Pause className={cn(isMiniMode ? 'w-5 h-5' : 'w-7 h-7')} fill="currentColor" />
+                ) : (
+                  <Play className={cn(isMiniMode ? 'w-5 h-5' : 'w-7 h-7', 'ml-1')} fill="currentColor" />
+                )}
+              </div>
             </button>
             <button
               onClick={onNext}
