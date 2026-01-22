@@ -602,6 +602,14 @@ const Index = () => {
         shuffleMode={shuffleMode}
         onToggleShuffle={toggleShuffle}
         queue={queue}
+        onRemoveFromQueue={removeFromQueue}
+        onPlayFromQueue={(track) => {
+          removeFromQueue(track.id);
+          setCurrentTrack(track);
+          setPlayingFromPlaylist(false);
+          setLastPlayed(track.id);
+          playWithBackgroundAudio(track.id);
+        }}
       />
     </div>
   );

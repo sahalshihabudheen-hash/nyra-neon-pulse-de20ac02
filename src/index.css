@@ -223,6 +223,16 @@
   }
 }
 
+/* Slow pulse for album art */
+@keyframes pulse-slow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
 /* Scale in animation */
 @keyframes scale-in {
   0% { opacity: 0; transform: scale(0.95); }
