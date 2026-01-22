@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import PlaylistDrawer from './PlaylistDrawer';
+import FullscreenPlayer from './FullscreenPlayer';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Track {
@@ -30,6 +31,8 @@ interface MusicPlayerProps {
   shuffleMode?: boolean;
   onToggleShuffle?: () => void;
   queue?: Track[];
+  onRemoveFromQueue?: (trackId: string) => void;
+  onPlayFromQueue?: (track: Track) => void;
 }
 
 const MusicPlayer = ({
@@ -50,6 +53,8 @@ const MusicPlayer = ({
   shuffleMode = false,
   onToggleShuffle,
   queue = [],
+  onRemoveFromQueue,
+  onPlayFromQueue,
 }: MusicPlayerProps) => {
   const { settings } = useTheme();
   const [volume, setVolume] = useState(80);
@@ -58,6 +63,7 @@ const MusicPlayer = ({
   const [duration, setDuration] = useState(0);
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const progressRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -210,11 +216,14 @@ const MusicPlayer = ({
         'h-full px-3 md:px-6 flex items-center',
         isMiniMode ? 'gap-4' : 'flex-col gap-3 py-3 md:flex-row md:gap-6 md:py-4'
       )}>
-        {/* Track Info */}
-        <div className={cn(
-          'flex items-center gap-3',
-          isMiniMode ? 'flex-1' : 'w-full md:w-72'
-        )}>
+        {/* Track Info - Clickable to open fullscreen */}
+        <div 
+          className={cn(
+            'flex items-center gap-3 cursor-pointer group/track',
+            isMiniMode ? 'flex-1' : 'w-full md:w-72'
+          )}
+          onClick={() => currentTrack && setIsFullscreen(true)}
+        >
           {currentTrack ? (
             <>
               <div className="relative group">
@@ -226,12 +235,16 @@ const MusicPlayer = ({
                   src={currentTrack.thumbnail}
                   alt={currentTrack.title}
                   className={cn(
-                    'relative rounded-lg object-cover flex-shrink-0 transition-all',
+                    'relative rounded-lg object-cover flex-shrink-0 transition-all group-hover/track:scale-105',
                     isMiniMode ? 'w-10 h-10' : 'w-14 h-14'
                   )}
                 />
+                {/* Fullscreen hint overlay */}
+                <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover/track:opacity-100 flex items-center justify-center transition-opacity">
+                  <Maximize2 className="w-5 h-5 text-white" />
+                </div>
                 {isPlaying && !isMiniMode && (
-                  <div className="absolute bottom-1 right-1 flex gap-0.5">
+                  <div className="absolute bottom-1 right-1 flex gap-0.5 group-hover/track:opacity-0 transition-opacity">
                     {[...Array(3)].map((_, i) => (
                       <div
                         key={i}
@@ -244,7 +257,7 @@ const MusicPlayer = ({
               </div>
               <div className="flex-1 min-w-0">
                 <p className={cn(
-                  'font-semibold text-foreground truncate',
+                  'font-semibold text-foreground truncate group-hover/track:text-primary transition-colors',
                   isMiniMode ? 'text-sm' : 'text-sm md:text-base'
                 )}>
                   {currentTrack.title}
@@ -533,6 +546,25 @@ const MusicPlayer = ({
       <div 
         id="youtube-player-container"
         className="absolute -top-[1px] left-0 w-1 h-[1px] opacity-0 pointer-events-none overflow-hidden"
+      />
+
+      {/* Fullscreen Player */}
+      <FullscreenPlayer
+        isOpen={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        onPlayPause={onPlayPause}
+        onNext={onNext}
+        onPrevious={onPrevious}
+        shuffleMode={shuffleMode}
+        onToggleShuffle={onToggleShuffle}
+        queue={queue}
+        onRemoveFromQueue={onRemoveFromQueue}
+        onPlayFromQueue={onPlayFromQueue}
+        progress={progress}
+        duration={duration}
+        onSeek={handleSeek}
       />
     </footer>
   );
