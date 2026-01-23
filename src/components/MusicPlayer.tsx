@@ -205,10 +205,11 @@ const MusicPlayer = ({
   const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
 
   return (
-    <footer className={cn(
-      'fixed bottom-0 left-0 md:left-64 right-0 glass-premium border-t border-primary/10 z-40 transition-all',
-      isMiniMode ? 'h-16' : 'h-auto'
-    )}>
+    <>
+      <footer className={cn(
+        'fixed bottom-0 left-0 md:left-64 right-0 glass-premium border-t border-primary/10 z-40 transition-all',
+        isMiniMode ? 'h-16' : 'h-auto'
+      )}>
       {/* Top glow line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
       
@@ -548,7 +549,9 @@ const MusicPlayer = ({
         className="absolute -top-[1px] left-0 w-1 h-[1px] opacity-0 pointer-events-none overflow-hidden"
       />
 
-      {/* Fullscreen Player */}
+      </footer>
+
+      {/* Fullscreen Player (rendered outside footer stacking context) */}
       <FullscreenPlayer
         isOpen={isFullscreen}
         onClose={() => setIsFullscreen(false)}
@@ -566,7 +569,7 @@ const MusicPlayer = ({
         duration={duration}
         onSeek={handleSeek}
       />
-    </footer>
+    </>
   );
 };
 
