@@ -66,11 +66,11 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
         {/* Shimmer effect on hover */}
         <div className="absolute inset-0 shimmer opacity-0 group-hover:opacity-100 transition-opacity" />
         
-        {/* Play Button - Bottom right */}
+        {/* Play Button - Bottom left on mobile to avoid overlap with action buttons */}
         <button
           onClick={handlePlayNow}
           className={cn(
-            'absolute bottom-3 right-3 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 touch-manipulation shadow-xl',
+            'absolute bottom-3 left-3 md:left-auto md:right-3 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center transition-all duration-300 touch-manipulation shadow-xl z-20',
             isPlaying
               ? 'bg-primary text-primary-foreground scale-100 neon-glow'
               : 'bg-primary text-primary-foreground md:scale-0 md:group-hover:scale-100 active:scale-95 hover:neon-glow'
