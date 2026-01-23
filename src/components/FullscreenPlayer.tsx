@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ListMusic, Trash2, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -81,17 +82,35 @@ const FullscreenPlayer = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Lock page scroll while fullscreen is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.touchAction = prevTouchAction;
+    };
+  }, [isOpen]);
+
   if (!isVisible && !isOpen) return null;
 
-  return (
-    <div 
+  const node = (
+    <div
       className={cn(
-        "fixed inset-0 z-[100] flex flex-col transition-all duration-300 overflow-hidden",
+        // Use dvh to avoid “not fully fullscreen” on mobile browser UI.
+        "fixed inset-0 z-[9999] w-screen h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden",
+        "transition-all duration-300",
+        "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
         isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
       )}
-      style={{ 
-        background: 'linear-gradient(180deg, hsl(0 0% 6%) 0%, hsl(0 0% 3%) 100%)',
+      style={{
+        background: `linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)`,
       }}
+      role="dialog"
+      aria-modal="true"
     >
       {/* Background with album art blur */}
       {currentTrack && (
@@ -431,6 +450,9 @@ const FullscreenPlayer = ({
       </main>
     </div>
   );
+
+  // Render at document.body so it always sits above Sidebar/Navbar/MusicPlayer stacking contexts
+  return createPortal(node, document.body);
 };
 
 export default FullscreenPlayer;
