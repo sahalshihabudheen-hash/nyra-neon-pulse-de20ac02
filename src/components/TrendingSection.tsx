@@ -35,8 +35,9 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
   const fetchTrending = async () => {
     setLoading(true);
     try {
+      // Use the new get-trending endpoint for auto-updating trending music
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent('trending music 2025 hits')}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-trending`,
         {
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
@@ -52,7 +53,23 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
       setTrendingTracks(results.slice(0, 20));
     } catch (error) {
       console.error('Trending fetch error:', error);
-      setTrendingTracks([]);
+      // Fallback to youtube-search if get-trending fails
+      try {
+        const fallbackResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent('trending music hits')}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          }
+        );
+        if (fallbackResponse.ok) {
+          const fallbackResults = await fallbackResponse.json();
+          setTrendingTracks(fallbackResults.slice(0, 20));
+        }
+      } catch {
+        setTrendingTracks([]);
+      }
     } finally {
       setLoading(false);
     }

@@ -1,0 +1,22 @@
+{
+  "appId": "app.lovable.445b8b727b5d49efbe2da5363a3de026",
+  "appName": "NYRA",
+  "webDir": "dist",
+  "server": {
+    "url": "https://445b8b72-7b5d-49ef-be2d-a5363a3de026.lovableproject.com?forceHideBadge=true",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0a0a0a",
+      "showSpinner": false
+    }
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

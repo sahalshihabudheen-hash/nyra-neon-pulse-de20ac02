@@ -13,8 +13,9 @@ import { useQueue } from '@/hooks/useQueue';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
-import { famousSongs } from '@/data/famousSongs';
 import { useMediaSession } from '@/hooks/useMediaSession';
+import { useListeningHistory } from '@/hooks/useListeningHistory';
+import { famousSongs } from '@/data/famousSongs';
 
 interface Track {
   id: string;
@@ -88,6 +89,7 @@ const Index = () => {
   } = useQueue();
 
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { recordPlay } = useListeningHistory();
 
   // Create background audio element on mount
   useEffect(() => {
@@ -341,18 +343,24 @@ const Index = () => {
     setPlayingFromPlaylist(false);
     setLastPlayed(track.id);
 
+    // Record listening history
+    recordPlay(track);
+
     // Use background audio for mobile-friendly playback
     playWithBackgroundAudio(track.id);
-  }, [tracks, playWithBackgroundAudio, setLastPlayed]);
+  }, [tracks, playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayFromPlaylist = useCallback((track: Track) => {
     setCurrentTrack(track);
     setPlayingFromPlaylist(true);
     setLastPlayed(track.id);
 
+    // Record listening history
+    recordPlay(track);
+
     // Use background audio for mobile-friendly playback
     playWithBackgroundAudio(track.id);
-  }, [playWithBackgroundAudio, setLastPlayed]);
+  }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayPause = useCallback(() => {
     // Try background audio first

@@ -109,6 +109,36 @@ export type Database = {
         }
         Relationships: []
       }
+      listening_history: {
+        Row: {
+          id: string
+          played_at: string
+          track_channel: string
+          track_id: string
+          track_thumbnail: string
+          track_title: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          played_at?: string
+          track_channel: string
+          track_id: string
+          track_thumbnail: string
+          track_title: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          played_at?: string
+          track_channel?: string
+          track_id?: string
+          track_thumbnail?: string
+          track_title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       playlist_items: {
         Row: {
           created_at: string

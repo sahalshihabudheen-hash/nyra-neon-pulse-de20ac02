@@ -1,1 +1,19 @@
 project_id = "nsznavxgjkjlkiicmqmq"
+
+[functions.youtube-search]
+verify_jwt = false
+
+[functions.get-audio-url]
+verify_jwt = false
+
+[functions.admin-list-users]
+verify_jwt = false
+
+[functions.admin-get-activity]
+verify_jwt = false
+
+[functions.get-trending]
+verify_jwt = false
+
+[functions.get-featured]
+verify_jwt = false

@@ -15,13 +15,43 @@ interface HeroSectionProps {
   featuredTrack?: Track | null;
 }
 
-const HeroSection = ({ onPlayTrack, featuredTrack }: HeroSectionProps) => {
+const HeroSection = ({ onPlayTrack, featuredTrack: propFeaturedTrack }: HeroSectionProps) => {
   const { gradient } = useTheme();
   const [isVisible, setIsVisible] = useState(false);
+  const [featuredTrack, setFeaturedTrack] = useState<Track | null>(propFeaturedTrack || null);
+  const [loading, setLoading] = useState(!propFeaturedTrack);
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+    // Fetch dynamic featured track if none provided
+    if (!propFeaturedTrack) {
+      fetchFeatured();
+    }
+  }, [propFeaturedTrack]);
+
+  const fetchFeatured = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-featured`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.id) {
+          setFeaturedTrack(data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch featured:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePlayFeatured = () => {
     if (featuredTrack && onPlayTrack) {
