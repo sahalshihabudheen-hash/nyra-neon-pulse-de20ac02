@@ -20,13 +20,18 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
         toast.success('Welcome back!');
-        navigate('/');
+        // Redirect admin to admin dashboard
+        if (data.user?.email === 'admin@gmail.com') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
