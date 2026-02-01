@@ -32,17 +32,19 @@ const Admin = () => {
 
   // Check if current user is admin
   useEffect(() => {
-    if (!authLoading && user) {
-      if (user.email === 'admin@gmail.com') {
+    if (!authLoading) {
+      if (user && user.email === 'admin@gmail.com') {
         setIsAdminLoggedIn(true);
-      } else {
+        setLoading(false);
+      } else if (user && user.email !== 'admin@gmail.com') {
         setIsAdminLoggedIn(false);
         setError('Access denied. You are not an admin.');
         setLoading(false);
+      } else if (!user) {
+        // No user logged in - show login form
+        setIsAdminLoggedIn(false);
+        setLoading(false);
       }
-    } else if (!authLoading && !user) {
-      setIsAdminLoggedIn(false);
-      setLoading(false);
     }
   }, [user, authLoading]);
 
@@ -92,44 +94,55 @@ const Admin = () => {
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
+    setError(null);
 
     try {
       // Check for admin credentials
       if (email !== 'admin@gmail.com') {
-        throw new Error('Invalid admin credentials');
+        throw new Error('Invalid admin credentials. Only admin@gmail.com can access this.');
       }
 
       // First try to sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      // If user doesn't exist, create the admin account
-      if (signInError?.message?.includes('Invalid login credentials')) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/admin`,
-          },
-        });
+      if (signInError) {
+        // If user doesn't exist, create the admin account
+        if (signInError.message?.includes('Invalid login credentials')) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/admin`,
+            },
+          });
 
-        if (signUpError) throw signUpError;
-        
-        // Sign in after signup
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (loginError) throw loginError;
-      } else if (signInError) {
-        throw signInError;
+          if (signUpError) throw signUpError;
+          
+          // Sign in after signup
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          
+          if (loginError) throw loginError;
+          
+          if (loginData.user) {
+            setIsAdminLoggedIn(true);
+            toast.success('Admin account created and logged in!');
+          }
+        } else {
+          throw signInError;
+        }
+      } else if (data.user) {
+        // Successfully signed in
+        setIsAdminLoggedIn(true);
+        toast.success('Logged in as admin');
       }
-
-      toast.success('Logged in as admin');
     } catch (err: any) {
+      setError(err.message);
       toast.error(err.message);
     } finally {
       setLoginLoading(false);
