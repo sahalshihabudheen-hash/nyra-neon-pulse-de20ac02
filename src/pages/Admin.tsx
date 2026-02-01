@@ -99,12 +99,34 @@ const Admin = () => {
         throw new Error('Invalid admin credentials');
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
+      // First try to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      // If user doesn't exist, create the admin account
+      if (signInError?.message?.includes('Invalid login credentials')) {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/admin`,
+          },
+        });
+
+        if (signUpError) throw signUpError;
+        
+        // Sign in after signup
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (loginError) throw loginError;
+      } else if (signInError) {
+        throw signInError;
+      }
 
       toast.success('Logged in as admin');
     } catch (err: any) {
