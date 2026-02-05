@@ -4,8 +4,9 @@ import MusicPlayer from '@/components/MusicPlayer';
 import SnakeGame from '@/components/games/SnakeGame';
 import Game2048 from '@/components/games/Game2048';
 import MemoryGame from '@/components/games/MemoryGame';
+import RollingSkyGame from '@/components/games/RollingSkyGame';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Gamepad2, Grid3X3, Brain, ArrowLeft } from 'lucide-react';
+import { Gamepad2, Grid3X3, Brain, ArrowLeft, Disc } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,8 +41,12 @@ const Games = () => {
           </div>
 
           {/* Games Tabs */}
-          <Tabs defaultValue="snake" className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-8">
+          <Tabs defaultValue="rolling-sky" className="w-full">
+            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4 mb-8">
+              <TabsTrigger value="rolling-sky" className="gap-2">
+                <Disc className="w-4 h-4" />
+                <span className="hidden sm:inline">Rolling Sky</span>
+              </TabsTrigger>
               <TabsTrigger value="snake" className="gap-2">
                 <Gamepad2 className="w-4 h-4" />
                 <span className="hidden sm:inline">Snake</span>
@@ -58,6 +63,10 @@ const Games = () => {
 
             <div className="flex justify-center">
               <div className="glass-premium p-6 rounded-2xl">
+                <TabsContent value="rolling-sky" className="mt-0">
+                  <RollingSkyGame />
+                </TabsContent>
+
                 <TabsContent value="snake" className="mt-0">
                   <SnakeGame />
                 </TabsContent>
