@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Shield, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock } from 'lucide-react';
+import { Shield, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2 } from 'lucide-react';
 
 interface AdminUser {
   id: string;
@@ -46,12 +46,29 @@ interface PlaylistWithItems {
   }[];
 }
 
+interface GameSession {
+  id: string;
+  user_id: string;
+  user_email: string;
+  game_name: string;
+  score: number;
+  gems_collected: number;
+  duration_seconds: number;
+  track_playing: string | null;
+  track_source: string | null;
+  started_at: string;
+  ended_at: string | null;
+  is_active: boolean;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [listeningHistory, setListeningHistory] = useState<ListeningHistoryItem[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistWithItems[]>([]);
+  const [gameSessions, setGameSessions] = useState<GameSession[]>([]);
+  const [activeGamersCount, setActiveGamersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -87,7 +104,7 @@ const Admin = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchUsers(), fetchActivity()]);
+    await Promise.all([fetchUsers(), fetchActivity(), fetchGameSessions()]);
     setLoading(false);
   };
 
@@ -137,6 +154,31 @@ const Admin = () => {
       }
     } catch (err: any) {
       console.error('Error fetching activity:', err);
+    }
+  };
+
+  const fetchGameSessions = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-get-game-sessions`,
+        {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok) {
+        setGameSessions(data.gameSessions || []);
+        setActiveGamersCount(data.activeCount || 0);
+      }
+    } catch (err: any) {
+      console.error('Error fetching game sessions:', err);
     }
   };
 
@@ -321,18 +363,27 @@ const Admin = () => {
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
+          <TabsList className="grid w-full grid-cols-4 max-w-lg">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Users
+              <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
             <TabsTrigger value="activity" className="flex items-center gap-2">
               <Music className="w-4 h-4" />
-              Activity
+              <span className="hidden sm:inline">Activity</span>
             </TabsTrigger>
             <TabsTrigger value="playlists" className="flex items-center gap-2">
               <ListMusic className="w-4 h-4" />
-              Playlists
+              <span className="hidden sm:inline">Playlists</span>
+            </TabsTrigger>
+            <TabsTrigger value="games" className="flex items-center gap-2">
+              <Gamepad2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Games</span>
+              {activeGamersCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded-full">
+                  {activeGamersCount}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -510,6 +561,102 @@ const Admin = () => {
                               )}
                             </div>
                           )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Games Tab */}
+          <TabsContent value="games">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Gamepad2 className="w-5 h-5 text-primary" />
+                    <div>
+                      <CardTitle>Game Sessions</CardTitle>
+                      <CardDescription>
+                        Monitor users playing games
+                        {activeGamersCount > 0 && (
+                          <span className="ml-2 text-green-500 font-medium">
+                            ({activeGamersCount} playing now)
+                          </span>
+                        )}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button onClick={fetchAllData} variant="outline" disabled={loading}>
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Refresh'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[500px]">
+                  {gameSessions.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      No game sessions recorded yet
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {gameSessions.map((session) => (
+                        <div
+                          key={session.id}
+                          className={`p-4 rounded-lg border ${
+                            session.is_active 
+                              ? 'border-green-500/50 bg-green-500/5' 
+                              : 'border-border bg-secondary/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                session.is_active ? 'bg-green-500/20' : 'bg-primary/20'
+                              }`}>
+                                <Gamepad2 className={`w-5 h-5 ${
+                                  session.is_active ? 'text-green-500' : 'text-primary'
+                                }`} />
+                              </div>
+                              <div>
+                                <p className="font-medium flex items-center gap-2">
+                                  {session.game_name}
+                                  {session.is_active && (
+                                    <span className="px-2 py-0.5 text-xs bg-green-500 text-white rounded-full animate-pulse">
+                                      LIVE
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-sm text-muted-foreground">{session.user_email}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-primary">{session.score} pts</p>
+                              <p className="text-xs text-muted-foreground">
+                                💎 {session.gems_collected}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center gap-4">
+                              {session.track_playing && (
+                                <span className="flex items-center gap-1">
+                                  <Music className="w-3 h-3" />
+                                  <span className="truncate max-w-[150px]">{session.track_playing}</span>
+                                  {session.track_source && (
+                                    <span className="text-primary">({session.track_source})</span>
+                                  )}
+                                </span>
+                              )}
+                              <span>
+                                ⏱️ {Math.floor(session.duration_seconds / 60)}m {session.duration_seconds % 60}s
+                              </span>
+                            </div>
+                            <span>{formatTimeAgo(session.started_at)}</span>
+                          </div>
                         </div>
                       ))}
                     </div>

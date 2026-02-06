@@ -109,6 +109,51 @@ export type Database = {
         }
         Relationships: []
       }
+      game_sessions: {
+        Row: {
+          duration_seconds: number | null
+          ended_at: string | null
+          game_name: string
+          gems_collected: number | null
+          id: string
+          is_active: boolean | null
+          score: number | null
+          started_at: string
+          track_playing: string | null
+          track_source: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          duration_seconds?: number | null
+          ended_at?: string | null
+          game_name: string
+          gems_collected?: number | null
+          id?: string
+          is_active?: boolean | null
+          score?: number | null
+          started_at?: string
+          track_playing?: string | null
+          track_source?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          duration_seconds?: number | null
+          ended_at?: string | null
+          game_name?: string
+          gems_collected?: number | null
+          id?: string
+          is_active?: boolean | null
+          score?: number | null
+          started_at?: string
+          track_playing?: string | null
+          track_source?: string | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       listening_history: {
         Row: {
           id: string
