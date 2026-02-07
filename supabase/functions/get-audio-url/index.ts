@@ -5,8 +5,52 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Cache discovered instances for 10 minutes
+let cachedInstances: string[] = [];
+let cacheTime = 0;
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function getWorkingPipedInstances(): Promise<string[]> {
+  // Return cached if fresh
+  if (cachedInstances.length > 0 && Date.now() - cacheTime < CACHE_TTL) {
+    return cachedInstances;
+  }
+
+  try {
+    const response = await fetch('https://piped-instances.kavin.rocks/', {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!response.ok) throw new Error(`Status ${response.status}`);
+
+    const instances = await response.json();
+    
+    // Filter for instances with good uptime and API access, sort by uptime
+    const working = instances
+      .filter((i: any) => i.api_url && i.uptime_24h >= 90)
+      .sort((a: any, b: any) => (b.uptime_24h || 0) - (a.uptime_24h || 0))
+      .map((i: any) => i.api_url)
+      .slice(0, 8);
+
+    if (working.length > 0) {
+      cachedInstances = working;
+      cacheTime = Date.now();
+      console.log(`Discovered ${working.length} Piped instances`);
+    }
+
+    return working;
+  } catch (error) {
+    console.log('Failed to fetch Piped instances list:', error.message);
+    // Fallback to known instances
+    return [
+      'https://api.piped.private.coffee',
+      'https://pipedapi.kavin.rocks',
+    ];
+  }
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -22,62 +66,109 @@ serve(async (req) => {
       );
     }
 
-    // Use Invidious API to get audio stream URL (privacy-focused YouTube frontend)
-    // This provides direct audio URLs that work for background playback
-    const invidiousInstances = [
-      'https://inv.nadeko.net',
-      'https://invidious.nerdvpn.de',
-      'https://invidious.privacyredirect.com',
-      'https://vid.puffyan.us',
-      'https://invidious.snopyta.org',
-    ];
-
     let audioUrl = null;
     let lastError = null;
 
-    for (const instance of invidiousInstances) {
+    // Get working Piped instances dynamically
+    const pipedInstances = await getWorkingPipedInstances();
+
+    for (const instance of pipedInstances) {
       try {
-        const apiUrl = `${instance}/api/v1/videos/${videoId}`;
+        const apiUrl = `${instance}/streams/${videoId}`;
+        console.log(`Trying Piped: ${apiUrl}`);
+        
         const response = await fetch(apiUrl, {
-          headers: {
-            'Accept': 'application/json',
-          },
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(10000),
         });
 
         if (!response.ok) {
+          console.log(`Piped ${instance} returned ${response.status}`);
+          continue;
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          console.log(`Piped ${instance} returned non-JSON: ${contentType}`);
           continue;
         }
 
         const data = await response.json();
-        
-        // Find the best audio format
-        if (data.adaptiveFormats) {
-          // Sort by audio quality (bitrate)
-          const audioFormats = data.adaptiveFormats
-            .filter((f: any) => f.type?.startsWith('audio/'))
+
+        if (data.audioStreams && data.audioStreams.length > 0) {
+          // Sort by bitrate descending, prefer mp4
+          const sorted = data.audioStreams
+            .filter((s: any) => s.url)
             .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
 
-          if (audioFormats.length > 0) {
-            // Prefer mp4 audio for better compatibility
-            const mp4Audio = audioFormats.find((f: any) => f.type?.includes('mp4'));
-            audioUrl = mp4Audio?.url || audioFormats[0].url;
+          const mp4Stream = sorted.find((s: any) =>
+            s.mimeType?.includes('audio/mp4') || s.format === 'M4A'
+          );
+          audioUrl = mp4Stream?.url || sorted[0]?.url;
+
+          if (audioUrl) {
+            console.log(`Got audio URL from Piped: ${instance}`);
             break;
           }
         }
       } catch (error) {
         lastError = error;
-        console.log(`Instance ${instance} failed:`, error);
+        console.log(`Piped ${instance} failed:`, error.message || error);
         continue;
       }
     }
 
+    // Fallback to Invidious if Piped fails
     if (!audioUrl) {
-      console.error('Failed to get audio URL from all instances:', lastError);
+      const invidiousInstances = [
+        'https://inv.nadeko.net',
+        'https://invidious.nerdvpn.de',
+      ];
+
+      for (const instance of invidiousInstances) {
+        try {
+          const apiUrl = `${instance}/api/v1/videos/${videoId}`;
+          const response = await fetch(apiUrl, {
+            headers: { 'Accept': 'application/json' },
+            signal: AbortSignal.timeout(8000),
+          });
+
+          if (!response.ok) continue;
+
+          const contentType = response.headers.get('content-type') || '';
+          if (!contentType.includes('json')) {
+            console.log(`Invidious ${instance} returned non-JSON: ${contentType}`);
+            continue;
+          }
+
+          const data = await response.json();
+
+          if (data.adaptiveFormats) {
+            const audioFormats = data.adaptiveFormats
+              .filter((f: any) => f.type?.startsWith('audio/'))
+              .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
+
+            if (audioFormats.length > 0) {
+              const mp4Audio = audioFormats.find((f: any) => f.type?.includes('mp4'));
+              audioUrl = mp4Audio?.url || audioFormats[0].url;
+              if (audioUrl) {
+                console.log(`Got audio URL from Invidious: ${instance}`);
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          lastError = error;
+          console.log(`Invidious ${instance} failed:`, error.message || error);
+          continue;
+        }
+      }
+    }
+
+    if (!audioUrl) {
+      console.error('Failed to get audio URL from all instances:', lastError?.message || lastError);
       return new Response(
-        JSON.stringify({ 
-          error: 'Could not retrieve audio URL',
-          fallback: true 
-        }),
+        JSON.stringify({ error: 'Could not retrieve audio URL', fallback: true }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
