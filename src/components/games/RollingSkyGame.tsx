@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw, Music2, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, RotateCcw, Music2, Volume2, VolumeX, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import * as THREE from 'three';
 import MusicSelector from './MusicSelector';
 import { useGameSession } from '@/hooks/useGameSession';
@@ -554,6 +555,7 @@ const RollingSkyGame = () => {
   const [musicSource, setMusicSource] = useState<string>('');
   const [musicSourceName, setMusicSourceName] = useState<string>('');
   const [isMuted, setIsMuted] = useState(false);
+  const [audioError, setAudioError] = useState(false);
   
   const [isPlaying, setIsPlaying] = useState(false);
   const [gameOver, setGameOver] = useState(false);
@@ -571,14 +573,25 @@ const RollingSkyGame = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const ytPlayerRef = useRef<any>(null);
+  const [usingYT, setUsingYT] = useState(false);
 
   // Audio URL fetcher
   const getAudioUrl = async (trackId: string) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${trackId}`
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${trackId}`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
       );
       const data = await response.json();
+      if (data.fallback || data.error || !data.audioUrl) {
+        console.warn('Audio URL not available:', data.error || 'No URL returned');
+        return null;
+      }
       return data.audioUrl;
     } catch (error) {
       console.error('Error fetching audio URL:', error);
@@ -586,28 +599,112 @@ const RollingSkyGame = () => {
     }
   };
 
-  // Play current track
+  // Play via YouTube IFrame as fallback
+  const playViaYouTube = (trackId: string) => {
+    // Ensure YouTube API is loaded
+    if (!window.YT || !window.YT.Player) {
+      console.warn('YouTube API not loaded');
+      setAudioError(true);
+      return;
+    }
+
+    // Destroy existing YT player
+    if (ytPlayerRef.current) {
+      try { ytPlayerRef.current.destroy(); } catch (e) {}
+      ytPlayerRef.current = null;
+    }
+
+    // Ensure container exists
+    let container = document.getElementById('game-yt-player-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'game-yt-player-container';
+      container.style.position = 'absolute';
+      container.style.width = '1px';
+      container.style.height = '1px';
+      container.style.overflow = 'hidden';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
+      document.body.appendChild(container);
+    }
+    container.innerHTML = '<div id="game-yt-player"></div>';
+
+    ytPlayerRef.current = new window.YT.Player('game-yt-player', {
+      height: '1',
+      width: '1',
+      videoId: trackId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        iv_load_policy: 3,
+        modestbranding: 1,
+        rel: 0,
+        origin: window.location.origin,
+      },
+      events: {
+        onReady: (event: any) => {
+          event.target.setVolume(80);
+          event.target.playVideo();
+          setUsingYT(true);
+          setAudioError(false);
+          console.log('Game: Playing via YouTube IFrame');
+        },
+        onStateChange: (event: any) => {
+          if (event.data === window.YT.PlayerState.ENDED) {
+            if (selectedTracks.length > 1) {
+              setCurrentTrackIndex(prev => (prev + 1) % selectedTracks.length);
+            }
+          }
+        },
+        onError: (event: any) => {
+          console.error('Game YT Player error:', event.data);
+          setAudioError(true);
+        },
+      },
+    });
+  };
+
+  // Play current track - try audio URL first, fallback to YouTube
   const playCurrentTrack = async () => {
     if (selectedTracks.length === 0 || isMuted) return;
     
     const track = selectedTracks[currentTrackIndex];
+    setAudioError(false);
+    setUsingYT(false);
+    
+    // Try direct audio URL first
     const audioUrl = await getAudioUrl(track.id);
     
     if (audioUrl && audioRef.current) {
       audioRef.current.src = audioUrl;
-      audioRef.current.play().catch(console.error);
+      audioRef.current.crossOrigin = 'anonymous';
       
-      // Setup audio analyzer for beat detection
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext();
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 256;
+      try {
+        await audioRef.current.play();
+        setAudioError(false);
         
-        const source = audioContextRef.current.createMediaElementSource(audioRef.current);
-        source.connect(analyserRef.current);
-        analyserRef.current.connect(audioContextRef.current.destination);
+        // Setup audio analyzer for beat detection
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContext();
+          analyserRef.current = audioContextRef.current.createAnalyser();
+          analyserRef.current.fftSize = 256;
+          
+          const source = audioContextRef.current.createMediaElementSource(audioRef.current);
+          source.connect(analyserRef.current);
+          analyserRef.current.connect(audioContextRef.current.destination);
+        }
+        console.log('Game: Playing via direct audio');
+        return;
+      } catch (playError) {
+        console.error('Direct audio playback failed:', playError);
       }
     }
+
+    // Fallback to YouTube IFrame Player
+    console.log('Game: Falling back to YouTube IFrame player');
+    playViaYouTube(track.id);
   };
 
   // Beat detection from audio
@@ -653,7 +750,7 @@ const RollingSkyGame = () => {
     return () => clearInterval(interval);
   }, [isPlaying, gameOver]);
 
-  // Handle track ended
+  // Handle track ended + audio errors
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -663,9 +760,23 @@ const RollingSkyGame = () => {
         setCurrentTrackIndex(prev => (prev + 1) % selectedTracks.length);
       }
     };
+
+    const handleError = () => {
+      console.error('Audio element error:', audio.error);
+      // Try YouTube fallback instead of giving up
+      const track = selectedTracks[currentTrackIndex];
+      if (track) {
+        console.log('Audio error, trying YouTube fallback');
+        playViaYouTube(track.id);
+      }
+    };
     
     audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+    };
   }, [selectedTracks.length]);
 
   // Play next track when index changes
@@ -709,6 +820,9 @@ const RollingSkyGame = () => {
     
     if (audioRef.current) {
       audioRef.current.pause();
+    }
+    if (ytPlayerRef.current) {
+      try { ytPlayerRef.current.pauseVideo(); } catch (e) {}
     }
     
     if (score > highScore) {
@@ -779,6 +893,9 @@ const RollingSkyGame = () => {
     if (audioRef.current) {
       audioRef.current.pause();
     }
+    if (ytPlayerRef.current) {
+      try { ytPlayerRef.current.pauseVideo(); } catch (e) {}
+    }
   };
 
   const toggleMute = () => {
@@ -786,7 +903,28 @@ const RollingSkyGame = () => {
     if (audioRef.current) {
       audioRef.current.muted = !isMuted;
     }
+    if (ytPlayerRef.current) {
+      try {
+        if (!isMuted) {
+          ytPlayerRef.current.mute();
+        } else {
+          ytPlayerRef.current.unMute();
+        }
+      } catch (e) {}
+    }
   };
+
+  // Cleanup YouTube player on unmount
+  useEffect(() => {
+    return () => {
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.destroy(); } catch (e) {}
+        ytPlayerRef.current = null;
+      }
+      const container = document.getElementById('game-yt-player-container');
+      if (container) container.remove();
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -804,12 +942,19 @@ const RollingSkyGame = () => {
         <span className="text-muted-foreground">
           Best: <span className="text-primary font-bold">{highScore}</span>
         </span>
-        {selectedTracks.length > 0 && isPlaying && (
+        {selectedTracks.length > 0 && isPlaying && !audioError && (
           <span className="text-muted-foreground flex items-center gap-1">
             <Music2 className="w-3 h-3" />
             <span className="text-primary truncate max-w-[120px]">
               {selectedTracks[currentTrackIndex]?.title}
             </span>
+            {usingYT && <span className="text-xs text-muted-foreground/60">(YT)</span>}
+          </span>
+        )}
+        {audioError && isPlaying && (
+          <span className="text-destructive flex items-center gap-1 text-xs">
+            <AlertCircle className="w-3 h-3" />
+            No audio
           </span>
         )}
       </div>
