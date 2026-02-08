@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Shield, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2 } from 'lucide-react';
+import { Shield, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin } from 'lucide-react';
 
 interface AdminUser {
   id: string;
@@ -17,6 +17,14 @@ interface AdminUser {
   created_at: string;
   last_sign_in_at: string | null;
   email_confirmed_at: string | null;
+  location: {
+    country: string;
+    state: string;
+    city: string;
+    timezone: string;
+    isp: string;
+    last_updated: string;
+  } | null;
 }
 
 interface ListeningHistoryItem {
@@ -415,6 +423,12 @@ const Admin = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Email</TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              Location
+                            </div>
+                          </TableHead>
                           <TableHead>Signed Up</TableHead>
                           <TableHead>Last Sign In</TableHead>
                           <TableHead>Status</TableHead>
@@ -423,7 +437,7 @@ const Admin = () => {
                       <TableBody>
                         {users.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                               No users found
                             </TableCell>
                           </TableRow>
@@ -431,6 +445,27 @@ const Admin = () => {
                           users.map((u) => (
                             <TableRow key={u.id}>
                               <TableCell className="font-medium">{u.email}</TableCell>
+                              <TableCell>
+                                {u.location ? (
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-sm font-medium">{u.location.city}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {u.location.state}, {u.location.country}
+                                    </p>
+                                    {u.location.timezone && (
+                                      <p className="text-[10px] text-muted-foreground/70">
+                                        🕐 {u.location.timezone}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">
+                                    No location data
+                                  </span>
+                                )}
+                              </TableCell>
                               <TableCell>{formatDate(u.created_at)}</TableCell>
                               <TableCell>{formatDate(u.last_sign_in_at)}</TableCell>
                               <TableCell>

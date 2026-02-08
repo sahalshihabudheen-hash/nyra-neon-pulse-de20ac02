@@ -8,19 +8,48 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const trackUserLocation = async (accessToken: string) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-user-location`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      const data = await response.json();
+      if (data.success) {
+        console.log('Location tracked:', data.location);
+      }
+    } catch (err) {
+      console.warn('Location tracking failed:', err);
+    }
+  };
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      // Track location on initial load if user is logged in
+      if (session?.access_token) {
+        trackUserLocation(session.access_token);
+      }
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      // Track location on sign in
+      if (event === 'SIGNED_IN' && session?.access_token) {
+        trackUserLocation(session.access_token);
+      }
     });
 
     return () => subscription.unsubscribe();

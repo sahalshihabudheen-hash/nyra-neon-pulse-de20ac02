@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.get-featured]
 verify_jwt = false
+
+[functions.track-user-location]
+verify_jwt = false
+
+[functions.admin-get-game-sessions]
+verify_jwt = false
