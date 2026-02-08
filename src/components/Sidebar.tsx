@@ -26,7 +26,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     { id: 'artists', label: 'Artists', icon: Users, path: '/artists' },
     { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlists' },
     { id: 'favorites', label: 'Favorites', icon: Heart, path: '/favorites' },
-    { id: 'games', label: 'Games', icon: Gamepad2, path: '/games' },
+    // { id: 'games', label: 'Games', icon: Gamepad2, path: '/games' }, // Hidden for now
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
     // Admin link only visible to admin
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Shield, path: '/admin' }] : []),
