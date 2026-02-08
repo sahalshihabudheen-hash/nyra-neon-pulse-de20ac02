@@ -78,14 +78,37 @@ serve(async (req) => {
       );
     }
 
-    // Return only safe user info
-    const safeUsers = users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at,
-      email_confirmed_at: u.email_confirmed_at,
-    }));
+    // Fetch all user locations
+    const { data: locations } = await supabaseAdmin
+      .from("user_locations")
+      .select("user_id, country, state, city, timezone, isp, last_updated");
+
+    const locationMap = new Map();
+    if (locations) {
+      locations.forEach((loc: any) => {
+        locationMap.set(loc.user_id, loc);
+      });
+    }
+
+    // Return user info with location data
+    const safeUsers = users.map((u) => {
+      const loc = locationMap.get(u.id);
+      return {
+        id: u.id,
+        email: u.email,
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at,
+        email_confirmed_at: u.email_confirmed_at,
+        location: loc ? {
+          country: loc.country,
+          state: loc.state,
+          city: loc.city,
+          timezone: loc.timezone,
+          isp: loc.isp,
+          last_updated: loc.last_updated,
+        } : null,
+      };
+    });
 
     return new Response(
       JSON.stringify({ users: safeUsers }),
