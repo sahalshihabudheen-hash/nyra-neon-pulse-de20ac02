@@ -214,8 +214,8 @@ const MusicPlayer = ({
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
       
       <div className={cn(
-        'h-full px-3 md:px-6 flex items-center',
-        isMiniMode ? 'gap-4' : 'flex-col gap-3 py-3 md:flex-row md:gap-6 md:py-4'
+        'h-full px-3 md:px-4 flex items-center',
+        isMiniMode ? 'gap-4' : 'flex-col gap-1 py-1.5 md:flex-row md:gap-4 md:py-2'
       )}>
         {/* Track Info - Clickable to open fullscreen */}
         <div 
@@ -237,7 +237,7 @@ const MusicPlayer = ({
                   alt={currentTrack.title}
                   className={cn(
                     'relative rounded-lg object-cover flex-shrink-0 transition-all group-hover/track:scale-105',
-                    isMiniMode ? 'w-10 h-10' : 'w-14 h-14'
+                    isMiniMode ? 'w-10 h-10' : 'w-11 h-11'
                   )}
                 />
                 {/* Fullscreen hint overlay */}
@@ -285,7 +285,7 @@ const MusicPlayer = ({
             <div className="flex items-center gap-3">
               <div className={cn(
                 'rounded-lg bg-secondary/50 flex items-center justify-center flex-shrink-0 border border-border',
-                isMiniMode ? 'w-10 h-10' : 'w-14 h-14'
+                isMiniMode ? 'w-10 h-10' : 'w-11 h-11'
               )}>
                 <span className="text-muted-foreground text-2xl">♪</span>
               </div>
@@ -296,10 +296,10 @@ const MusicPlayer = ({
 
         {/* Controls */}
         <div className={cn(
-          'flex flex-col items-center gap-2',
+          'flex flex-col items-center gap-1',
           isMiniMode ? '' : 'flex-1 w-full'
         )}>
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 md:gap-3">
             {!isMiniMode && (
               <button 
                 onClick={onToggleShuffle}
@@ -343,7 +343,7 @@ const MusicPlayer = ({
               onClick={onPlayPause}
               className={cn(
                 'rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation relative',
-                isMiniMode ? 'w-12 h-12' : 'w-16 h-16',
+                isMiniMode ? 'w-10 h-10' : 'w-12 h-12',
               )}
               style={{
                 background: isPlaying 
@@ -360,9 +360,9 @@ const MusicPlayer = ({
                 isPlaying && 'neon-glow rounded-full'
               )}>
                 {isPlaying ? (
-                  <Pause className={cn(isMiniMode ? 'w-5 h-5' : 'w-7 h-7')} fill="currentColor" />
+                  <Pause className={cn(isMiniMode ? 'w-4 h-4' : 'w-5 h-5')} fill="currentColor" />
                 ) : (
-                  <Play className={cn(isMiniMode ? 'w-5 h-5' : 'w-7 h-7', 'ml-1')} fill="currentColor" />
+                  <Play className={cn(isMiniMode ? 'w-4 h-4' : 'w-5 h-5', 'ml-0.5')} fill="currentColor" />
                 )}
               </div>
             </button>
@@ -382,11 +382,11 @@ const MusicPlayer = ({
           {/* Progress Bar - ALWAYS VISIBLE */}
           {!isMiniMode && (
             <>
-              <div className="w-full max-w-xl flex items-center gap-2 md:gap-3 px-2">
+              <div className="w-full max-w-xl flex items-center gap-2 px-2">
                 <span className="text-xs text-foreground/70 w-10 text-right tabular-nums font-mono">
                   {formatTime(progress)}
                 </span>
-                <div className="relative flex-1 h-3 group rounded-full bg-white/10 border border-white/20 overflow-hidden">
+                <div className="relative flex-1 h-2 group rounded-full bg-white/10 border border-white/20 overflow-hidden">
                   {/* Background track */}
                   <div className="absolute inset-0 bg-muted/30" />
                   {/* Progress fill */}
@@ -409,8 +409,8 @@ const MusicPlayer = ({
                   />
                   {/* Progress handle - always visible */}
                   <div 
-                    className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
-                    style={{ left: `calc(${progressPercent}% - 10px)` }}
+                    className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
+                    style={{ left: `calc(${progressPercent}% - 7px)` }}
                   />
                 </div>
                 <span className="text-xs text-foreground/70 w-10 tabular-nums font-mono">
@@ -418,9 +418,9 @@ const MusicPlayer = ({
                 </span>
               </div>
               {settings.soundwaveEnabled && (
-                <div className="mt-1 hidden md:flex w-full justify-center">
-                  <div className="bg-black/30 rounded-lg px-3 py-1 border border-primary/30">
-                    <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 w-32" />
+                <div className="hidden md:flex w-full justify-center">
+                  <div className="bg-black/30 rounded-lg px-2 py-0.5 border border-primary/30">
+                    <SoundwaveVisualizer isPlaying={isPlaying} className="h-4 w-24" />
                   </div>
                 </div>
               )}
