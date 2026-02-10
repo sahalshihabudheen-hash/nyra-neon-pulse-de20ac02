@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.admin-get-game-sessions]
 verify_jwt = false
+
+[functions.get-personalized-songs]
+verify_jwt = false
