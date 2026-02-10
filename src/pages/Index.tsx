@@ -7,6 +7,8 @@ import TrackGrid from '@/components/TrackGrid';
 import MusicPlayer from '@/components/MusicPlayer';
 import TrendingSection from '@/components/TrendingSection';
 import HeroSection from '@/components/HeroSection';
+import PersonalizedSection from '@/components/PersonalizedSection';
+import GenreOnboarding from '@/components/GenreOnboarding';
 import { toast } from 'sonner';
 import { usePlaylist } from '@/hooks/usePlaylist';
 import { useQueue } from '@/hooks/useQueue';
@@ -15,6 +17,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMediaSession } from '@/hooks/useMediaSession';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
+import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useUserLocation } from '@/hooks/useUserLocation';
 import { famousSongs } from '@/data/famousSongs';
 
 interface Track {
@@ -90,6 +94,8 @@ const Index = () => {
 
   const { isFavorite, toggleFavorite } = useFavorites();
   const { recordPlay } = useListeningHistory();
+  const { preferences, showOnboarding, savePreferences } = useUserPreferences();
+  const { location } = useUserLocation();
 
   // Create background audio element on mount
   useEffect(() => {
@@ -534,17 +540,54 @@ const Index = () => {
         />
 
         <main className="pt-24 md:pt-28 pb-48 md:pb-36 px-4 md:px-8">
+          {/* Genre Onboarding Dialog */}
+          <GenreOnboarding
+            open={showOnboarding && !showSplash}
+            onComplete={savePreferences}
+          />
+
           {/* Hero Section - only on home without search */}
           {!searchPerformed && (
             <HeroSection 
               onPlayTrack={handlePlayTrack}
-              featuredTrack={tracks[0] || null}
             />
           )}
 
           {/* Trending Section */}
           {!searchPerformed && (
             <TrendingSection 
+              onPlayTrack={handlePlayTrack}
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+              onAddToQueue={handleAddToQueue}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
+            />
+          )}
+
+          {/* Regional Songs Section */}
+          {!searchPerformed && location?.country && (
+            <PersonalizedSection
+              title={`Hits from ${location.state || location.country}`}
+              subtitle={`Popular songs in ${location.city ? `${location.city}, ` : ''}${location.state || location.country}`}
+              icon="regional"
+              searchParams={{ type: 'regional', state: location.state || '', country: location.country || '' }}
+              onPlayTrack={handlePlayTrack}
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+              onAddToQueue={handleAddToQueue}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
+            />
+          )}
+
+          {/* Genre-based Section from preferences */}
+          {!searchPerformed && preferences?.genres && preferences.genres.length > 0 && (
+            <PersonalizedSection
+              title={`Because you love ${preferences.genres[0]}`}
+              subtitle={`Handpicked ${preferences.genres[0]} tracks for you`}
+              icon="genre"
+              searchParams={{ type: 'genre', genre: preferences.genres[0] }}
               onPlayTrack={handlePlayTrack}
               currentTrack={currentTrack}
               isPlaying={isPlaying}
