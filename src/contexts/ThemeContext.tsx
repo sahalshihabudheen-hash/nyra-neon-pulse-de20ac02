@@ -116,19 +116,19 @@ const hexToHsl = (hex: string): string => {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [currentTheme, setCurrentTheme] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('nyra-theme');
-    return (saved as ThemeName) || 'yellow';
+    return (saved as ThemeName) || 'blue';
   });
 
   const [customColor, setCustomColorState] = useState<string>(() => {
-    return localStorage.getItem('nyra-custom-color') || '#ffd300';
+    return localStorage.getItem('nyra-custom-color') || '#0080ff';
   });
 
   const [gradient, setGradientState] = useState<GradientConfig>(() => {
     const saved = localStorage.getItem('nyra-gradient');
     return saved ? JSON.parse(saved) : {
       enabled: false,
-      startColor: '#ffd300',
-      endColor: '#ff6b00',
+      startColor: '#0080ff',
+      endColor: '#00c8ff',
       angle: 135,
     };
   });
@@ -140,12 +140,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       autoPlayNext: true,
       miniPlayerMode: false,
       soundwaveShape: 'bars' as SoundwaveShape,
-      dropDetectorEnabled: true,
-      energyThemeEnabled: true,
-      powerLevelsEnabled: true,
-      energyMeterEnabled: true,
-      themeProfileEnabled: true,
-      musicMemoryEnabled: true,
+      dropDetectorEnabled: false,
+      energyThemeEnabled: false,
+      powerLevelsEnabled: false,
+      energyMeterEnabled: false,
+      themeProfileEnabled: false,
+      musicMemoryEnabled: false,
     };
   });
 
