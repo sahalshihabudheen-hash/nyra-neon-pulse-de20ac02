@@ -6,6 +6,16 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMediaSession } from '@/hooks/useMediaSession';
+import { useDropDetector } from '@/hooks/useDropDetector';
+import { useSongPowerLevels } from '@/hooks/useSongPowerLevels';
+import { useEnergyTheme } from '@/hooks/useEnergyTheme';
+import { useThemeProfile } from '@/hooks/useThemeProfile';
+import { useMusicMemory } from '@/hooks/useMusicMemory';
+import DropEffect from '@/components/DropEffect';
+import EnergyMeter from '@/components/EnergyMeter';
+import SongPowerSliders from '@/components/SongPowerSliders';
+import DropTimestampManager from '@/components/DropTimestampManager';
+import ThemeProfileSelector from '@/components/ThemeProfileSelector';
 import { cn } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
 import MusicPlayer from '@/components/MusicPlayer';
@@ -69,6 +79,29 @@ const PlaylistView = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
   const [useBackgroundAudio, setUseBackgroundAudio] = useState(true);
+  const [playbackTime, setPlaybackTime] = useState(0);
+
+  // Effects hooks
+  const { getLevels, setLevels } = useSongPowerLevels();
+  const { dropActive, addDrop, removeDrop, getDrops } = useDropDetector(currentTrack?.id, playbackTime);
+  const currentMood = useEnergyTheme(currentTrack?.title, settings.energyThemeEnabled);
+  const { profile, setProfile } = useThemeProfile();
+  const { recordPlay: recordMemory } = useMusicMemory();
+
+  // Track playback time for drop detector
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      if (audioRef.current && audioRef.current.src && !isNaN(audioRef.current.currentTime)) {
+        setPlaybackTime(audioRef.current.currentTime);
+      } else if (ytPlayerRef.current?.getCurrentTime) {
+        try { setPlaybackTime(ytPlayerRef.current.getCurrentTime()); } catch {}
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const currentPowerLevels = currentTrack ? getLevels(currentTrack.id) : { hype: 50, chill: 50, aggression: 30 };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -306,8 +339,9 @@ const PlaylistView = () => {
   const handlePlayTrack = useCallback((track: Track) => {
     setCurrentTrack(track);
     setIsPlaying(true);
+    recordMemory(track);
     playWithBackgroundAudio(track.id);
-  }, [playWithBackgroundAudio]);
+  }, [playWithBackgroundAudio, recordMemory]);
 
   const handlePlayPause = useCallback(() => {
     // Prefer background audio when available
@@ -601,7 +635,13 @@ const PlaylistView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background/80 flex flex-col">
+    <div className={cn(
+      "min-h-screen bg-background/80 flex flex-col transition-all duration-500",
+      settings.powerLevelsEnabled && currentPowerLevels.hype > 80 && isPlaying && "power-hype",
+      settings.powerLevelsEnabled && currentPowerLevels.chill > 80 && isPlaying && "power-chill",
+      settings.powerLevelsEnabled && currentPowerLevels.aggression > 80 && isPlaying && "power-aggression",
+    )}>
+      {settings.dropDetectorEnabled && <DropEffect active={dropActive} />}
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <Navbar
@@ -710,6 +750,43 @@ const PlaylistView = () => {
             </ScrollArea>
           )}
         </div>
+
+        {/* Effects Panel - shown when track is playing */}
+        {currentTrack && (settings.dropDetectorEnabled || settings.powerLevelsEnabled || settings.energyMeterEnabled || settings.themeProfileEnabled) && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in-up">
+            {(settings.energyMeterEnabled || settings.powerLevelsEnabled) && (
+              <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 space-y-3 glass-enhanced">
+                {settings.energyMeterEnabled && <EnergyMeter levels={currentPowerLevels} isPlaying={isPlaying} />}
+                {settings.powerLevelsEnabled && (
+                  <SongPowerSliders
+                    levels={currentPowerLevels}
+                    onChange={(partial) => setLevels(currentTrack.id, partial)}
+                  />
+                )}
+              </div>
+            )}
+            {settings.dropDetectorEnabled && (
+              <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 glass-enhanced">
+                <DropTimestampManager
+                  trackId={currentTrack.id}
+                  drops={getDrops(currentTrack.id)}
+                  onAddDrop={addDrop}
+                  onRemoveDrop={removeDrop}
+                />
+              </div>
+            )}
+            {settings.themeProfileEnabled && (
+              <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 glass-enhanced">
+                <ThemeProfileSelector current={profile} onChange={setProfile} />
+                {settings.energyThemeEnabled && currentMood && (
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    🎭 Auto-detected mood: <span className="text-primary font-medium">{currentMood}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Playlist Tracks */}
         {tracks.length === 0 ? (
