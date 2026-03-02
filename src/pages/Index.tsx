@@ -63,6 +63,7 @@ const Index = () => {
   const [ytApiReady, setYtApiReady] = useState(false);
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
   const [useBackgroundAudio, setUseBackgroundAudio] = useState(true);
+  const [playbackTime, setPlaybackTime] = useState(0);
   
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -111,8 +112,8 @@ const Index = () => {
 
   // New feature hooks
   const { getLevels, setLevels } = useSongPowerLevels();
-  const { dropActive, addDrop, removeDrop, getDrops } = useDropDetector(currentTrack?.id, 0);
-  const currentMood = useEnergyTheme(currentTrack?.title, true);
+  const { dropActive, addDrop, removeDrop, getDrops } = useDropDetector(currentTrack?.id, playbackTime);
+  const currentMood = useEnergyTheme(currentTrack?.title, settings.energyThemeEnabled);
   const { profile, setProfile } = useThemeProfile();
   const { recordPlay: recordMemory, getMostPlayed, getRecentlyPlayed } = useMusicMemory();
 
@@ -135,6 +136,19 @@ const Index = () => {
       }
     };
   }, []);
+
+  // Track playback time for drop detector
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      if (audioRef.current && audioRef.current.src && !isNaN(audioRef.current.currentTime)) {
+        setPlaybackTime(audioRef.current.currentTime);
+      } else if (ytPlayerRef.current?.getCurrentTime) {
+        try { setPlaybackTime(ytPlayerRef.current.getCurrentTime()); } catch {}
+      }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   // Set up audio event listeners
   useEffect(() => {
@@ -556,12 +570,12 @@ const Index = () => {
   return (
     <div className={cn(
       "min-h-screen bg-background/80 gradient-bg noise-overlay transition-all duration-500",
-      currentPowerLevels.hype > 80 && isPlaying && "power-hype",
-      currentPowerLevels.chill > 80 && isPlaying && "power-chill",
-      currentPowerLevels.aggression > 80 && isPlaying && "power-aggression",
+      settings.powerLevelsEnabled && currentPowerLevels.hype > 80 && isPlaying && "power-hype",
+      settings.powerLevelsEnabled && currentPowerLevels.chill > 80 && isPlaying && "power-chill",
+      settings.powerLevelsEnabled && currentPowerLevels.aggression > 80 && isPlaying && "power-aggression",
     )}>
       {/* Drop Effect Overlay */}
-      <DropEffect active={dropActive} />
+      {settings.dropDetectorEnabled && <DropEffect active={dropActive} />}
 
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
@@ -580,41 +594,49 @@ const Index = () => {
           />
 
           {/* Energy & Controls Panel - shown when a track is playing */}
-          {currentTrack && !searchPerformed && (
+          {currentTrack && (
             <div className="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in-up">
-              {/* Energy Meter */}
-              <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 space-y-3 glass-enhanced">
-                <EnergyMeter levels={currentPowerLevels} isPlaying={isPlaying} />
-                <SongPowerSliders
-                  levels={currentPowerLevels}
-                  onChange={(partial) => setLevels(currentTrack.id, partial)}
-                />
-              </div>
+              {/* Energy Meter & Power Sliders */}
+              {(settings.energyMeterEnabled || settings.powerLevelsEnabled) && (
+                <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 space-y-3 glass-enhanced">
+                  {settings.energyMeterEnabled && <EnergyMeter levels={currentPowerLevels} isPlaying={isPlaying} />}
+                  {settings.powerLevelsEnabled && (
+                    <SongPowerSliders
+                      levels={currentPowerLevels}
+                      onChange={(partial) => setLevels(currentTrack.id, partial)}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Drop Timestamps */}
-              <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 glass-enhanced">
-                <DropTimestampManager
-                  trackId={currentTrack.id}
-                  drops={getDrops(currentTrack.id)}
-                  onAddDrop={addDrop}
-                  onRemoveDrop={removeDrop}
-                />
-              </div>
+              {settings.dropDetectorEnabled && (
+                <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 glass-enhanced">
+                  <DropTimestampManager
+                    trackId={currentTrack.id}
+                    drops={getDrops(currentTrack.id)}
+                    onAddDrop={addDrop}
+                    onRemoveDrop={removeDrop}
+                  />
+                </div>
+              )}
 
               {/* Theme Profile Selector */}
-              <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 glass-enhanced">
-                <ThemeProfileSelector current={profile} onChange={setProfile} />
-                {currentMood && (
-                  <div className="mt-3 text-xs text-muted-foreground">
-                    🎭 Auto-detected mood: <span className="text-primary font-medium">{currentMood}</span>
-                  </div>
-                )}
-              </div>
+              {settings.themeProfileEnabled && (
+                <div className="rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm p-4 glass-enhanced">
+                  <ThemeProfileSelector current={profile} onChange={setProfile} />
+                  {settings.energyThemeEnabled && currentMood && (
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      🎭 Auto-detected mood: <span className="text-primary font-medium">{currentMood}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {/* Music Memory Panel */}
-          {!searchPerformed && (
+          {!searchPerformed && settings.musicMemoryEnabled && (
             <div className="mb-8">
               <MusicMemoryPanel
                 mostPlayed={getMostPlayed(8)}
@@ -659,13 +681,14 @@ const Index = () => {
             />
           )}
 
-          {/* Genre-based Section from preferences */}
-          {!searchPerformed && preferences?.genres && preferences.genres.length > 0 && (
+          {/* ALL Genre-based Sections from preferences */}
+          {!searchPerformed && preferences?.genres && preferences.genres.map((genre) => (
             <PersonalizedSection
-              title={`Because you love ${preferences.genres[0]}`}
-              subtitle={`Handpicked ${preferences.genres[0]} tracks for you`}
+              key={genre}
+              title={`Because you love ${genre}`}
+              subtitle={`Handpicked ${genre} tracks for you`}
               icon="genre"
-              searchParams={{ type: 'genre', genre: preferences.genres[0] }}
+              searchParams={{ type: 'genre', genre }}
               onPlayTrack={handlePlayTrack}
               currentTrack={currentTrack}
               isPlaying={isPlaying}
@@ -673,7 +696,7 @@ const Index = () => {
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
             />
-          )}
+          ))}
 
           {searchPerformed && tracks.length > 0 && (
             <div className="mb-8 animate-in-up">

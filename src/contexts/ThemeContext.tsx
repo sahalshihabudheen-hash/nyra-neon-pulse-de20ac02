@@ -61,6 +61,12 @@ interface AppSettings {
   autoPlayNext: boolean;
   miniPlayerMode: boolean;
   soundwaveShape: SoundwaveShape;
+  dropDetectorEnabled: boolean;
+  energyThemeEnabled: boolean;
+  powerLevelsEnabled: boolean;
+  energyMeterEnabled: boolean;
+  themeProfileEnabled: boolean;
+  musicMemoryEnabled: boolean;
 }
 
 interface ThemeContextType {
@@ -134,6 +140,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       autoPlayNext: true,
       miniPlayerMode: false,
       soundwaveShape: 'bars' as SoundwaveShape,
+      dropDetectorEnabled: true,
+      energyThemeEnabled: true,
+      powerLevelsEnabled: true,
+      energyMeterEnabled: true,
+      themeProfileEnabled: true,
+      musicMemoryEnabled: true,
     };
   });
 
