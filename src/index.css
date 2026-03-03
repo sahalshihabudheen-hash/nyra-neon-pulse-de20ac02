@@ -622,7 +622,8 @@ body.profile-chill-coder::before {
 }
 
 .power-aggression {
-  animation: shake-pulse 0.15s ease-in-out infinite;
+  animation: shake-pulse 0.3s ease-in-out infinite;
+  animation-iteration-count: 3;
 }
 
 /* ============= GLASSMORPHISM ENHANCEMENTS ============= */

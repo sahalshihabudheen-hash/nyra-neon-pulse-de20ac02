@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import nyraLogo from '@/assets/nyra-logo-blue.png';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -27,13 +28,13 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[100px] animate-pulse-glow" />
       </div>
 
-      {/* Logo */}
-      <h1
-        className="text-7xl md:text-9xl font-extrabold neon-text animate-fade-in-up tracking-tight"
+      {/* Logo Image */}
+      <img
+        src={nyraLogo}
+        alt="NYRA Music"
+        className="relative w-48 md:w-64 h-auto animate-fade-in-up"
         style={{ animationDelay: '0.2s' }}
-      >
-        NYRA
-      </h1>
+      />
 
       {/* Tagline */}
       <p
