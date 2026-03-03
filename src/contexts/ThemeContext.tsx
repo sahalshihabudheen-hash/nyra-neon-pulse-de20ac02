@@ -135,7 +135,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('nyra-settings');
-    return saved ? JSON.parse(saved) : {
+    const defaults = {
       soundwaveEnabled: true,
       autoPlayNext: true,
       miniPlayerMode: false,
@@ -147,6 +147,10 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       themeProfileEnabled: false,
       musicMemoryEnabled: false,
     };
+    if (saved) {
+      return { ...defaults, ...JSON.parse(saved) };
+    }
+    return defaults;
   });
 
   useEffect(() => {

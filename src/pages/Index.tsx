@@ -150,6 +150,7 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [isPlaying]);
 
+
   // Set up audio event listeners
   useEffect(() => {
     const audio = audioRef.current;
@@ -435,7 +436,20 @@ const Index = () => {
     }
   }, [isPlaying]);
 
-  // Handle play action for media session
+  // Global keyboard shortcut: Space to play/pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handlePlayPause();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handlePlayPause]);
+
   const handleMediaPlay = useCallback(() => {
     if (audioRef.current && audioRef.current.src) {
       audioRef.current.play();
