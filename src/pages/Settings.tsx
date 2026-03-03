@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, Zap } from 'lucide-react';
+import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
@@ -321,39 +321,6 @@ const Settings = () => {
                   Clear All
                 </Button>
               </div>
-            </div>
-          </section>
-
-          {/* Advanced Features */}
-          <section className="mb-10">
-            <div className="flex items-center gap-3 mb-6">
-              <Zap className="w-6 h-6 text-primary" />
-              <h2 className="text-xl md:text-2xl font-semibold text-foreground">Advanced Features</h2>
-            </div>
-
-            <div className="space-y-4 bg-card rounded-xl p-4 md:p-6 border border-border">
-              {([
-                { key: 'dropDetectorEnabled' as const, label: 'Smart Drop Detector', desc: 'Cinematic visual effects at drop timestamps' },
-                { key: 'energyThemeEnabled' as const, label: 'Energy Auto Theme', desc: 'Auto-switch theme based on song mood (phonk, lofi, edm, sad)' },
-                { key: 'powerLevelsEnabled' as const, label: 'Song Power Levels', desc: 'Hype/Chill/Aggression sliders with reactive UI effects' },
-                { key: 'energyMeterEnabled' as const, label: 'Live Energy Meter', desc: 'Real-time animated energy bar during playback' },
-                { key: 'themeProfileEnabled' as const, label: 'Theme Profiles', desc: 'Villain/Hero/Chill Coder mode selector' },
-                { key: 'musicMemoryEnabled' as const, label: 'Music Memory Timeline', desc: 'Track play history, most played and recently played' },
-              ]).map((feat, i) => (
-                <div key={feat.key} className={cn(i > 0 && "border-t border-border pt-4")}>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground text-sm md:text-base">{feat.label}</p>
-                      <p className="text-xs md:text-sm text-muted-foreground">{feat.desc}</p>
-                    </div>
-                    <Switch
-                      checked={settings[feat.key]}
-                      onCheckedChange={(checked) => updateSettings({ [feat.key]: checked })}
-                      className="data-[state=checked]:bg-primary"
-                    />
-                  </div>
-                </div>
-              ))}
             </div>
           </section>
 

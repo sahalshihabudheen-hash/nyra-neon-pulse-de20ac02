@@ -61,12 +61,6 @@ interface AppSettings {
   autoPlayNext: boolean;
   miniPlayerMode: boolean;
   soundwaveShape: SoundwaveShape;
-  dropDetectorEnabled: boolean;
-  energyThemeEnabled: boolean;
-  powerLevelsEnabled: boolean;
-  energyMeterEnabled: boolean;
-  themeProfileEnabled: boolean;
-  musicMemoryEnabled: boolean;
 }
 
 interface ThemeContextType {
@@ -116,41 +110,31 @@ const hexToHsl = (hex: string): string => {
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [currentTheme, setCurrentTheme] = useState<ThemeName>(() => {
     const saved = localStorage.getItem('nyra-theme');
-    return (saved as ThemeName) || 'blue';
+    return (saved as ThemeName) || 'yellow';
   });
 
   const [customColor, setCustomColorState] = useState<string>(() => {
-    return localStorage.getItem('nyra-custom-color') || '#0080ff';
+    return localStorage.getItem('nyra-custom-color') || '#ffd300';
   });
 
   const [gradient, setGradientState] = useState<GradientConfig>(() => {
     const saved = localStorage.getItem('nyra-gradient');
     return saved ? JSON.parse(saved) : {
       enabled: false,
-      startColor: '#0080ff',
-      endColor: '#00c8ff',
+      startColor: '#ffd300',
+      endColor: '#ff6b00',
       angle: 135,
     };
   });
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('nyra-settings');
-    const defaults = {
+    return saved ? JSON.parse(saved) : {
       soundwaveEnabled: true,
       autoPlayNext: true,
       miniPlayerMode: false,
       soundwaveShape: 'bars' as SoundwaveShape,
-      dropDetectorEnabled: false,
-      energyThemeEnabled: false,
-      powerLevelsEnabled: false,
-      energyMeterEnabled: false,
-      themeProfileEnabled: false,
-      musicMemoryEnabled: false,
     };
-    if (saved) {
-      return { ...defaults, ...JSON.parse(saved) };
-    }
-    return defaults;
   });
 
   useEffect(() => {
