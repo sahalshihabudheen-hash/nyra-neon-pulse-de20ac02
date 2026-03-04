@@ -13,7 +13,9 @@ const FloatingMiniPlayer = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const isOnHomePage = location.pathname === '/';
+  // Pages that have their own full MusicPlayer footer
+  const pagesWithPlayer = ['/', '/favorites'];
+  const hasFullPlayer = pagesWithPlayer.includes(location.pathname) || location.pathname.startsWith('/playlist/');
 
   // Drag state
   const [position, setPosition] = useState({ x: -1, y: -1 });
@@ -85,12 +87,11 @@ const FloatingMiniPlayer = () => {
 
   const handleExpand = () => {
     if (hasDragged.current) return;
-    // Navigate to home page where the full player lives
-    if (!isOnHomePage) navigate('/');
+    if (!hasFullPlayer) navigate('/');
   };
 
-  // Don't show if no track, hidden, or on home page (full player visible)
-  if (!currentTrack || !showMiniPlayer || isOnHomePage) return null;
+  // Don't show if no track, hidden, or on a page with full player
+  if (!currentTrack || !showMiniPlayer || hasFullPlayer) return null;
 
   const node = (
     <div
