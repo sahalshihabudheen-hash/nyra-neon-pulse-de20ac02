@@ -599,10 +599,11 @@ const RollingSkyGame = () => {
     }
   };
 
-  // Play via YouTube IFrame as fallback
   const playViaYouTube = (trackId: string) => {
+    const yt = (window as any).YT;
+
     // Ensure YouTube API is loaded
-    if (!window.YT || !window.YT.Player) {
+    if (!yt || !yt.Player) {
       console.warn('YouTube API not loaded');
       setAudioError(true);
       return;
@@ -629,7 +630,7 @@ const RollingSkyGame = () => {
     }
     container.innerHTML = '<div id="game-yt-player"></div>';
 
-    ytPlayerRef.current = new window.YT.Player('game-yt-player', {
+    ytPlayerRef.current = new yt.Player('game-yt-player', {
       height: '1',
       width: '1',
       videoId: trackId,
@@ -652,7 +653,7 @@ const RollingSkyGame = () => {
           console.log('Game: Playing via YouTube IFrame');
         },
         onStateChange: (event: any) => {
-          if (event.data === window.YT.PlayerState.ENDED) {
+          if (event.data === yt.PlayerState.ENDED) {
             if (selectedTracks.length > 1) {
               setCurrentTrackIndex(prev => (prev + 1) % selectedTracks.length);
             }
