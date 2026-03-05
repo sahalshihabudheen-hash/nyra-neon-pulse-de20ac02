@@ -1,52 +1,112 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipForward, X, Maximize2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, X, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useLocation, useNavigate } from 'react-router-dom';
+import SoundwaveVisualizer from '@/components/SoundwaveVisualizer';
+
+const PLAYER_WIDTH = 320;
+const PLAYER_HEIGHT = 96;
+const EDGE_PADDING = 12;
 
 const FloatingMiniPlayer = () => {
   const {
-    currentTrack, isPlaying, handlePlayPause, handleNext,
-    showMiniPlayer, setShowMiniPlayer,
+    currentTrack,
+    isPlaying,
+    handlePlayPause,
+    handleNext,
+    handlePrevious,
+    ytPlayerRef,
+    audioRef,
+    showMiniPlayer,
+    setShowMiniPlayer,
   } = useMusicPlayer();
 
   const navigate = useNavigate();
   const location = useLocation();
-  // Pages that have their own full MusicPlayer footer
-  const pagesWithPlayer = ['/', '/favorites'];
-  const hasFullPlayer = pagesWithPlayer.includes(location.pathname) || location.pathname.startsWith('/playlist/');
 
-  // Drag state
-  const [position, setPosition] = useState({ x: -1, y: -1 });
+  // Keep full footer player on home only; mini player should appear on all other routes.
+  const hasFullPlayer = location.pathname === '/';
+
+  const [position, setPosition] = useState(() => ({
+    x: Math.max(EDGE_PADDING, window.innerWidth - PLAYER_WIDTH - 24),
+    y: Math.max(EDGE_PADDING, window.innerHeight - PLAYER_HEIGHT - 24),
+  }));
   const [isDragging, setIsDragging] = useState(false);
-  const dragOffset = useRef({ x: 0, y: 0 });
-  const playerRef = useRef<HTMLDivElement>(null);
-  const hasDragged = useRef(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isRendered, setIsRendered] = useState(false);
 
-  // Initialize position to bottom-right
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const hasDragged = useRef(false);
+  const playerRef = useRef<HTMLDivElement>(null);
+
+  const shouldShow = Boolean(currentTrack && showMiniPlayer && !hasFullPlayer);
+
   useEffect(() => {
-    if (position.x === -1) {
-      setPosition({
-        x: window.innerWidth - 340,
-        y: window.innerHeight - 120,
-      });
+    if (shouldShow) {
+      setIsRendered(true);
+      setIsExiting(false);
+      return;
     }
-  }, []);
+
+    if (isRendered) {
+      setIsExiting(true);
+      const timeout = window.setTimeout(() => {
+        setIsRendered(false);
+        setIsExiting(false);
+      }, 220);
+      return () => window.clearTimeout(timeout);
+    }
+  }, [shouldShow, isRendered]);
 
   // Clamp position on resize
   useEffect(() => {
     const handleResize = () => {
-      setPosition(prev => ({
-        x: Math.min(prev.x, window.innerWidth - 300),
-        y: Math.min(prev.y, window.innerHeight - 90),
+      setPosition((prev) => ({
+        x: Math.max(EDGE_PADDING, Math.min(prev.x, window.innerWidth - PLAYER_WIDTH - EDGE_PADDING)),
+        y: Math.max(EDGE_PADDING, Math.min(prev.y, window.innerHeight - PLAYER_HEIGHT - EDGE_PADDING)),
       }));
     };
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Mouse/Touch drag handlers
+  // Sync mini-player progress with global audio/youtube player
+  useEffect(() => {
+    if (!currentTrack) {
+      setProgress(0);
+      setDuration(0);
+      return;
+    }
+
+    const updateProgress = () => {
+      if (audioRef.current && audioRef.current.src && !Number.isNaN(audioRef.current.duration)) {
+        setProgress(audioRef.current.currentTime || 0);
+        setDuration(audioRef.current.duration || 0);
+        return;
+      }
+
+      if (ytPlayerRef.current) {
+        try {
+          const current = ytPlayerRef.current.getCurrentTime?.() || 0;
+          const total = ytPlayerRef.current.getDuration?.() || 0;
+          setProgress(current);
+          setDuration(total);
+        } catch {
+          // player not ready yet
+        }
+      }
+    };
+
+    updateProgress();
+    const interval = window.setInterval(updateProgress, 250);
+    return () => window.clearInterval(interval);
+  }, [currentTrack?.id, isPlaying, audioRef, ytPlayerRef]);
+
   const handleDragStart = useCallback((clientX: number, clientY: number) => {
     if (!playerRef.current) return;
     setIsDragging(true);
@@ -55,13 +115,24 @@ const FloatingMiniPlayer = () => {
     dragOffset.current = { x: clientX - rect.left, y: clientY - rect.top };
   }, []);
 
-  const handleDragMove = useCallback((clientX: number, clientY: number) => {
-    if (!isDragging) return;
-    hasDragged.current = true;
-    const newX = Math.max(0, Math.min(clientX - dragOffset.current.x, window.innerWidth - 300));
-    const newY = Math.max(0, Math.min(clientY - dragOffset.current.y, window.innerHeight - 90));
-    setPosition({ x: newX, y: newY });
-  }, [isDragging]);
+  const handleDragMove = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!isDragging) return;
+      hasDragged.current = true;
+
+      const newX = Math.max(
+        EDGE_PADDING,
+        Math.min(clientX - dragOffset.current.x, window.innerWidth - PLAYER_WIDTH - EDGE_PADDING),
+      );
+      const newY = Math.max(
+        EDGE_PADDING,
+        Math.min(clientY - dragOffset.current.y, window.innerHeight - PLAYER_HEIGHT - EDGE_PADDING),
+      );
+
+      setPosition({ x: newX, y: newY });
+    },
+    [isDragging],
+  );
 
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
@@ -69,108 +140,142 @@ const FloatingMiniPlayer = () => {
 
   useEffect(() => {
     if (!isDragging) return;
+
     const onMouseMove = (e: MouseEvent) => handleDragMove(e.clientX, e.clientY);
-    const onTouchMove = (e: TouchEvent) => handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
-    const onEnd = () => handleDragEnd();
+    const onTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    };
 
     window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onEnd);
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onEnd);
+    window.addEventListener('mouseup', handleDragEnd);
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', handleDragEnd);
+
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onEnd);
+      window.removeEventListener('mouseup', handleDragEnd);
       window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onEnd);
+      window.removeEventListener('touchend', handleDragEnd);
     };
   }, [isDragging, handleDragMove, handleDragEnd]);
 
   const handleExpand = () => {
     if (hasDragged.current) return;
-    if (!hasFullPlayer) navigate('/');
+    navigate('/');
   };
 
-  // Don't show if no track, hidden, or on a page with full player
-  if (!currentTrack || !showMiniPlayer || hasFullPlayer) return null;
+  const progressPercent = useMemo(() => {
+    if (!duration || Number.isNaN(duration)) return 0;
+    return Math.min(100, (progress / duration) * 100);
+  }, [progress, duration]);
+
+  if (!isRendered || !currentTrack) return null;
 
   const node = (
     <div
       ref={playerRef}
       className={cn(
-        "fixed z-[9998] select-none animate-fade-in",
-        isDragging ? "cursor-grabbing" : "cursor-grab",
+        'fixed z-[9998] w-[calc(100vw-24px)] max-w-[320px] select-none',
+        isDragging ? 'cursor-grabbing' : 'cursor-default',
+        isExiting ? 'animate-fade-out' : 'animate-fade-in',
       )}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
-        transition: isDragging ? 'none' : 'box-shadow 0.3s ease',
-      }}
-      onMouseDown={(e) => {
-        e.preventDefault();
-        handleDragStart(e.clientX, e.clientY);
-      }}
-      onTouchStart={(e) => {
-        handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
       }}
     >
-      <div className={cn(
-        "flex items-center gap-3 p-2.5 pr-3 rounded-2xl border",
-        "bg-card/80 backdrop-blur-xl border-border/40",
-        "shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.05)_inset]",
-        "hover:shadow-[0_12px_40px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.08)_inset]",
-        "transition-shadow duration-300",
-        "w-[300px]",
-      )}>
-        {/* Album art */}
-        <div
-          className="relative shrink-0 group"
-          onClick={handleExpand}
-        >
-          <div className={cn(
-            "absolute -inset-0.5 rounded-xl blur-sm transition-opacity",
-            isPlaying ? "opacity-60" : "opacity-0",
-          )} style={{ background: 'var(--theme-gradient, hsl(var(--primary)))' }} />
-          <img
-            src={currentTrack.thumbnail}
-            alt={currentTrack.title}
-            className="relative w-12 h-12 rounded-xl object-cover"
-          />
-          <div className="absolute inset-0 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-            <Maximize2 className="w-4 h-4 text-white" />
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 glass-premium shadow-2xl">
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          <button
+            type="button"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              handleDragStart(e.clientX, e.clientY);
+            }}
+            onTouchStart={(e) => {
+              if (!e.touches[0]) return;
+              handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+            }}
+            onClick={handleExpand}
+            className={cn(
+              'group relative flex items-center gap-3 min-w-0 flex-1 text-left rounded-xl p-1 transition-colors',
+              isDragging ? 'cursor-grabbing' : 'cursor-grab',
+            )}
+          >
+            <div className="relative shrink-0">
+              <img
+                src={currentTrack.thumbnail}
+                alt={currentTrack.title}
+                className="h-12 w-12 rounded-xl object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 rounded-xl bg-background/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Maximize2 className="h-3.5 w-3.5 text-foreground" />
+              </div>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground leading-tight">{currentTrack.title}</p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <p className="truncate text-xs text-muted-foreground">{currentTrack.channel}</p>
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-3 w-8 shrink-0" shape="bars" />
+              </div>
+            </div>
+          </button>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrevious();
+              }}
+              className="h-8 w-8 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95"
+              aria-label="Previous track"
+            >
+              <SkipBack className="h-4 w-4" fill="currentColor" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePlayPause();
+              }}
+              className="h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground bg-primary hover:opacity-90 transition-all active:scale-95"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 ml-0.5" fill="currentColor" />}
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+              className="h-8 w-8 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95"
+              aria-label="Next track"
+            >
+              <SkipForward className="h-4 w-4" fill="currentColor" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMiniPlayer(false);
+              }}
+              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
+              aria-label="Close mini player"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
 
-        {/* Track info */}
-        <div className="flex-1 min-w-0" onClick={handleExpand}>
-          <p className="text-sm font-semibold text-foreground truncate leading-tight">
-            {currentTrack.title}
-          </p>
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {currentTrack.channel}
-          </p>
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation text-primary-foreground"
-            style={{ background: 'var(--theme-gradient, hsl(var(--primary)))' }}
-          >
-            {isPlaying ? <Pause className="w-4 h-4" fill="currentColor" /> : <Play className="w-4 h-4 ml-0.5" fill="currentColor" />}
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); handleNext(); }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:bg-secondary/50 transition-all active:scale-90 touch-manipulation"
-          >
-            <SkipForward className="w-4 h-4" fill="currentColor" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowMiniPlayer(false); }}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all active:scale-90 touch-manipulation"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <div className="h-1 w-full bg-secondary/70">
+          <div
+            className="h-full bg-primary transition-all duration-200"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
       </div>
     </div>

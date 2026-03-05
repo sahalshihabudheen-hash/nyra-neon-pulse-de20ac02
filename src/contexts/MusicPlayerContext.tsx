@@ -139,15 +139,15 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   // Load YouTube IFrame API
   useEffect(() => {
-    if (window.YT && window.YT.Player) {
+    const yt = (window as any).YT;
+    if (yt && yt.Player) {
       setYtApiReady(true);
-      return;
     }
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-    window.onYouTubeIframeAPIReady = () => {
+    (window as any).onYouTubeIframeAPIReady = () => {
       setYtApiReady(true);
     };
   }, []);
@@ -179,7 +179,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     if (!container) return;
     container.innerHTML = '<div id="yt-player"></div>';
 
-    ytPlayerRef.current = new window.YT.Player('yt-player', {
+    const yt = (window as any).YT;
+    if (!yt?.Player) return;
+
+    ytPlayerRef.current = new yt.Player('yt-player', {
       height: '1', width: '1', videoId,
       playerVars: {
         autoplay: 1, controls: 0, disablekb: 1, fs: 0,
@@ -189,9 +192,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       events: {
         onReady: (e: any) => { e.target.setVolume(80); e.target.playVideo(); },
         onStateChange: (e: any) => {
-          if (e.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-          else if (e.data === window.YT.PlayerState.PAUSED) setIsPlaying(false);
-          else if (e.data === window.YT.PlayerState.ENDED) {
+          if (e.data === yt.PlayerState.PLAYING) setIsPlaying(true);
+          else if (e.data === yt.PlayerState.PAUSED) setIsPlaying(false);
+          else if (e.data === yt.PlayerState.ENDED) {
             if (settings.autoPlayNext && handleNextRef.current) handleNextRef.current();
             else setIsPlaying(false);
           }
@@ -207,9 +210,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [settings.autoPlayNext]);
 
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
+    const yt = (window as any).YT;
     if (!useBackgroundAudioMode) {
-      if (ytApiReady && window.YT?.Player) createPlayer(videoId);
-      return;
+      if (ytApiReady && yt?.Player) createPlayer(videoId);
     }
     const audioUrl = await fetchAudioUrl(videoId);
     if (audioUrl && audioRef.current) {
@@ -222,10 +225,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         .then(() => setIsPlaying(true))
         .catch(() => {
           setUseBackgroundAudioMode(false);
-          if (ytApiReady && window.YT?.Player) createPlayer(videoId);
+          if (ytApiReady && yt?.Player) createPlayer(videoId);
         });
     } else {
-      if (ytApiReady && window.YT?.Player) createPlayer(videoId);
+      if (ytApiReady && yt?.Player) createPlayer(videoId);
       else toast.error('Player not ready. Please try again.');
     }
   }, [useBackgroundAudioMode, fetchAudioUrl, ytApiReady, createPlayer]);
