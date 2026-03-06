@@ -26,8 +26,8 @@ const FloatingMiniPlayer = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Keep full footer player on home only; mini player should appear on all other routes.
-  const hasFullPlayer = location.pathname === '/';
+  // Hide mini player on pages that have their own full player
+  const hasFullPlayer = location.pathname === '/' || location.pathname.startsWith('/playlist/') || location.pathname === '/favorites';
 
   const [position, setPosition] = useState(() => ({
     x: Math.max(EDGE_PADDING, window.innerWidth - PLAYER_WIDTH - 24),
