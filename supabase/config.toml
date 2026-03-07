@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.get-personalized-songs]
 verify_jwt = false
+
+[functions.get-lyrics]
+verify_jwt = false

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
+import LyricsDrawer from './LyricsDrawer';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Track {
@@ -64,6 +65,7 @@ const MusicPlayer = ({
   const [playlistOpen, setPlaylistOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [lyricsOpen, setLyricsOpen] = useState(false);
   const progressRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -433,19 +435,33 @@ const MusicPlayer = ({
           'flex items-center gap-3 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
-          {/* Playlist Drawer Trigger */}
+          {/* Lyrics & Playlist Drawer Triggers */}
           {!isMiniMode && (
-            <PlaylistDrawer
-              playlist={playlist}
-              currentTrack={currentTrack}
-              onPlayTrack={onPlayFromPlaylist || (() => {})}
-              onRemoveTrack={onRemoveFromPlaylist || (() => {})}
-              onClearPlaylist={onClearPlaylist || (() => {})}
-              isOpen={playlistOpen}
-              onOpenChange={setPlaylistOpen}
-              isPlaying={isPlaying}
-              onReorderPlaylist={onReorderPlaylist}
-            />
+            <>
+              <button
+                onClick={() => setLyricsOpen(!lyricsOpen)}
+                className={cn(
+                  'w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
+                  lyricsOpen
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground hover:text-primary hover:bg-secondary'
+                )}
+                title="Lyrics"
+              >
+                <Music2 className="w-4 h-4" />
+              </button>
+              <PlaylistDrawer
+                playlist={playlist}
+                currentTrack={currentTrack}
+                onPlayTrack={onPlayFromPlaylist || (() => {})}
+                onRemoveTrack={onRemoveFromPlaylist || (() => {})}
+                onClearPlaylist={onClearPlaylist || (() => {})}
+                isOpen={playlistOpen}
+                onOpenChange={setPlaylistOpen}
+                isPlaying={isPlaying}
+                onReorderPlaylist={onReorderPlaylist}
+              />
+            </>
           )}
 
           {/* Volume Control */}
@@ -501,6 +517,20 @@ const MusicPlayer = ({
                 <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 w-20" />
               </div>
             )}
+
+            {/* Mobile Lyrics Button */}
+            <button
+              onClick={() => setLyricsOpen(!lyricsOpen)}
+              className={cn(
+                'w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
+                lyricsOpen
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-muted-foreground hover:text-primary hover:bg-secondary'
+              )}
+              title="Lyrics"
+            >
+              <Music2 className="w-4 h-4" />
+            </button>
 
             {/* Mobile Playlist Button */}
             <PlaylistDrawer
@@ -569,6 +599,9 @@ const MusicPlayer = ({
         duration={duration}
         onSeek={handleSeek}
       />
+
+      {/* Lyrics Drawer */}
+      <LyricsDrawer isOpen={lyricsOpen} onClose={() => setLyricsOpen(false)} />
     </>
   );
 };

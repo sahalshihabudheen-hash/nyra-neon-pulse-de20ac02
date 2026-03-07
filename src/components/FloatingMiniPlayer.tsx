@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipForward, SkipBack, X, Maximize2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, X, Maximize2, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SoundwaveVisualizer from '@/components/SoundwaveVisualizer';
+import LyricsDrawer from '@/components/LyricsDrawer';
 
 const PLAYER_WIDTH = 320;
 const PLAYER_HEIGHT = 96;
@@ -38,6 +39,7 @@ const FloatingMiniPlayer = () => {
   const [duration, setDuration] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const [isRendered, setIsRendered] = useState(false);
+  const [lyricsOpen, setLyricsOpen] = useState(false);
 
   const dragOffset = useRef({ x: 0, y: 0 });
   const hasDragged = useRef(false);
@@ -261,6 +263,22 @@ const FloatingMiniPlayer = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setLyricsOpen(!lyricsOpen);
+              }}
+              className={cn(
+                "h-7 w-7 rounded-full flex items-center justify-center transition-all active:scale-95",
+                lyricsOpen
+                  ? "text-primary bg-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+              )}
+              aria-label="Lyrics"
+            >
+              <Music2 className="h-3.5 w-3.5" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 setShowMiniPlayer(false);
               }}
               className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
@@ -281,7 +299,12 @@ const FloatingMiniPlayer = () => {
     </div>
   );
 
-  return createPortal(node, document.body);
+  return (
+    <>
+      {createPortal(node, document.body)}
+      <LyricsDrawer isOpen={lyricsOpen} onClose={() => setLyricsOpen(false)} />
+    </>
+  );
 };
 
 export default FloatingMiniPlayer;
