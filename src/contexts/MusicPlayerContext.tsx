@@ -211,25 +211,36 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
     const yt = (window as any).YT;
-    if (!useBackgroundAudioMode) {
-      if (ytApiReady && yt?.Player) createPlayer(videoId);
-    }
-    const audioUrl = await fetchAudioUrl(videoId);
-    if (audioUrl && audioRef.current) {
-      if (ytPlayerRef.current) {
-        try { ytPlayerRef.current.pauseVideo(); } catch {}
-      }
-      audioRef.current.src = audioUrl;
-      audioRef.current.load();
-      audioRef.current.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => {
-          setUseBackgroundAudioMode(false);
-          if (ytApiReady && yt?.Player) createPlayer(videoId);
-        });
+    // Start YouTube player immediately for instant playback
+    if (ytApiReady && yt?.Player) {
+      createPlayer(videoId);
     } else {
-      if (ytApiReady && yt?.Player) createPlayer(videoId);
-      else toast.error('Player not ready. Please try again.');
+      toast.error('Player not ready. Please try again.');
+      return;
+    }
+
+    // Fetch background audio URL in parallel, switch if available
+    if (useBackgroundAudioMode) {
+      fetchAudioUrl(videoId).then((audioUrl) => {
+        if (audioUrl && audioRef.current) {
+          // Switch from YT to background audio seamlessly
+          audioRef.current.src = audioUrl;
+          audioRef.current.load();
+          audioRef.current.play()
+            .then(() => {
+              setIsPlaying(true);
+              // Pause YT player since background audio is now playing
+              if (ytPlayerRef.current) {
+                try { ytPlayerRef.current.pauseVideo(); } catch {}
+              }
+            })
+            .catch(() => {
+              // Background audio failed, YT player is already playing
+              setUseBackgroundAudioMode(false);
+            });
+        }
+        // If no audio URL, YT player is already playing - do nothing
+      });
     }
   }, [useBackgroundAudioMode, fetchAudioUrl, ytApiReady, createPlayer]);
 
