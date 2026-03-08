@@ -244,8 +244,18 @@ const Admin = () => {
       const localReset = new Date(nextMidnightPacificUtc).toLocaleString(undefined, {
         dateStyle: 'medium',
         timeStyle: 'short',
+        hour12: true,
       });
       setQuotaResetLocalTime(localReset);
+
+      const pacificNow = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Los_Angeles',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }).format(now);
+      setPacificCurrentTime(pacificNow);
 
       if (hours > 0) {
         setQuotaResetCountdown(`~${hours}h ${minutes}m`);
