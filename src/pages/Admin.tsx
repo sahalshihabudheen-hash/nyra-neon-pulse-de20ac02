@@ -933,37 +933,37 @@ const Admin = () => {
       </header>
 
       {/* Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-3xl">
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Users</span>
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <Tabs defaultValue="users" className="space-y-4 sm:space-y-6">
+          <TabsList className="flex w-full overflow-x-auto no-scrollbar">
+            <TabsTrigger value="users" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <Music className="w-4 h-4" />
-              <span className="hidden sm:inline">Activity</span>
+            <TabsTrigger value="activity" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Music className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Activity</span>
             </TabsTrigger>
-            <TabsTrigger value="playlists" className="flex items-center gap-2">
-              <ListMusic className="w-4 h-4" />
-              <span className="hidden sm:inline">Playlists</span>
+            <TabsTrigger value="playlists" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <ListMusic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Playlists</span>
             </TabsTrigger>
-            <TabsTrigger value="games" className="flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Games</span>
+            <TabsTrigger value="games" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Games</span>
               {activeGamersCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded-full">
+                <span className="ml-1 px-1 py-0.5 text-[10px] bg-green-500 text-white rounded-full">
                   {activeGamersCount}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="api-keys" className="flex items-center gap-2">
-              <Key className="w-4 h-4" />
-              <span className="hidden sm:inline">API Keys</span>
+            <TabsTrigger value="api-keys" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Key className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Keys</span>
             </TabsTrigger>
-            <TabsTrigger value="maintenance" className="flex items-center gap-2">
-              <Wrench className="w-4 h-4" />
-              <span className="hidden sm:inline">Maint.</span>
+            <TabsTrigger value="maintenance" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Maint.</span>
               {maintenance.enabled && (
                 <span className="ml-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
               )}
