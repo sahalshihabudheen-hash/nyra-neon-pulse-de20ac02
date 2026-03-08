@@ -97,6 +97,12 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
+  // Password reset state
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [resetTargetUser, setResetTargetUser] = useState<AdminUser | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+
   // Check if current user is admin
   useEffect(() => {
     if (!authLoading) {
