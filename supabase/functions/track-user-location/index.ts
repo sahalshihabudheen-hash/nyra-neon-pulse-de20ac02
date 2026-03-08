@@ -12,10 +12,15 @@ function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScre
   let deviceType = "Desktop PC";
   let deviceInfo = "";
 
+  // Check for smartwatch via UA patterns
+  const isWatch = /Watch|wrist|Tizen\s?\d.*SM-R|SM-R\d{3}/i.test(ua);
+  
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(ua);
   const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(ua);
 
-  if (isTablet) {
+  if (isWatch || hints?.isWatch) {
+    deviceType = "Smartwatch";
+  } else if (isTablet) {
     deviceType = "Tablet";
   } else if (isMobile) {
     deviceType = "Phone";
