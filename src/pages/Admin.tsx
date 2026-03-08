@@ -233,8 +233,26 @@ const Admin = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchUsers(), fetchActivity(), fetchGameSessions()]);
+    await Promise.all([fetchUsers(), fetchActivity(), fetchGameSessions(), fetchYoutubeKeyStatus()]);
     setLoading(false);
+  };
+
+  const fetchYoutubeKeyStatus = async () => {
+    setKeysLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        { headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' } }
+      );
+      const data = await response.json();
+      if (response.ok) setYoutubeKeys(data.keys || []);
+    } catch (err) {
+      console.error('Error fetching YouTube key status:', err);
+    } finally {
+      setKeysLoading(false);
+    }
   };
 
   const fetchUsers = async () => {
