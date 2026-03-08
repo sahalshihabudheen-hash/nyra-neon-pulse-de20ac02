@@ -326,7 +326,8 @@ const Admin = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const response = await fetch(
+      // Try to delete from extra keys
+      await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
         {
           method: 'POST',
@@ -334,10 +335,17 @@ const Admin = () => {
           body: JSON.stringify({ action: 'delete_key', keyName }),
         }
       );
-      if (response.ok) {
-        toast.success(`${keyName} removed`);
-        fetchYoutubeKeyStatus();
-      }
+      // Also disable it (for env-based keys that can't be deleted)
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyLabel: keyName, enabled: false }),
+        }
+      );
+      toast.success(`${keyName} removed`);
+      fetchYoutubeKeyStatus();
     } catch (err) {
       toast.error('Failed to delete key');
     }
@@ -1500,16 +1508,14 @@ const Admin = () => {
                                   checked={isEnabled}
                                   onCheckedChange={(checked) => toggleYoutubeKey(keyInfo.key, checked)}
                                 />
-                                {keyInfo.deletable && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deletePrimaryKey(keyInfo.key)}
-                                    className="text-destructive hover:text-destructive h-7 w-7 p-0"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deletePrimaryKey(keyInfo.key)}
+                                  className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
                               </div>
                             </div>
                             {isQuota && (
