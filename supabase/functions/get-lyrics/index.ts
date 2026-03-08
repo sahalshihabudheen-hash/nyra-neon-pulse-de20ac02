@@ -141,7 +141,7 @@ serve(async (req) => {
       .eq("track_id", trackId)
       .maybeSingle();
 
-    if (cached && cached.source !== "ai") {
+    if (cached) {
       return new Response(
         JSON.stringify({ lyrics: cached.lyrics_text, source: cached.source }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
