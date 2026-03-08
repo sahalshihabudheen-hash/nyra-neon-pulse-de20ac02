@@ -33,7 +33,7 @@ serve(async (req) => {
 
     console.log(`Fetching featured track with query: ${searchQuery} (date: ${dateString}) using ${keys.length} API keys`);
 
-    const result = await fetchYouTubeWithFailover(
+    const result = await fetchYouTubeWithBackupFailover(
       keys,
       (apiKey) => `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=10&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`,
     );

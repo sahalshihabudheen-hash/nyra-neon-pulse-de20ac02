@@ -99,7 +99,7 @@ serve(async (req) => {
 
     console.log(`Fetching personalized songs: type=${type}, query=${searchQuery} using ${keys.length} API keys`);
 
-    const result = await fetchYouTubeWithFailover(
+    const result = await fetchYouTubeWithBackupFailover(
       keys,
       (apiKey) => `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=12&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`,
     );

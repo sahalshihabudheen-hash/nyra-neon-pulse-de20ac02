@@ -16,7 +16,7 @@ async function fetchTrendingTracks() {
 
   console.log(`Fetching trending music with query: ${searchQuery} using ${keys.length} API keys`);
 
-  return fetchYouTubeWithFailover(
+  return fetchYouTubeWithBackupFailover(
     keys,
     (apiKey) => `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=20&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`,
   );
