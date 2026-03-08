@@ -294,7 +294,7 @@ serve(async (req) => {
 
     try {
       const geoResponse = await fetch(
-        `http://ip-api.com/json/${userIp}?fields=status,message,country,regionName,city,lat,lon,timezone,isp`
+        `http://ip-api.com/json/${userIp}?fields=status,message,country,regionName,city,lat,lon,timezone,isp,proxy,hosting`
       );
       const geoData = await geoResponse.json();
       console.log(`Geo API response:`, JSON.stringify(geoData));
