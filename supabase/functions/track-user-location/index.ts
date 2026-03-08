@@ -103,34 +103,29 @@ serve(async (req) => {
 
     console.log(`Tracking location for user: ${user.id} (${user.email})`);
 
-    // Parse request body for GPS coordinates and user agent
-    let gpsLat: number | null = null;
-    let gpsLon: number | null = null;
+    // Parse request body for user agent
     let clientUserAgent = "";
 
     try {
       const body = await req.json();
-      gpsLat = body.latitude ?? null;
-      gpsLon = body.longitude ?? null;
       clientUserAgent = body.userAgent || "";
     } catch {
-      // No body or invalid JSON
+      // No body
     }
 
-    // Fallback to request header user agent
     if (!clientUserAgent) {
       clientUserAgent = req.headers.get("user-agent") || "";
     }
 
-    // Parse device info from user agent
     const { deviceType, deviceInfo } = parseUserAgent(clientUserAgent);
     console.log(`Device: ${deviceType} - ${deviceInfo}`);
 
-    // Get IP for fallback
+    // Get IP
     const forwarded = req.headers.get("x-forwarded-for");
     const realIp = req.headers.get("x-real-ip");
     const cfIp = req.headers.get("cf-connecting-ip");
     const userIp = cfIp || (forwarded ? forwarded.split(",")[0].trim() : realIp) || "unknown";
+    console.log(`Detected IP: ${userIp}`);
 
     let locationData = {
       country: "Unknown",
@@ -142,54 +137,26 @@ serve(async (req) => {
       isp: "",
     };
 
-    if (gpsLat !== null && gpsLon !== null) {
-      // Use GPS coordinates - reverse geocode with BigDataCloud (free, no key needed)
-      console.log(`Using GPS coordinates: ${gpsLat}, ${gpsLon}`);
-      try {
-        const geoResponse = await fetch(
-          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${gpsLat}&longitude=${gpsLon}&localityLanguage=en`
-        );
-        const geoData = await geoResponse.json();
-        console.log(`Reverse geocode response:`, JSON.stringify(geoData));
+    try {
+      const geoResponse = await fetch(
+        `http://ip-api.com/json/${userIp}?fields=status,message,country,regionName,city,lat,lon,timezone,isp`
+      );
+      const geoData = await geoResponse.json();
+      console.log(`Geo API response:`, JSON.stringify(geoData));
 
+      if (geoData.status === "success") {
         locationData = {
-          country: geoData.countryName || "Unknown",
-          state: geoData.principalSubdivision || "Unknown",
-          city: geoData.city || geoData.locality || "Unknown",
-          latitude: gpsLat,
-          longitude: gpsLon,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
-          isp: "",
+          country: geoData.country || "Unknown",
+          state: geoData.regionName || "Unknown",
+          city: geoData.city || "Unknown",
+          latitude: geoData.lat || 0,
+          longitude: geoData.lon || 0,
+          timezone: geoData.timezone || "",
+          isp: geoData.isp || "",
         };
-      } catch (geoError) {
-        console.error("Reverse geocode error:", geoError);
-        locationData.latitude = gpsLat;
-        locationData.longitude = gpsLon;
       }
-    } else {
-      // Fallback to IP-based geolocation
-      console.log(`Using IP-based geolocation: ${userIp}`);
-      try {
-        const geoResponse = await fetch(
-          `http://ip-api.com/json/${userIp}?fields=status,message,country,regionName,city,lat,lon,timezone,isp`
-        );
-        const geoData = await geoResponse.json();
-        console.log(`Geo API response:`, JSON.stringify(geoData));
-
-        if (geoData.status === "success") {
-          locationData = {
-            country: geoData.country || "Unknown",
-            state: geoData.regionName || "Unknown",
-            city: geoData.city || "Unknown",
-            latitude: geoData.lat || 0,
-            longitude: geoData.lon || 0,
-            timezone: geoData.timezone || "",
-            isp: geoData.isp || "",
-          };
-        }
-      } catch (geoError) {
-        console.error("Geolocation API error:", geoError);
-      }
+    } catch (geoError) {
+      console.error("Geolocation API error:", geoError);
     }
 
     // Upsert location
