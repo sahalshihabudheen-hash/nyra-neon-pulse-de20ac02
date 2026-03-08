@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
+import StyledProgressBar from './StyledProgressBar';
 import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
 import LyricsDrawer from './LyricsDrawer';
