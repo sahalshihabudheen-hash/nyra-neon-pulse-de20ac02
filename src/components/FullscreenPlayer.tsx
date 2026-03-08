@@ -30,6 +30,7 @@ interface FullscreenPlayerProps {
   progress: number;
   duration: number;
   onSeek: (value: number) => void;
+  audioRef?: React.MutableRefObject<HTMLAudioElement | null>;
 }
 
 const FullscreenPlayer = ({
