@@ -14,6 +14,30 @@ import { toast } from 'sonner';
 import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff } from 'lucide-react';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
+const COUNTRY_TO_CODE: Record<string, string> = {
+  'Afghanistan': 'AF', 'Albania': 'AL', 'Algeria': 'DZ', 'Argentina': 'AR', 'Australia': 'AU',
+  'Austria': 'AT', 'Bangladesh': 'BD', 'Belgium': 'BE', 'Brazil': 'BR', 'Canada': 'CA',
+  'Chile': 'CL', 'China': 'CN', 'Colombia': 'CO', 'Czech Republic': 'CZ', 'Czechia': 'CZ',
+  'Denmark': 'DK', 'Egypt': 'EG', 'Finland': 'FI', 'France': 'FR', 'Germany': 'DE',
+  'Greece': 'GR', 'Hong Kong': 'HK', 'Hungary': 'HU', 'India': 'IN', 'Indonesia': 'ID',
+  'Iran': 'IR', 'Iraq': 'IQ', 'Ireland': 'IE', 'Israel': 'IL', 'Italy': 'IT',
+  'Japan': 'JP', 'Kenya': 'KE', 'Kuwait': 'KW', 'Malaysia': 'MY', 'Mexico': 'MX',
+  'Nepal': 'NP', 'Netherlands': 'NL', 'New Zealand': 'NZ', 'Nigeria': 'NG', 'Norway': 'NO',
+  'Pakistan': 'PK', 'Philippines': 'PH', 'Poland': 'PL', 'Portugal': 'PT', 'Qatar': 'QA',
+  'Romania': 'RO', 'Russia': 'RU', 'Saudi Arabia': 'SA', 'Singapore': 'SG', 'South Africa': 'ZA',
+  'South Korea': 'KR', 'Spain': 'ES', 'Sri Lanka': 'LK', 'Sweden': 'SE', 'Switzerland': 'CH',
+  'Taiwan': 'TW', 'Thailand': 'TH', 'Turkey': 'TR', 'Ukraine': 'UA', 'United Arab Emirates': 'AE',
+  'United Kingdom': 'UK', 'United States': 'US', 'Vietnam': 'VN',
+};
+
+const getCountryFlag = (country: string | undefined): string | null => {
+  if (!country) return null;
+  const code = COUNTRY_TO_CODE[country];
+  if (!code) return null;
+  // Convert country code to flag emoji using regional indicator symbols
+  return [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
+};
+
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
 
 const isLikelyVpn = (user: AdminUser): boolean => {
@@ -776,8 +800,14 @@ const Admin = () => {
                           return (
                             <div
                               key={u.id}
-                              className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors"
+                              className="relative flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors overflow-hidden"
                             >
+                              {/* Country flag watermark */}
+                              {getCountryFlag(u.location?.country) && (
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[3rem] opacity-[0.08] pointer-events-none select-none leading-none">
+                                  {getCountryFlag(u.location?.country)}
+                                </span>
+                              )}
                               {/* Online indicator + Avatar + Email */}
                               <div className="flex items-center gap-3 min-w-0 sm:w-[240px]">
                                 <div className="relative flex-shrink-0">
