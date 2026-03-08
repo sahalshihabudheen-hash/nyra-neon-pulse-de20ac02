@@ -8,6 +8,7 @@ import MusicPlayer from '@/components/MusicPlayer';
 import TrendingSection from '@/components/TrendingSection';
 import HeroSection from '@/components/HeroSection';
 import PersonalizedSection from '@/components/PersonalizedSection';
+import RecentlyPlayedSection from '@/components/RecentlyPlayedSection';
 import GenreOnboarding from '@/components/GenreOnboarding';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -122,6 +123,15 @@ const Index = () => {
           {!searchPerformed && (
             <HeroSection 
               onPlayTrack={handlePlayTrack}
+            />
+          )}
+
+          {/* Recently Played */}
+          {!searchPerformed && (
+            <RecentlyPlayedSection
+              onPlayTrack={handlePlayTrack}
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
             />
           )}
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ListMusic, Trash2, ChevronDown, X } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
+import EqualizerPanel from './EqualizerPanel';
 import { ScrollArea } from './ui/scroll-area';
 
 interface Track {
@@ -29,6 +30,7 @@ interface FullscreenPlayerProps {
   progress: number;
   duration: number;
   onSeek: (value: number) => void;
+  audioRef?: React.MutableRefObject<HTMLAudioElement | null>;
 }
 
 const FullscreenPlayer = ({
@@ -47,9 +49,11 @@ const FullscreenPlayer = ({
   progress,
   duration,
   onSeek,
+  audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
   const [showQueue, setShowQueue] = useState(false);
+  const [showEQ, setShowEQ] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   // Animate in/out
@@ -447,6 +451,39 @@ const FullscreenPlayer = ({
             <Repeat className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Equalizer Toggle */}
+        <div className={cn(
+          "mt-4 flex justify-center transition-all duration-300",
+          showQueue && "md:mr-80 lg:mr-96"
+        )}>
+          <button
+            onClick={() => setShowEQ(!showEQ)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation",
+              showEQ
+                ? "bg-primary text-primary-foreground"
+                : "bg-white/10 text-muted-foreground hover:text-foreground hover:bg-white/15"
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Equalizer
+          </button>
+        </div>
+
+        {/* Equalizer Panel */}
+        {audioRef && (
+          <div className={cn(
+            "mt-3 w-full max-w-sm md:max-w-md px-2 transition-all duration-300",
+            showQueue && "md:mr-80 lg:mr-96"
+          )}>
+            <EqualizerPanel
+              audioRef={audioRef}
+              isOpen={showEQ}
+              onClose={() => setShowEQ(false)}
+            />
+          </div>
+        )}
       </main>
     </div>
   );
