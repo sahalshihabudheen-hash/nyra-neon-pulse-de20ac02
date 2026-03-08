@@ -365,11 +365,7 @@ const MusicPlayer = ({
             >
               <SkipForward className="w-5 h-5" fill="currentColor" />
             </button>
-            {!isMiniMode && (
-              <button className="w-9 h-9 md:w-8 md:h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-90 rounded-full touch-manipulation">
-                <Repeat className="w-4 h-4" />
-              </button>
-            )}
+            {/* Loop button removed from homepage player */}
           </div>
 
           {/* Progress Bar - ALWAYS VISIBLE */}
