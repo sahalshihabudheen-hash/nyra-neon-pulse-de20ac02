@@ -1,10 +1,11 @@
-import { Home, Search, ListMusic, Heart, Settings, Menu, X, Users, Shield, Gamepad2, Sparkles } from 'lucide-react';
+import { Home, Search, ListMusic, Heart, Settings, Menu, X, Users, Shield, Gamepad2, Sparkles, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import nyraLogo from '@/assets/nyra-logo.png';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 interface SidebarProps {
   activeTab: string;
