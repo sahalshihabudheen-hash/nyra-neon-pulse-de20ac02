@@ -117,10 +117,6 @@ const Index = () => {
             onComplete={savePreferences}
           />
 
-          {/* JARVIS Tutorial - shows once for every user */}
-          {showTutorial && !showOnboarding && !showSplash && (
-            <JarvisTutorial onComplete={completeTutorial} />
-          )}
 
           {/* Hero Section - only on home without search */}
           {!searchPerformed && (
