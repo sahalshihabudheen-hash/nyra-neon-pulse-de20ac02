@@ -1312,8 +1312,6 @@ const Admin = () => {
                         const isActive = keyInfo.status === 'active';
                         const isQuota = keyInfo.status === 'quota_exceeded';
                         const isDisabled = keyInfo.status === 'disabled';
-                        const quotaPercent = isActive ? Math.floor(Math.random() * 40 + 10) : isQuota ? 100 : 0;
-                        const remainingPercent = isActive ? 100 - quotaPercent : 0;
                         const isEnabled = keyInfo.enabled !== false;
 
                         return (
@@ -1329,7 +1327,7 @@ const Admin = () => {
                                 : 'border-destructive/30 bg-destructive/5'
                             }`}
                           >
-                            <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 {isDisabled ? (
                                   <Circle className="w-5 h-5 text-muted-foreground" />
@@ -1365,43 +1363,10 @@ const Admin = () => {
                                 />
                               </div>
                             </div>
-
-                            {/* Quota Progress Bar */}
-                            {!isDisabled && (
-                              <div className="space-y-1.5">
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                  <span>Quota Usage</span>
-                                  <span>
-                                    {isActive
-                                      ? `~${quotaPercent}% used`
-                                      : isQuota
-                                      ? '100% used (resets at midnight PT)'
-                                      : 'N/A'}
-                                  </span>
-                                </div>
-                                <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full transition-all duration-500 ${
-                                      isActive
-                                        ? 'bg-green-500'
-                                        : isQuota
-                                        ? 'bg-yellow-500'
-                                        : 'bg-destructive'
-                                    }`}
-                                    style={{ width: `${isQuota ? 100 : isActive ? quotaPercent : 100}%` }}
-                                  />
-                                </div>
-                                {isActive && (
-                                  <p className="text-xs text-green-500/80">
-                                    ≈ {Math.floor(10000 * remainingPercent / 100).toLocaleString()} / 10,000 units remaining
-                                  </p>
-                                )}
-                                {isQuota && (
-                                  <p className="text-xs text-yellow-500/80">
-                                    Daily quota exhausted • Resets at 12:00 AM Pacific Time
-                                  </p>
-                                )}
-                              </div>
+                            {isQuota && (
+                              <p className="text-xs text-yellow-500/80 mt-2">
+                                Daily quota exhausted • Resets at 12:00 AM Pacific Time
+                              </p>
                             )}
                           </div>
                         );
