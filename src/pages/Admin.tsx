@@ -1592,6 +1592,7 @@ const Admin = () => {
                         <div className="space-y-2">
                           {backupKeys.map((bk, index) => {
                             const isActive = bk.status === 'active';
+                            const priorityLabel = index === 0 ? '1st Backup' : index === 1 ? '2nd Backup' : `${index + 1}th Backup`;
                             return (
                               <div
                                 key={index}
@@ -1602,12 +1603,15 @@ const Admin = () => {
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground font-mono font-bold">
+                                    #{index + 1}
+                                  </span>
                                   <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                                   <span className="font-mono font-semibold text-sm">{bk.key}</span>
                                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                                     isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
                                   }`}>
-                                    {bk.message} • Standby
+                                    {bk.message} • {priorityLabel}
                                   </span>
                                 </div>
                                 <Button
@@ -1622,7 +1626,7 @@ const Admin = () => {
                             );
                           })}
                           <p className="text-[11px] text-muted-foreground mt-2">
-                            🛡️ These keys remain on standby and automatically activate only when all primary keys fail.
+                            🛡️ Backup keys activate <strong>sequentially</strong> — #1 is tried first, then #2 only if #1 also fails. They never run simultaneously.
                           </p>
                         </div>
                       )}
