@@ -1435,41 +1435,41 @@ const Admin = () => {
                               : 'border-border bg-secondary/50'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                                 session.is_active ? 'bg-green-500/20' : 'bg-primary/20'
                               }`}>
-                                <Gamepad2 className={`w-5 h-5 ${
+                                <Gamepad2 className={`w-4 h-4 sm:w-5 sm:h-5 ${
                                   session.is_active ? 'text-green-500' : 'text-primary'
                                 }`} />
                               </div>
-                              <div>
-                                <p className="font-medium flex items-center gap-2">
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm flex items-center gap-2 flex-wrap">
                                   {session.game_name}
                                   {session.is_active && (
-                                    <span className="px-2 py-0.5 text-xs bg-green-500 text-white rounded-full animate-pulse">
+                                    <span className="px-1.5 py-0.5 text-[10px] bg-green-500 text-white rounded-full animate-pulse">
                                       LIVE
                                     </span>
                                   )}
                                 </p>
-                                <p className="text-sm text-muted-foreground">{session.user_email}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground truncate">{session.user_email}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-primary">{session.score} pts</p>
+                            <div className="text-left sm:text-right flex sm:block items-center gap-3 pl-10 sm:pl-0">
+                              <p className="font-bold text-primary text-sm">{session.score} pts</p>
                               <p className="text-xs text-muted-foreground">
                                 💎 {session.gems_collected}
                               </p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <div className="flex items-center gap-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                               {session.track_playing && (
                                 <span className="flex items-center gap-1">
                                   <Music className="w-3 h-3" />
-                                  <span className="truncate max-w-[150px]">{session.track_playing}</span>
+                                  <span className="truncate max-w-[120px] sm:max-w-[150px]">{session.track_playing}</span>
                                   {session.track_source && (
                                     <span className="text-primary">({session.track_source})</span>
                                   )}
@@ -1479,7 +1479,7 @@ const Admin = () => {
                                 ⏱️ {Math.floor(session.duration_seconds / 60)}m {session.duration_seconds % 60}s
                               </span>
                             </div>
-                            <span>{formatTimeAgo(session.started_at)}</span>
+                            <span className="pl-0 sm:pl-0">{formatTimeAgo(session.started_at)}</span>
                           </div>
                         </div>
                       ))}
