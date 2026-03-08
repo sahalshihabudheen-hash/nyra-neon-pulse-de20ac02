@@ -157,6 +157,7 @@ const Admin = () => {
 
   // Quota reset countdown timer
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
+  const [quotaResetLocalTime, setQuotaResetLocalTime] = useState('');
 
   useEffect(() => {
     const pacificDateFormatter = new Intl.DateTimeFormat('en-US', {
