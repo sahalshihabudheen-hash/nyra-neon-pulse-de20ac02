@@ -195,7 +195,9 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
 
       {/* Inactive notice */}
       {!isConnected && (
-        <div className="mb-3 px-3 py-2 rounded-lg bg-muted/50 text-muted-foreground text-[11px] leading-relaxed">
+        <div className={cn(
+          "mb-3 px-3 py-2 rounded-lg bg-muted/50 text-muted-foreground text-[11px] leading-relaxed"
+        )}>
           EQ is inactive — audio is playing via YouTube. The equalizer works when direct audio streaming is available.
         </div>
       )}
