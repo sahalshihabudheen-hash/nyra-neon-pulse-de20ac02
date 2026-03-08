@@ -430,18 +430,18 @@ const MusicPlayer = ({
           )}
         </div>
 
-        {/* Playlist & Volume (Desktop) */}
+        {/* Right Controls (Desktop) */}
         <div className={cn(
-          'flex items-center gap-3 justify-end',
+          'flex items-center gap-2 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
-          {/* Lyrics & Playlist Drawer Triggers */}
           {!isMiniMode && (
-            <>
+            <div className="flex items-center gap-1 mr-2">
+              {/* Lyrics */}
               <button
                 onClick={() => setLyricsOpen(!lyricsOpen)}
                 className={cn(
-                  'w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
+                  'w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
                   lyricsOpen
                     ? 'bg-primary/20 text-primary'
                     : 'text-muted-foreground hover:text-primary hover:bg-secondary'
@@ -450,6 +450,7 @@ const MusicPlayer = ({
               >
                 <Music2 className="w-4 h-4" />
               </button>
+              {/* Playlist */}
               <PlaylistDrawer
                 playlist={playlist}
                 currentTrack={currentTrack}
@@ -461,10 +462,10 @@ const MusicPlayer = ({
                 isPlaying={isPlaying}
                 onReorderPlaylist={onReorderPlaylist}
               />
-            </>
+            </div>
           )}
 
-          {/* Volume Control */}
+          {/* Volume */}
           <div className="flex items-center gap-1">
             <button
               onClick={handleVolumeDown}
