@@ -143,7 +143,12 @@ const Admin = () => {
 
       const data = await response.json();
       if (response.ok) {
-        setUsers(data.users);
+        const sorted = (data.users || []).sort((a: AdminUser, b: AdminUser) => {
+          const dateA = a.last_sign_in_at ? new Date(a.last_sign_in_at).getTime() : 0;
+          const dateB = b.last_sign_in_at ? new Date(b.last_sign_in_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        setUsers(sorted);
       }
     } catch (err: any) {
       console.error('Error fetching users:', err);
