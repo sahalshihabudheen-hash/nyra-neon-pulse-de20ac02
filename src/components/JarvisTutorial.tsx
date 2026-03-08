@@ -1,58 +1,73 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TutorialStep {
   title: string;
   message: string;
-  // Position the card near the highlighted element
-  highlight: 'center' | 'top-right' | 'left' | 'bottom';
-  // Arrow pointing direction
+  highlight: 'center' | 'top-right' | 'left' | 'bottom' | 'page-center';
   pointTo?: string;
+  navigateTo?: string; // Navigate to this route when step becomes active
 }
 
 const steps: TutorialStep[] = [
   {
     title: "Welcome to NYRA!",
-    message: "Hey there! I'm JARVIS, your personal assistant. Let me give you a quick tour of NYRA so you can start vibing right away!",
+    message: "Hey there! I'm JARVIS, your personal assistant. Let me give you a quick tour of NYRA so you can start vibing right away! I'll walk you through each section.",
     highlight: 'center',
+    navigateTo: '/',
   },
   {
-    title: "Search Bar",
-    message: "This is your search bar — right here at the top! Type any song, artist, or keyword and press Enter to find music instantly.",
+    title: "🔍 Search Bar",
+    message: "See this search bar at the top? Type any song name, artist, or keyword and hit Enter. NYRA will find it for you instantly from millions of tracks!",
     highlight: 'top-right',
     pointTo: 'search',
+    navigateTo: '/',
   },
   {
-    title: "Sidebar Navigation",
-    message: "Over here on the left is your sidebar. You'll find Home, Artists, Playlists, Favorites, and more. On mobile, tap the menu icon to open it!",
+    title: "📋 Sidebar Navigation",
+    message: "This is your sidebar — your command center! It has links to Home, Artists, Playlists, Favorites, AI DJ, and Settings. Let me show you each one...",
     highlight: 'left',
     pointTo: 'sidebar',
+    navigateTo: '/',
   },
   {
-    title: "Playlists",
-    message: "Head to Playlists from the sidebar to create your own collections. Add songs, reorder them with drag & drop, and shuffle through your jams!",
-    highlight: 'left',
-    pointTo: 'playlists',
+    title: "🎵 Playlists",
+    message: "Welcome to Playlists! Here you can create your own music collections. Tap '+ New Playlist' to create one, then search for songs and add them. You can drag to reorder and shuffle your jams!",
+    highlight: 'page-center',
+    navigateTo: '/playlists',
   },
   {
-    title: "AI DJ",
-    message: "Try out the AI DJ! Tell it your mood and it'll create the perfect playlist for you. It's like having your own personal DJ.",
-    highlight: 'left',
-    pointTo: 'ai-dj',
+    title: "🤖 AI DJ",
+    message: "This is the AI DJ! Just tell it your mood — like 'chill vibes' or 'workout energy' — and it'll generate the perfect playlist for you. It's like having your own personal DJ!",
+    highlight: 'page-center',
+    navigateTo: '/ai-dj',
   },
   {
-    title: "Settings",
-    message: "Head to Settings to set your username, upload an avatar (PNG or GIF!), change your password, and customize your theme. Make NYRA yours!",
-    highlight: 'left',
-    pointTo: 'settings',
+    title: "❤️ Favorites",
+    message: "Your Favorites page! Whenever you hear a song you love, tap the heart icon on any track. All your liked songs show up here for easy access.",
+    highlight: 'page-center',
+    navigateTo: '/favorites',
   },
   {
-    title: "Music Player",
-    message: "When you play a song, the player appears at the bottom. Control playback, add to queue, view lyrics, and more. Now go explore — enjoy the music! 🎶",
-    highlight: 'bottom',
-    pointTo: 'player',
+    title: "🎤 Artists",
+    message: "Discover artists here! Browse through profiles, check out their albums, and listen to their tracks. You can even become an artist yourself!",
+    highlight: 'page-center',
+    navigateTo: '/artists',
+  },
+  {
+    title: "⚙️ Settings",
+    message: "This is your Settings page! Here you can set your username, upload an avatar (PNG or GIF), change your password, pick a theme, customize gradients, and tweak player options. Make NYRA yours!",
+    highlight: 'page-center',
+    navigateTo: '/settings',
+  },
+  {
+    title: "🎶 You're All Set!",
+    message: "That's the tour! Head back home, search for your favorite song, and start listening. The music player will appear at the bottom when you play a track. Enjoy NYRA! 🎵",
+    highlight: 'center',
+    navigateTo: '/',
   },
 ];
 
@@ -66,12 +81,13 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   const [typedText, setTypedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [adminAvatar, setAdminAvatar] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Fetch admin/JARVIS avatar from app_settings or fallback to first admin profile
+  // Fetch admin/JARVIS avatar
   useEffect(() => {
     const fetchJarvisAvatar = async () => {
       try {
-        // First try app_settings for a custom JARVIS avatar
         const { data: setting } = await supabase
           .from('app_settings')
           .select('value')
@@ -83,8 +99,6 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
           return;
         }
 
-        // Fallback: try to find an admin profile avatar
-        // Query user_roles (will only work for admin users, silently fail for others)
         const { data: adminRoles } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -113,62 +127,52 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
     setTimeout(() => setIsVisible(true), 300);
   }, []);
 
-  // Highlight sidebar items
+  // Navigate to the correct page for each step
   useEffect(() => {
     const step = steps[currentStep];
-    // Remove previous highlights
-    document.querySelectorAll('[data-tutorial-highlight]').forEach(el => {
-      (el as HTMLElement).removeAttribute('data-tutorial-highlight');
-      (el as HTMLElement).style.removeProperty('position');
-      (el as HTMLElement).style.removeProperty('z-index');
-      (el as HTMLElement).style.removeProperty('box-shadow');
-    });
-
-    if (step.pointTo === 'search') {
-      const searchEl = document.querySelector('header input');
-      if (searchEl) {
-        const parent = searchEl.closest('header');
-        if (parent) {
-          (parent as HTMLElement).setAttribute('data-tutorial-highlight', 'true');
-          (parent as HTMLElement).style.zIndex = '101';
-          (parent as HTMLElement).style.boxShadow = '0 0 0 4px hsl(var(--primary) / 0.5), 0 0 30px hsl(var(--primary) / 0.3)';
-        }
-      }
-    } else if (step.pointTo === 'sidebar') {
-      const sidebar = document.querySelector('aside');
-      if (sidebar) {
-        (sidebar as HTMLElement).setAttribute('data-tutorial-highlight', 'true');
-        (sidebar as HTMLElement).style.zIndex = '101';
-        (sidebar as HTMLElement).style.boxShadow = '0 0 0 4px hsl(var(--primary) / 0.5), 0 0 30px hsl(var(--primary) / 0.3)';
-      }
-    } else if (step.pointTo === 'playlists' || step.pointTo === 'ai-dj' || step.pointTo === 'settings') {
-      const labelMap: Record<string, string> = { playlists: 'Playlists', 'ai-dj': 'AI DJ', settings: 'Settings' };
-      const buttons = document.querySelectorAll('aside button');
-      buttons.forEach(btn => {
-        if (btn.textContent?.trim() === labelMap[step.pointTo!]) {
-          (btn as HTMLElement).setAttribute('data-tutorial-highlight', 'true');
-          (btn as HTMLElement).style.position = 'relative';
-          (btn as HTMLElement).style.zIndex = '101';
-          (btn as HTMLElement).style.boxShadow = '0 0 0 3px hsl(var(--primary) / 0.6), 0 0 20px hsl(var(--primary) / 0.4)';
-        }
-      });
-      // Also bring sidebar above backdrop
-      const sidebar = document.querySelector('aside');
-      if (sidebar) {
-        (sidebar as HTMLElement).style.zIndex = '101';
-      }
+    if (step.navigateTo && location.pathname !== step.navigateTo) {
+      navigate(step.navigateTo);
     }
+  }, [currentStep, navigate, location.pathname]);
 
-    return () => {
+  // Highlight UI elements
+  useEffect(() => {
+    const step = steps[currentStep];
+    const cleanup = () => {
       document.querySelectorAll('[data-tutorial-highlight]').forEach(el => {
         (el as HTMLElement).removeAttribute('data-tutorial-highlight');
         (el as HTMLElement).style.removeProperty('position');
         (el as HTMLElement).style.removeProperty('z-index');
         (el as HTMLElement).style.removeProperty('box-shadow');
       });
-      // Reset sidebar z-index
       const sidebar = document.querySelector('aside');
       if (sidebar) (sidebar as HTMLElement).style.removeProperty('z-index');
+    };
+
+    cleanup();
+
+    // Delay highlight to let page render after navigation
+    const timer = setTimeout(() => {
+      if (step.pointTo === 'search') {
+        const header = document.querySelector('header');
+        if (header) {
+          (header as HTMLElement).setAttribute('data-tutorial-highlight', 'true');
+          (header as HTMLElement).style.zIndex = '101';
+          (header as HTMLElement).style.boxShadow = '0 0 0 4px hsl(var(--primary) / 0.5), 0 0 30px hsl(var(--primary) / 0.3)';
+        }
+      } else if (step.pointTo === 'sidebar') {
+        const sidebar = document.querySelector('aside');
+        if (sidebar) {
+          (sidebar as HTMLElement).setAttribute('data-tutorial-highlight', 'true');
+          (sidebar as HTMLElement).style.zIndex = '101';
+          (sidebar as HTMLElement).style.boxShadow = '0 0 0 4px hsl(var(--primary) / 0.5), 0 0 30px hsl(var(--primary) / 0.3)';
+        }
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      cleanup();
     };
   }, [currentStep]);
 
@@ -202,9 +206,8 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
     if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsVisible(false);
-    // Cleanup highlights
     document.querySelectorAll('[data-tutorial-highlight]').forEach(el => {
       (el as HTMLElement).removeAttribute('data-tutorial-highlight');
       (el as HTMLElement).style.removeProperty('position');
@@ -215,12 +218,13 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
     if (sidebar) (sidebar as HTMLElement).style.removeProperty('z-index');
     const header = document.querySelector('header');
     if (header) (header as HTMLElement).style.removeProperty('z-index');
+    // Navigate home before completing
+    navigate('/');
     setTimeout(onComplete, 400);
-  };
+  }, [onComplete, navigate]);
 
   const step = steps[currentStep];
 
-  // Position card based on what we're highlighting
   const getCardPosition = () => {
     switch (step.highlight) {
       case 'top-right':
@@ -229,6 +233,8 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
         return 'top-1/2 -translate-y-1/2 left-4 md:left-72';
       case 'bottom':
         return 'bottom-24 left-1/2 -translate-x-1/2';
+      case 'page-center':
+        return 'top-1/3 left-1/2 -translate-x-1/2 md:left-[calc(50%+8rem)] md:-translate-x-1/2';
       default:
         return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
     }
@@ -236,7 +242,7 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
 
   return (
     <div className={`fixed inset-0 z-[100] transition-all duration-400 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      {/* Backdrop - partially transparent so highlighted elements show through */}
+      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={handleClose} />
 
       {/* JARVIS Card */}
@@ -260,7 +266,7 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
                 <span className="text-primary font-bold text-sm">J</span>
               </div>
             )}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-card" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-card" />
           </div>
           <div>
             <span className="text-sm font-bold text-primary">JARVIS</span>
