@@ -573,6 +573,7 @@ const MusicPlayer = ({
         progress={progress}
         duration={duration}
         onSeek={handleSeek}
+        audioRef={audioRef}
       />
 
       {/* Lyrics Drawer */}
