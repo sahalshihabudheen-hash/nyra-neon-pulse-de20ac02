@@ -44,6 +44,7 @@ const PlaylistView = () => {
     handlePlayPause, handlePlayTrack,
     ytPlayerRef, audioRef,
     shuffleMode, toggleShuffle,
+    loopMode, cycleLoopMode,
     queue, removeFromQueue,
   } = useMusicPlayer();
 
