@@ -89,18 +89,18 @@ const steps: TutorialStep[] = [
 // Pulsing arrow component that points to an element
 const HighlightArrow = ({ targetRect, label, index }: { targetRect: DOMRect; label: string; index: number }) => {
   const arrowLeft = targetRect.left + targetRect.width / 2;
-  const clampedLeft = Math.min(Math.max(arrowLeft, 100), window.innerWidth - 100);
+  const clampedLeft = Math.min(Math.max(arrowLeft, 120), window.innerWidth - 120);
   const showAbove = targetRect.top > 160;
 
   return (
     <div
       className="fixed z-[103] flex flex-col items-center pointer-events-none animate-bounce"
       style={{
-        top: showAbove ? targetRect.top - 60 : targetRect.bottom + 8,
+        top: showAbove ? targetRect.top - 65 : targetRect.bottom + 8,
         left: clampedLeft,
         transform: 'translateX(-50%)',
         animationDelay: `${index * 200}ms`,
-        maxWidth: '90vw',
+        maxWidth: '80vw',
       }}
     >
       {showAbove ? (
