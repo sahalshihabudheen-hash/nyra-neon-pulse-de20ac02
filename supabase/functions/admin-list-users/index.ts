@@ -79,6 +79,11 @@ serve(async (req) => {
       .from("user_roles")
       .select("user_id, role");
 
+    // Fetch all profiles (username + avatar)
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, display_name, avatar_url");
+
     const locationMap = new Map();
     if (locations) {
       locations.forEach((loc: any) => {
@@ -95,8 +100,16 @@ serve(async (req) => {
       });
     }
 
+    const profileMap = new Map();
+    if (profiles) {
+      profiles.forEach((p: any) => {
+        profileMap.set(p.user_id, p);
+      });
+    }
+
     const safeUsers = users.map((u) => {
       const loc = locationMap.get(u.id);
+      const profile = profileMap.get(u.id);
       return {
         id: u.id,
         email: u.email,
@@ -104,6 +117,8 @@ serve(async (req) => {
         last_sign_in_at: u.last_sign_in_at,
         email_confirmed_at: u.email_confirmed_at,
         roles: roleMap.get(u.id) || [],
+        display_name: profile?.display_name || null,
+        avatar_url: profile?.avatar_url || null,
         location: loc ? {
           country: loc.country,
           state: loc.state,
