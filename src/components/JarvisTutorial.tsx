@@ -244,7 +244,7 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   return (
     <div className={`fixed inset-0 z-[100] transition-all duration-400 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={handleClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
       {/* JARVIS Card */}
       <div className={`fixed ${getCardPosition()} w-[88vw] max-w-md bg-card/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl shadow-primary/20 p-5 md:p-6 transition-all duration-500 z-[102] ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
