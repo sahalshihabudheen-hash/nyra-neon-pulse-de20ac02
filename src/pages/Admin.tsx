@@ -255,6 +255,29 @@ const Admin = () => {
     }
   };
 
+  const toggleYoutubeKey = async (keyLabel: string, enabled: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyLabel, enabled }),
+        }
+      );
+      if (response.ok) {
+        setYoutubeKeys(prev => prev.map(k => k.key === keyLabel ? { ...k, enabled, status: enabled ? 'active' : 'disabled', message: enabled ? 'Checking...' : 'Disabled', isCurrentlyUsed: false } : k));
+        toast.success(`${keyLabel} ${enabled ? 'enabled' : 'disabled'}`);
+        // Refresh status after toggle
+        setTimeout(() => fetchYoutubeKeyStatus(), 1000);
+      }
+    } catch (err) {
+      toast.error('Failed to toggle key');
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
