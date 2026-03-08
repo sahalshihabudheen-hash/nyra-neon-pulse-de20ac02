@@ -75,7 +75,7 @@ serve(async (req) => {
   }
 
   try {
-    const keys = getYouTubeApiKeys();
+    const keys = await getYouTubeApiKeys();
 
     const url = new URL(req.url);
     const type = url.searchParams.get("type") || "regional";
