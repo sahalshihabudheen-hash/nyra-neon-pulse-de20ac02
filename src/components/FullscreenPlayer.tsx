@@ -370,32 +370,12 @@ const FullscreenPlayer = ({
           "w-full max-w-xs sm:max-w-sm md:max-w-md px-2 mb-6 md:mb-8 transition-all duration-300",
           showQueue && "md:mr-80 lg:mr-96"
         )}>
-          <div className="relative h-1.5 md:h-2 rounded-full bg-white/10 overflow-hidden cursor-pointer group">
-            <div 
-              className="absolute left-0 top-0 h-full rounded-full transition-all duration-100"
-              style={{ 
-                width: `${progressPercent}%`,
-                background: 'var(--theme-gradient, hsl(var(--primary)))',
-                boxShadow: '0 0 12px hsl(var(--primary))',
-              }}
-            />
-            <input
-              type="range"
-              min="0"
-              max={duration || 100}
-              value={progress}
-              onChange={(e) => onSeek(Number(e.target.value))}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-manipulation"
-            />
-            {/* Handle */}
-            <div 
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 rounded-full shadow-lg border-2 border-white transition-all pointer-events-none opacity-0 group-hover:opacity-100"
-              style={{ 
-                left: `calc(${progressPercent}% - 8px)`,
-                background: 'var(--theme-gradient, hsl(var(--primary)))',
-              }}
-            />
-          </div>
+          <StyledProgressBar
+            progress={progress}
+            duration={duration}
+            onSeek={onSeek}
+            className="w-full"
+          />
           <div className="flex justify-between mt-2 text-xs md:text-sm text-muted-foreground font-mono">
             <span>{formatTime(progress)}</span>
             <span>{formatTime(duration)}</span>
