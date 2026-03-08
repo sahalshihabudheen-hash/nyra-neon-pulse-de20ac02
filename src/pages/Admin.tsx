@@ -155,6 +155,29 @@ const Admin = () => {
   const [allowedEmailInput, setAllowedEmailInput] = useState('');
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
 
+  // Quota reset countdown timer
+  const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
+
+  useEffect(() => {
+    const calcCountdown = () => {
+      const now = new Date();
+      // Midnight Pacific Time (PST = UTC-8, PDT = UTC-7)
+      // Use America/Los_Angeles to auto-handle DST
+      const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+      const midnight = new Date(pacificNow);
+      midnight.setDate(midnight.getDate() + 1);
+      midnight.setHours(0, 0, 0, 0);
+      const diff = midnight.getTime() - pacificNow.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setQuotaResetCountdown(`${hours}h ${minutes}m ${seconds}s`);
+    };
+    calcCountdown();
+    const interval = setInterval(calcCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
