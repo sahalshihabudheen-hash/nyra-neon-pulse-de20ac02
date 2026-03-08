@@ -43,6 +43,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     if (item.path === '/admin' && location.pathname === '/admin') return true;
     if (item.path === '/settings' && location.pathname === '/settings') return true;
     if (item.path === '/games' && location.pathname === '/games') return true;
+    if (item.path === '/ai-dj' && location.pathname === '/ai-dj') return true;
     if (item.id === 'playlists' && location.pathname.startsWith('/playlist')) return true;
     if (item.id === 'artists' && (location.pathname === '/artists' || location.pathname.startsWith('/artist'))) return true;
     if (item.path === '/' && location.pathname === '/' && item.id === activeTab) return true;
