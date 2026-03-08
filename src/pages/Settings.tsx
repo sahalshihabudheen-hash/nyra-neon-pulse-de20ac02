@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend } from 'lucide-react';
+import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
@@ -11,7 +11,8 @@ import SettingsSoundwave from '@/components/SettingsSoundwave';
 import SoundwaveVisualizer, { SoundwaveShape } from '@/components/SoundwaveVisualizer';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const themePreview: Record<ThemeName, { label: string; color: string }> = {
   yellow: { label: 'Neon Yellow', color: 'hsl(50 100% 50%)' },
@@ -45,6 +46,89 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('settings');
   const [searchQuery, setSearchQuery] = useState('');
   const [previewPlaying, setPreviewPlaying] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load avatar
+  useEffect(() => {
+    if (!user) return;
+    const loadAvatar = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('avatar_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+    };
+    loadAvatar();
+  }, [user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    
+    const validTypes = ['image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Only PNG and GIF formats are allowed');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File must be under 5MB');
+      return;
+    }
+
+    setAvatarLoading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      const url = `${publicUrl}?t=${Date.now()}`;
+
+      await supabase.from('profiles').upsert(
+        { user_id: user.id, avatar_url: url, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+
+      setAvatarUrl(url);
+      toast.success('Avatar updated!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload avatar');
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Password updated successfully!');
+      setNewPassword('');
+      setShowPasswordInput(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to change password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -82,6 +166,98 @@ const Settings = () => {
             <h1 className="text-3xl md:text-4xl font-bold neon-text">Settings</h1>
             <SettingsSoundwave className="h-8" />
           </div>
+
+          {/* Account Section */}
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <User className="w-6 h-6 text-primary" />
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground">Account</h2>
+            </div>
+
+            <div className="bg-card rounded-xl p-4 md:p-6 border border-border space-y-6">
+              {/* Avatar Upload */}
+              <div className="flex items-center gap-5">
+                <div className="relative group">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-primary/50 overflow-hidden bg-muted flex items-center justify-center">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-8 h-8 text-muted-foreground" />
+                    )}
+                    {avatarLoading && (
+                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-full">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".png,.gif"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground text-sm md:text-base">{user?.email}</p>
+                  <p className="text-xs text-muted-foreground">PNG or GIF, max 5MB</p>
+                </div>
+              </div>
+
+              {/* Change Password */}
+              <div className="border-t border-border pt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-foreground text-sm md:text-base">Change Password</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Update your account password</p>
+                  </div>
+                  {!showPasswordInput && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowPasswordInput(true)}
+                      className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                      Change Password
+                    </Button>
+                  )}
+                </div>
+                {showPasswordInput && (
+                  <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password (min 6 chars)"
+                      className="flex-1 px-4 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleChangePassword}
+                        disabled={passwordLoading}
+                        className="active:scale-95 touch-manipulation"
+                      >
+                        {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { setShowPasswordInput(false); setNewPassword(''); }}
+                        className="active:scale-95 touch-manipulation"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
 
           {/* Theme Selection */}
           <section className="mb-10">
