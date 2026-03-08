@@ -141,7 +141,7 @@ serve(async (req) => {
       .eq("track_id", trackId)
       .maybeSingle();
 
-    if (cached && cached.source !== "ai") {
+    if (cached) {
       return new Response(
         JSON.stringify({ lyrics: cached.lyrics_text, source: cached.source }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -193,6 +193,68 @@ serve(async (req) => {
         JSON.stringify({ lyrics: officialLyrics, source: "lrclib" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // AI fallback when official lyrics are unavailable
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(
+        JSON.stringify({
+          lyrics: null,
+          source: "unavailable",
+          message: "Official lyrics not available for this track yet",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const songTitle = titleVariants[0] || trackTitle;
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a lyrics assistant. Return lyrics for the requested song with section markers like [Verse], [Chorus]. Return only lyrics text with line breaks.",
+          },
+          {
+            role: "user",
+            content: `Song: ${songTitle}\nArtist: ${artist}`,
+          },
+        ],
+      }),
+    });
+
+    if (aiResponse.ok) {
+      const aiData = await aiResponse.json();
+      const lyricsText = aiData.choices?.[0]?.message?.content?.trim();
+
+      if (lyricsText) {
+        supabase
+          .from("lyrics")
+          .upsert(
+            {
+              track_id: trackId,
+              track_title: trackTitle,
+              track_channel: trackChannel || "Unknown",
+              lyrics_text: lyricsText,
+              source: "ai",
+            },
+            { onConflict: "track_id" }
+          )
+          .then(() => {});
+
+        return new Response(
+          JSON.stringify({ lyrics: lyricsText, source: "ai" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     return new Response(
