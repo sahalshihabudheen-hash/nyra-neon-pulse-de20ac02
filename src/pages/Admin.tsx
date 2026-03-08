@@ -502,8 +502,18 @@ const Admin = () => {
     // VPN
     if (vpnFilter === 'vpn' && !isLikelyVpn(u)) return false;
     if (vpnFilter === 'no-vpn' && isLikelyVpn(u)) return false;
+    // Country
+    if (countryFilter !== 'all' && u.location?.country !== countryFilter) return false;
     return true;
   });
+
+  // Get unique countries with counts
+  const countryCounts = users.reduce<Record<string, number>>((acc, u) => {
+    const country = u.location?.country || 'Unknown';
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {});
+  const sortedCountries = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
