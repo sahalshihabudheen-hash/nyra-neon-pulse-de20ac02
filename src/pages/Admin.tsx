@@ -109,6 +109,51 @@ const Admin = () => {
   // Maintenance mode
   const { maintenance, toggleMaintenance, updateAllowedEmails } = useMaintenanceMode();
   const [allowedEmailInput, setAllowedEmailInput] = useState('');
+  const [roleLoading, setRoleLoading] = useState<string | null>(null);
+
+  const handleToggleAdminRole = async (targetUser: AdminUser) => {
+    const isCurrentlyAdmin = targetUser.roles.includes('admin');
+    const action = isCurrentlyAdmin ? 'revoke' : 'grant';
+    
+    try {
+      setRoleLoading(targetUser.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-manage-role`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ target_user_id: targetUser.id, action }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      toast.success(data.message);
+      // Update local state
+      setUsers(prev => prev.map(u => {
+        if (u.id === targetUser.id) {
+          return {
+            ...u,
+            roles: action === 'grant' 
+              ? [...u.roles, 'admin']
+              : u.roles.filter(r => r !== 'admin'),
+          };
+        }
+        return u;
+      }));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update role');
+    } finally {
+      setRoleLoading(null);
+    }
+  };
 
   // Check if current user is admin
   useEffect(() => {
