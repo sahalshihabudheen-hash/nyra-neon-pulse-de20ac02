@@ -25,6 +25,12 @@ export function useAuth() {
       const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       const screenWidth = window.screen.width;
       const screenHeight = window.screen.height;
+      
+      // Detect smartwatch: very small screen + touch
+      const isWatch = hasTouchScreen && (
+        (screenWidth <= 300 && screenHeight <= 300) ||
+        /Watch|SM-R\d{3}/i.test(navigator.userAgent)
+      );
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-user-location`,
@@ -40,6 +46,7 @@ export function useAuth() {
             hasTouchScreen,
             screenWidth,
             screenHeight,
+            isWatch,
           }),
         }
       );

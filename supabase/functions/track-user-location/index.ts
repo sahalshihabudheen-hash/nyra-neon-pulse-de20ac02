@@ -6,16 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number }): { deviceType: string; deviceInfo: string } {
+function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number; isWatch?: boolean }): { deviceType: string; deviceInfo: string } {
   if (!ua) return { deviceType: "Unknown", deviceInfo: "Unknown" };
 
   let deviceType = "Desktop PC";
   let deviceInfo = "";
 
+  // Check for smartwatch via UA patterns
+  const isWatch = /Watch|wrist|Tizen\s?\d.*SM-R|SM-R\d{3}/i.test(ua);
+  
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(ua);
   const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(ua);
 
-  if (isTablet) {
+  if (isWatch || hints?.isWatch) {
+    deviceType = "Smartwatch";
+  } else if (isTablet) {
     deviceType = "Tablet";
   } else if (isMobile) {
     deviceType = "Phone";
@@ -150,16 +155,21 @@ function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScre
     deviceInfo = "Linux PC";
   }
 
-  // Override device type using hints when "Desktop site" is enabled in mobile browser
-  // If UA says desktop but hints say mobile (touch + small screen), trust the hints
+  // Override device type using hints
   if (hints) {
+    const isVerySmallScreen = (hints.screenWidth && hints.screenWidth <= 300) || (hints.screenHeight && hints.screenHeight <= 300);
     const isSmallScreen = (hints.screenWidth && hints.screenWidth <= 768) || (hints.screenHeight && hints.screenHeight <= 768);
     const isMediumScreen = (hints.screenWidth && hints.screenWidth <= 1024) || (hints.screenHeight && hints.screenHeight <= 1024);
     
-    if (hints.hasTouchScreen && deviceType === "Desktop PC") {
+    // Smartwatch detection: very small screen with touch
+    if (hints.isWatch || (hints.hasTouchScreen && isVerySmallScreen)) {
+      deviceType = "Smartwatch";
+      if (!deviceInfo || !deviceInfo.toLowerCase().includes("watch")) {
+        deviceInfo = "Smartwatch";
+      }
+    } else if (hints.hasTouchScreen && deviceType === "Desktop PC") {
       if (isSmallScreen) {
         deviceType = "Phone";
-        // Try to keep existing device info or mark as detected via hints
         if (!deviceInfo || deviceInfo.includes("Windows") || deviceInfo.includes("Mac") || deviceInfo.includes("Linux")) {
           deviceInfo = "Mobile Device (Desktop mode)";
         }
@@ -170,7 +180,6 @@ function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScre
         }
       }
     }
-    // Also handle laptops misidentified
     if (hints.hasTouchScreen && deviceType === "Laptop" && isSmallScreen) {
       deviceType = "Phone";
       if (!deviceInfo || deviceInfo.includes("Laptop")) {
@@ -242,7 +251,7 @@ serve(async (req) => {
 
     // Parse request body for user agent
     let clientUserAgent = "";
-    let deviceHints: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number } = {};
+    let deviceHints: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number; isWatch?: boolean } = {};
 
     try {
       const body = await req.json();
@@ -252,6 +261,7 @@ serve(async (req) => {
         hasTouchScreen: body.hasTouchScreen,
         screenWidth: body.screenWidth,
         screenHeight: body.screenHeight,
+        isWatch: body.isWatch,
       };
     } catch {
       // No body
