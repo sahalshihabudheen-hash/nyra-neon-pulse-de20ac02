@@ -28,6 +28,7 @@ interface AdminUser {
   created_at: string;
   last_sign_in_at: string | null;
   email_confirmed_at: string | null;
+  roles: string[];
   location: {
     country: string;
     state: string;
@@ -108,6 +109,51 @@ const Admin = () => {
   // Maintenance mode
   const { maintenance, toggleMaintenance, updateAllowedEmails } = useMaintenanceMode();
   const [allowedEmailInput, setAllowedEmailInput] = useState('');
+  const [roleLoading, setRoleLoading] = useState<string | null>(null);
+
+  const handleToggleAdminRole = async (targetUser: AdminUser) => {
+    const isCurrentlyAdmin = targetUser.roles.includes('admin');
+    const action = isCurrentlyAdmin ? 'revoke' : 'grant';
+    
+    try {
+      setRoleLoading(targetUser.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-manage-role`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ target_user_id: targetUser.id, action }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      toast.success(data.message);
+      // Update local state
+      setUsers(prev => prev.map(u => {
+        if (u.id === targetUser.id) {
+          return {
+            ...u,
+            roles: action === 'grant' 
+              ? [...u.roles, 'admin']
+              : u.roles.filter(r => r !== 'admin'),
+          };
+        }
+        return u;
+      }));
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update role');
+    } finally {
+      setRoleLoading(null);
+    }
+  };
 
   // Check if current user is admin
   useEffect(() => {
@@ -552,6 +598,7 @@ const Admin = () => {
                           <TableHead>Signed Up</TableHead>
                           <TableHead>Last Sign In</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Role</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -628,6 +675,44 @@ const Admin = () => {
                                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500/10 text-yellow-500">
                                     Pending
                                   </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {u.roles.includes('admin') ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-primary/15 text-primary font-semibold">
+                                      <Shield className="w-3 h-3" />
+                                      Admin
+                                    </span>
+                                    {u.email !== user?.email && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleToggleAdminRole(u)}
+                                        disabled={roleLoading === u.id}
+                                        className="text-xs text-destructive hover:text-destructive h-7 px-2"
+                                      >
+                                        {roleLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleToggleAdminRole(u)}
+                                    disabled={roleLoading === u.id}
+                                    className="text-xs h-7 gap-1.5"
+                                  >
+                                    {roleLoading === u.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <Shield className="w-3 h-3" />
+                                        Make Admin
+                                      </>
+                                    )}
+                                  </Button>
                                 )}
                               </TableCell>
                               <TableCell>

@@ -74,10 +74,24 @@ serve(async (req) => {
       .from("user_locations")
       .select("user_id, country, state, city, timezone, isp, last_updated, device_type, device_info");
 
+    // Fetch all user roles
+    const { data: roles } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id, role");
+
     const locationMap = new Map();
     if (locations) {
       locations.forEach((loc: any) => {
         locationMap.set(loc.user_id, loc);
+      });
+    }
+
+    const roleMap = new Map<string, string[]>();
+    if (roles) {
+      roles.forEach((r: any) => {
+        const existing = roleMap.get(r.user_id) || [];
+        existing.push(r.role);
+        roleMap.set(r.user_id, existing);
       });
     }
 
@@ -89,6 +103,7 @@ serve(async (req) => {
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at,
         email_confirmed_at: u.email_confirmed_at,
+        roles: roleMap.get(u.id) || [],
         location: loc ? {
           country: loc.country,
           state: loc.state,
