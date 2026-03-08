@@ -195,9 +195,81 @@ serve(async (req) => {
       );
     }
 
+    // AI fallback
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "Lyrics not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { artist, titleVariants: tv } = parseTrackInfo(trackTitle, trackChannel);
+    const songTitle = tv[0] || trackTitle;
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-pro",
+        messages: [
+          {
+            role: "system",
+            content: `You retrieve song lyrics. Return the EXACT official lyrics for the given song. Include section markers like [Verse 1], [Chorus], etc. If you cannot find exact lyrics, respond with only: LYRICS_NOT_FOUND`,
+          },
+          {
+            role: "user",
+            content: `"${songTitle}" by ${artist}`,
+          },
+        ],
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const status = aiResponse.status;
+      if (status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limited, try again later" }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Lyrics not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const aiData = await aiResponse.json();
+    const lyricsText = aiData.choices?.[0]?.message?.content?.trim();
+
+    if (!lyricsText || lyricsText === "LYRICS_NOT_FOUND") {
+      return new Response(JSON.stringify({ error: "Lyrics not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    supabase
+      .from("lyrics")
+      .upsert(
+        {
+          track_id: trackId,
+          track_title: trackTitle,
+          track_channel: trackChannel || "Unknown",
+          lyrics_text: lyricsText,
+          source: "ai",
+        },
+        { onConflict: "track_id" }
+      )
+      .then(() => {});
+
     return new Response(
-      JSON.stringify({ error: "Exact lyrics not found from official sources" }),
-      { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ lyrics: lyricsText, source: "ai" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
     console.error("get-lyrics error:", e);
