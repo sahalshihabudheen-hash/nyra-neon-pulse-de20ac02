@@ -22,9 +22,9 @@ const genrePresets = [
 ];
 
 const durationOptions = [
-  { label: '15s', value: 15 },
-  { label: '30s', value: 30 },
-  { label: '60s', value: 60 },
+  { label: '5s', value: 5 },
+  { label: '10s', value: 10 },
+  { label: '22s', value: 22 },
 ];
 
 const AiMusicGenerator = () => {
@@ -33,7 +33,7 @@ const AiMusicGenerator = () => {
   const { gradient } = useTheme();
   const [activeTab, setActiveTab] = useState('ai-music');
   const [prompt, setPrompt] = useState('');
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(10);
   const [loading, setLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -153,7 +153,7 @@ const AiMusicGenerator = () => {
               </div>
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground">AI Music Generator</h1>
-                <p className="text-muted-foreground text-sm">Create original music tracks with AI — powered by ElevenLabs</p>
+                <p className="text-muted-foreground text-sm">Create original audio tracks with AI — powered by ElevenLabs SFX</p>
               </div>
             </div>
           </div>

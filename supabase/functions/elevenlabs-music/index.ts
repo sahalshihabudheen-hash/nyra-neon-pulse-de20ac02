@@ -28,23 +28,28 @@ serve(async (req) => {
       });
     }
 
-    console.log("Generating music with prompt:", prompt, "duration:", duration);
+    // Cap duration at 22s (SFX API limit)
+    const clampedDuration = Math.min(duration || 10, 22);
 
-    const response = await fetch("https://api.elevenlabs.io/v1/music", {
+    console.log("Generating sound with prompt:", prompt, "duration:", clampedDuration);
+
+    // Use Sound Effects API (works on free tier)
+    const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
       method: "POST",
       headers: {
         "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        prompt,
-        duration_seconds: duration || 30,
+        text: prompt,
+        duration_seconds: clampedDuration,
+        prompt_influence: 0.3,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("ElevenLabs API error:", response.status, errText);
+      console.error("ElevenLabs SFX API error:", response.status, errText);
 
       if (response.status === 401) {
         return new Response(JSON.stringify({ error: "Invalid ElevenLabs API key" }), {
@@ -59,7 +64,7 @@ serve(async (req) => {
         });
       }
 
-      return new Response(JSON.stringify({ error: `Music generation failed: ${response.status}` }), {
+      return new Response(JSON.stringify({ error: `Sound generation failed: ${response.status}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
