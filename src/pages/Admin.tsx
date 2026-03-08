@@ -24,6 +24,8 @@ interface AdminUser {
     timezone: string;
     isp: string;
     last_updated: string;
+    device_type: string | null;
+    device_info: string | null;
   } | null;
 }
 
