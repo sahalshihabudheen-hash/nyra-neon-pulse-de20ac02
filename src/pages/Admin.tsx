@@ -1497,6 +1497,105 @@ const Admin = () => {
                         Keys from the same project share quota. The failover system automatically rotates to the next working key.
                       </p>
                     </div>
+
+                    {/* Backup API Keys Section */}
+                    <div className="mt-6 pt-6 border-t border-dashed border-muted-foreground/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-primary" />
+                          <div>
+                            <h3 className="font-semibold text-sm">Backup API Keys</h3>
+                            <p className="text-xs text-muted-foreground">
+                              Only activate automatically when all primary keys are exhausted
+                            </p>
+                          </div>
+                        </div>
+                        <Dialog open={addBackupKeyDialogOpen} onOpenChange={setAddBackupKeyDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <Plus className="w-3 h-3" /> Add Backup
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Add Backup API Key</DialogTitle>
+                              <DialogDescription>
+                                This key will only be used when all primary keys are exhausted or disabled.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-sm font-medium">Key Name</label>
+                                <Input
+                                  placeholder="e.g. BACKUP API"
+                                  value={newBackupKeyName}
+                                  onChange={(e) => setNewBackupKeyName(e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium">API Key</label>
+                                <Input
+                                  placeholder="AIza..."
+                                  value={newBackupKeyValue}
+                                  onChange={(e) => setNewBackupKeyValue(e.target.value)}
+                                  type="password"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={addBackupKey} disabled={addingBackupKey}>
+                                {addingBackupKey ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Adding...</> : 'Add Backup Key'}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
+                      {backupKeys.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+                          <Shield className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                          <p className="text-sm">No backup keys configured</p>
+                          <p className="text-xs opacity-70">Add backup keys as emergency fallback</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {backupKeys.map((bk, index) => {
+                            const isActive = bk.status === 'active';
+                            return (
+                              <div
+                                key={index}
+                                className={`p-3 rounded-lg border flex items-center justify-between ${
+                                  isActive
+                                    ? 'border-primary/30 bg-primary/5'
+                                    : 'border-muted/30 bg-muted/5'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  <span className="font-mono font-semibold text-sm">{bk.key}</span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                    isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
+                                  }`}>
+                                    {bk.message} • Standby
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteBackupKey(bk.key)}
+                                  className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                          <p className="text-[11px] text-muted-foreground mt-2">
+                            🛡️ These keys remain on standby and automatically activate only when all primary keys fail.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>
