@@ -133,6 +133,25 @@ const Settings = () => {
     }
   };
 
+  const handleSaveUsername = async () => {
+    if (!user || !displayName.trim()) {
+      toast.error('Username cannot be empty');
+      return;
+    }
+    setDisplayNameSaving(true);
+    try {
+      await supabase.from('profiles').upsert(
+        { user_id: user.id, display_name: displayName.trim(), updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+      toast.success('Username saved!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save username');
+    } finally {
+      setDisplayNameSaving(false);
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
