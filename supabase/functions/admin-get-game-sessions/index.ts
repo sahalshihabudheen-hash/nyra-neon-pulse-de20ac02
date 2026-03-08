@@ -38,8 +38,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user is admin
-    if (user.email !== 'admin@gmail.com') {
+    // Check if user is admin using has_role
+    const { data: isAdmin } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+    if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: 'Access denied. Admin only.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
