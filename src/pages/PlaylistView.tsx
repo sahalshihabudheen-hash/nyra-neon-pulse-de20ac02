@@ -211,10 +211,6 @@ const PlaylistView = () => {
     }
   };
 
-  const cycleLoopMode = () => {
-    setLoopMode(prev => prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off');
-  };
-
   // Drag and drop handlers
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
