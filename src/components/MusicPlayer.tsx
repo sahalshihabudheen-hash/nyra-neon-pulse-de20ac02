@@ -519,19 +519,32 @@ const MusicPlayer = ({
               </div>
             )}
 
-            {/* Lyrics button */}
-            <button
-              onClick={() => setLyricsOpen(!lyricsOpen)}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation border',
-                lyricsOpen
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50'
-              )}
-            >
-              <Music2 className="w-3.5 h-3.5" />
-              <span>Lyrics</span>
-            </button>
+            {/* Lyrics & EQ buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setLyricsOpen(!lyricsOpen)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation border',
+                  lyricsOpen
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50'
+                )}
+              >
+                <Music2 className="w-3.5 h-3.5" />
+                <span>Lyrics</span>
+              </button>
+              <button
+                onClick={() => setShowEQ(!showEQ)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation border',
+                  showEQ
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50'
+                )}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {/* Volume */}
             <div className="flex items-center gap-1 flex-shrink-0">
