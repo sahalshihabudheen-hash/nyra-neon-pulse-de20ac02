@@ -1657,6 +1657,42 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add API Key Dialog */}
+      <Dialog open={addKeyDialogOpen} onOpenChange={setAddKeyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add YouTube API Key</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Key Name (optional)</label>
+              <Input
+                placeholder="e.g. YOUTUBE_API_KEY_5"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Leave blank to auto-name</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">API Key</label>
+              <Input
+                placeholder="AIzaSy..."
+                value={newKeyValue}
+                onChange={(e) => setNewKeyValue(e.target.value)}
+                type="password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddKeyDialogOpen(false)}>Cancel</Button>
+            <Button onClick={addYoutubeKey} disabled={addingKey}>
+              {addingKey ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              Add Key
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
