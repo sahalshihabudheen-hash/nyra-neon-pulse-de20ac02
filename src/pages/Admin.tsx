@@ -505,13 +505,24 @@ const Admin = () => {
                               <TableCell className="font-medium">{u.email}</TableCell>
                               <TableCell>
                                 {u.location ? (
-                                  <div className="space-y-0.5">
+                                   <div className="space-y-0.5">
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-sm font-medium">{u.location.city}</span>
+                                      {isLikelyVpn(u.location.isp) && (
+                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive">
+                                          <ShieldAlert className="w-3 h-3" />
+                                          VPN
+                                        </span>
+                                      )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                       {u.location.state}, {u.location.country}
                                     </p>
+                                    {u.location.isp && (
+                                      <p className="text-[10px] text-muted-foreground/70">
+                                        📡 {u.location.isp}
+                                      </p>
+                                    )}
                                     {u.location.timezone && (
                                       <p className="text-[10px] text-muted-foreground/70">
                                         🕐 {u.location.timezone}
