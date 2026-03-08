@@ -6,10 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function parseUserAgent(ua: string): { deviceType: string; deviceInfo: string } {
+function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number }): { deviceType: string; deviceInfo: string } {
   if (!ua) return { deviceType: "Unknown", deviceInfo: "Unknown" };
 
-  let deviceType = "Desktop";
+  let deviceType = "Desktop PC";
   let deviceInfo = "";
 
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(ua);
