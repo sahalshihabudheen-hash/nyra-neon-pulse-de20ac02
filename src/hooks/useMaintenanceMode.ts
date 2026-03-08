@@ -37,7 +37,7 @@ export function useMaintenanceMode() {
     const newValue = { ...maintenance, enabled };
     const { error } = await supabase
       .from('app_settings')
-      .update({ value: newValue as unknown as Record<string, unknown>, updated_at: new Date().toISOString() })
+      .update({ value: newValue as any, updated_at: new Date().toISOString() })
       .eq('key', 'maintenance_mode');
 
     if (error) throw error;
