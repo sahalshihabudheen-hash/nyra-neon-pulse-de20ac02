@@ -30,12 +30,11 @@ const COUNTRY_TO_CODE: Record<string, string> = {
   'United Kingdom': 'UK', 'United States': 'US', 'Vietnam': 'VN',
 };
 
-const getCountryFlag = (country: string | undefined): string | null => {
+const getCountryFlagUrl = (country: string | undefined): string | null => {
   if (!country) return null;
-  const code = COUNTRY_TO_CODE[country];
+  const code = COUNTRY_TO_CODE[country]?.toLowerCase();
   if (!code) return null;
-  // Convert country code to flag emoji using regional indicator symbols
-  return [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
+  return `https://flagcdn.com/w160/${code}.png`;
 };
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
@@ -803,10 +802,12 @@ const Admin = () => {
                               className="relative flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors overflow-hidden"
                             >
                               {/* Country flag watermark */}
-                              {getCountryFlag(u.location?.country) && (
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[3rem] opacity-[0.08] pointer-events-none select-none leading-none">
-                                  {getCountryFlag(u.location?.country)}
-                                </span>
+                              {getCountryFlagUrl(u.location?.country) && (
+                                <img
+                                  src={getCountryFlagUrl(u.location?.country)!}
+                                  alt=""
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 w-16 h-auto opacity-[0.12] pointer-events-none select-none"
+                                />
                               )}
                               {/* Online indicator + Avatar + Email */}
                               <div className="flex items-center gap-3 min-w-0 sm:w-[240px]">
