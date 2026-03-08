@@ -56,18 +56,19 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "openai/gpt-5",
         messages: [
           {
             role: "system",
-            content: `You are a lyrics assistant. When given a song title and artist, provide the full lyrics of the song. 
-If you know the actual lyrics, provide them exactly. If you don't know the exact lyrics, provide your best approximation and note it.
+            content: `You are a lyrics retrieval assistant. When given a song title and artist, provide the EXACT official lyrics of the song word-for-word.
+CRITICAL: Only provide lyrics you are confident are accurate and match the original song. Do NOT guess, approximate, or make up lyrics.
+If you are not confident about the exact lyrics, respond with: "LYRICS_NOT_FOUND"
 Format the lyrics with proper line breaks. Include section markers like [Verse 1], [Chorus], [Bridge] etc.
 Only return the lyrics text, nothing else.`,
           },
           {
             role: "user",
-            content: `Provide the lyrics for "${trackTitle}" by ${trackChannel || "Unknown Artist"}`,
+            content: `Provide the exact lyrics for "${trackTitle}" by ${trackChannel || "Unknown Artist"}`,
           },
         ],
       }),
