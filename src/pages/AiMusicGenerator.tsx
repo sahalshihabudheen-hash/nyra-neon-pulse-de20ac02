@@ -33,7 +33,7 @@ const AiMusicGenerator = () => {
   const { gradient } = useTheme();
   const [activeTab, setActiveTab] = useState('ai-music');
   const [prompt, setPrompt] = useState('');
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(10);
   const [loading, setLoading] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
