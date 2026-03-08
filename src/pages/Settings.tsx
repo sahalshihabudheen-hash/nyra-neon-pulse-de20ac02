@@ -9,6 +9,7 @@ import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import SettingsSoundwave from '@/components/SettingsSoundwave';
 import SoundwaveVisualizer, { SoundwaveShape } from '@/components/SoundwaveVisualizer';
+import StyledProgressBar from '@/components/StyledProgressBar';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
