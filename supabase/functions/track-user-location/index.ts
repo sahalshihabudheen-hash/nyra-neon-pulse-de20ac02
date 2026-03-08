@@ -150,6 +150,35 @@ function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScre
     deviceInfo = "Linux PC";
   }
 
+  // Override device type using hints when "Desktop site" is enabled in mobile browser
+  // If UA says desktop but hints say mobile (touch + small screen), trust the hints
+  if (hints) {
+    const isSmallScreen = (hints.screenWidth && hints.screenWidth <= 768) || (hints.screenHeight && hints.screenHeight <= 768);
+    const isMediumScreen = (hints.screenWidth && hints.screenWidth <= 1024) || (hints.screenHeight && hints.screenHeight <= 1024);
+    
+    if (hints.hasTouchScreen && deviceType === "Desktop PC") {
+      if (isSmallScreen) {
+        deviceType = "Phone";
+        // Try to keep existing device info or mark as detected via hints
+        if (!deviceInfo || deviceInfo.includes("Windows") || deviceInfo.includes("Mac") || deviceInfo.includes("Linux")) {
+          deviceInfo = "Mobile Device (Desktop mode)";
+        }
+      } else if (isMediumScreen) {
+        deviceType = "Tablet";
+        if (!deviceInfo || deviceInfo.includes("Windows") || deviceInfo.includes("Mac") || deviceInfo.includes("Linux")) {
+          deviceInfo = "Tablet (Desktop mode)";
+        }
+      }
+    }
+    // Also handle laptops misidentified
+    if (hints.hasTouchScreen && deviceType === "Laptop" && isSmallScreen) {
+      deviceType = "Phone";
+      if (!deviceInfo || deviceInfo.includes("Laptop")) {
+        deviceInfo = "Mobile Device (Desktop mode)";
+      }
+    }
+  }
+
   // Extract browser
   const braveMatch = ua.match(/Brave/);
   const edgeMatch = ua.match(/Edg\/([\d.]+)/);
