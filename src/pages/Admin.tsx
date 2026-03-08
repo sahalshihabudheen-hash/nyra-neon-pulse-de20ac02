@@ -293,6 +293,7 @@ const Admin = () => {
     setNewKeyName('');
   };
 
+  const fetchUsers = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
