@@ -59,18 +59,10 @@ serve(async (req) => {
 
     const disabledKeys: string[] = (setting?.value as string[]) || [];
 
-    // Calculate which key is currently "active" based on rotation
-    const enabledCount = keys.filter((_, i) => {
-      const label = i === 0 ? "YOUTUBE_API_KEY" : `YOUTUBE_API_KEY_${i + 1}`;
-      return !disabledKeys.includes(label);
-    }).length;
-    const currentRotationIndex = enabledCount > 0 ? Math.floor(Date.now() / 60_000) % keys.length : -1;
-
     const results = await Promise.all(
       keys.map(async (key, index) => {
         const label = index === 0 ? "YOUTUBE_API_KEY" : `YOUTUBE_API_KEY_${index + 1}`;
         const isDisabled = disabledKeys.includes(label);
-        const isCurrentlyUsed = index === currentRotationIndex && !isDisabled;
 
         if (isDisabled) {
           return { key: label, status: "disabled", message: "Disabled", enabled: false, isCurrentlyUsed: false };
@@ -82,7 +74,7 @@ serve(async (req) => {
           const data = await response.json();
 
           if (response.ok && !data.error) {
-            return { key: label, status: "active", message: "Working", enabled: true, isCurrentlyUsed };
+            return { key: label, status: "active", message: "Working", enabled: true, isCurrentlyUsed: false };
           }
 
           const errorMsg = data?.error?.message || `Error ${response.status}`;
@@ -107,6 +99,17 @@ serve(async (req) => {
         }
       })
     );
+
+    // Mark the first active (working + enabled) key as "currently in use"
+    // This mirrors the failover logic: rotation start + first working key
+    const startIndex = keys.length > 0 ? Math.floor(Date.now() / 60_000) % keys.length : 0;
+    for (let i = 0; i < results.length; i++) {
+      const idx = (startIndex + i) % results.length;
+      if (results[idx].status === "active" && results[idx].enabled) {
+        results[idx].isCurrentlyUsed = true;
+        break;
+      }
+    }
 
     return new Response(JSON.stringify({ keys: results, total: keys.length }), {
       status: 200,
