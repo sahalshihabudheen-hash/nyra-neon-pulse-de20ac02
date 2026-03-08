@@ -179,6 +179,14 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
             </div>
           )}
 
+          {!isLoading && !error && !lyrics && currentTrack && source === 'unavailable' && (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <AlertCircle className="w-8 h-8 text-muted-foreground/70 mb-4" />
+              <p className="text-sm font-medium">Official lyrics not available</p>
+              <p className="text-xs mt-1 opacity-60">Try another track with available captions/lyrics</p>
+            </div>
+          )}
+
           {!isLoading && !error && lyrics && (
             <div className="space-y-0.5">{renderLyrics()}</div>
           )}
