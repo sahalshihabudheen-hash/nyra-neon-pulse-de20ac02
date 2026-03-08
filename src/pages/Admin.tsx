@@ -240,6 +240,12 @@ const Admin = () => {
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
+      const localReset = new Date(nextMidnightPacificUtc).toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+      setQuotaResetLocalTime(localReset);
+
       if (hours > 0) {
         setQuotaResetCountdown(`~${hours}h ${minutes}m`);
       } else if (minutes > 0) {
