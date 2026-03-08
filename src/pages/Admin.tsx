@@ -313,6 +313,43 @@ const Admin = () => {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetTargetUser || !newPassword) return;
+    setResetLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: resetTargetUser.id,
+            newPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      toast.success(`Password updated for ${resetTargetUser.email}`);
+      setResetDialogOpen(false);
+      setNewPassword('');
+      setResetTargetUser(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to reset password');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString('en-US', {
