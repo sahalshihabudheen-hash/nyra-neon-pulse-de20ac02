@@ -324,7 +324,13 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   };
 
   const handleClose = useCallback(() => {
+    playClickSound();
     setIsVisible(false);
+    // Stop background music
+    if (bgAudioRef.current) {
+      try { bgAudioRef.current.ctx.close(); } catch {}
+      bgAudioRef.current = null;
+    }
     document.querySelectorAll('[data-tutorial-glow]').forEach(el => {
       (el as HTMLElement).style.removeProperty('box-shadow');
       (el as HTMLElement).style.removeProperty('z-index');
