@@ -289,6 +289,7 @@ serve(async (req) => {
       longitude: 0,
       timezone: "",
       isp: "",
+      isVpn: false,
     };
 
     try {
