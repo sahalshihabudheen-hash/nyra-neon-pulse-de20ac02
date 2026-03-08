@@ -1500,16 +1500,14 @@ const Admin = () => {
                                   checked={isEnabled}
                                   onCheckedChange={(checked) => toggleYoutubeKey(keyInfo.key, checked)}
                                 />
-                                {keyInfo.deletable && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => deletePrimaryKey(keyInfo.key)}
-                                    className="text-destructive hover:text-destructive h-7 w-7 p-0"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deletePrimaryKey(keyInfo.key)}
+                                  className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
                               </div>
                             </div>
                             {isQuota && (
