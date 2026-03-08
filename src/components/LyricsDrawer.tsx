@@ -188,7 +188,14 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
           )}
 
           {!isLoading && !error && lyrics && (
-            <div className="space-y-0.5">{renderLyrics()}</div>
+            <div className="space-y-0.5">
+              {renderLyrics()}
+              {source === 'ai' && (
+                <div className="mt-6 rounded-lg border border-border/40 bg-secondary/40 px-3 py-2">
+                  <p className="text-xs text-muted-foreground">⚠️ AI-generated lyrics may be incorrect.</p>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </ScrollArea>
