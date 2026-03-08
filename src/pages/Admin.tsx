@@ -696,7 +696,7 @@ const Admin = () => {
                                   <div className="min-w-0">
                                     <p className="text-sm truncate">
                                       {u.location.city}, {u.location.state}
-                                      {isLikelyVpn(u.location.isp) && (
+                                      {isLikelyVpn(u) && (
                                         <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive">
                                           <ShieldAlert className="w-2.5 h-2.5" />
                                           VPN

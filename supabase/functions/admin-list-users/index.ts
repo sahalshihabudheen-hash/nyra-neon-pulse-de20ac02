@@ -128,6 +128,7 @@ serve(async (req) => {
           last_updated: loc.last_updated,
           device_type: loc.device_type,
           device_info: loc.device_info,
+          is_vpn: loc.is_vpn || false,
         } : null,
       };
     });
