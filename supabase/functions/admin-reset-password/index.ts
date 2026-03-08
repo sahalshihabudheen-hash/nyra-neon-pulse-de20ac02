@@ -37,17 +37,16 @@ serve(async (req) => {
       );
     }
 
-    // Check admin role
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    const isAdminByEmail = user.email === "admin@gmail.com";
-    const { data: roleData } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+    // Only the original admin can reset passwords
+    if (user.email !== "admin@gmail.com") {
+      return new Response(
+        JSON.stringify({ error: "Only the original admin can reset passwords" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    if (!isAdminByEmail && !roleData) {
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    if (false) {
       return new Response(
         JSON.stringify({ error: "Access denied. Admin only." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
