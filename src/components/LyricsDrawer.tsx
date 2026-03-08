@@ -49,12 +49,16 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
 
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
-        if (!data?.lyrics || data.lyrics === 'LYRICS_NOT_FOUND') {
-          throw new Error('Exact lyrics not found for this track');
+
+        if (!data?.lyrics) {
+          setLyrics(null);
+          setSource(data?.source || 'unavailable');
+          setError(null);
+          return;
         }
 
         setLyrics(data.lyrics);
-        setSource(data.source || 'ai');
+        setSource(data.source || 'official');
       } catch (e: any) {
         console.error('Lyrics fetch error:', e);
         setError(e.message || 'Could not load lyrics');
@@ -118,7 +122,9 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
             {source && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Sparkles className="w-3 h-3" />
-                <span>{source === 'ai' ? 'AI Generated' : 'Official'}</span>
+                <span>
+                  {source === 'ai' ? 'AI Generated' : source === 'unavailable' ? 'Official Not Available' : 'Official'}
+                </span>
               </div>
             )}
           </div>
@@ -170,6 +176,14 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
               <Music2 className="w-12 h-12 opacity-20 mb-4" />
               <p className="text-sm font-medium">No track playing</p>
               <p className="text-xs mt-1 opacity-60">Play a song to see lyrics</p>
+            </div>
+          )}
+
+          {!isLoading && !error && !lyrics && currentTrack && source === 'unavailable' && (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <AlertCircle className="w-8 h-8 text-muted-foreground/70 mb-4" />
+              <p className="text-sm font-medium">Official lyrics not available</p>
+              <p className="text-xs mt-1 opacity-60">Try another track with available captions/lyrics</p>
             </div>
           )}
 
