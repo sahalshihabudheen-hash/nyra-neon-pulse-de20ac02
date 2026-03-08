@@ -125,6 +125,7 @@ const Admin = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [deviceFilter, setDeviceFilter] = useState<'all' | 'Phone' | 'Desktop PC' | 'Laptop' | 'Tablet' | 'Smartwatch'>('all');
   const [vpnFilter, setVpnFilter] = useState<'all' | 'vpn' | 'no-vpn'>('all');
+  const [countryFilter, setCountryFilter] = useState<string>('all');
 
   const handleToggleAdminRole = async (targetUser: AdminUser) => {
     const isCurrentlyAdmin = targetUser.roles.includes('admin');
@@ -501,8 +502,18 @@ const Admin = () => {
     // VPN
     if (vpnFilter === 'vpn' && !isLikelyVpn(u)) return false;
     if (vpnFilter === 'no-vpn' && isLikelyVpn(u)) return false;
+    // Country
+    if (countryFilter !== 'all' && u.location?.country !== countryFilter) return false;
     return true;
   });
+
+  // Get unique countries with counts
+  const countryCounts = users.reduce<Record<string, number>>((acc, u) => {
+    const country = u.location?.country || 'Unknown';
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {});
+  const sortedCountries = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -729,6 +740,21 @@ const Admin = () => {
                       <ShieldAlert className="w-3 h-3 mr-1" />
                       VPN ({users.filter(u => isLikelyVpn(u)).length})
                     </Button>
+                    {/* Country filter */}
+                    {sortedCountries.length > 1 && (
+                      <select
+                        value={countryFilter}
+                        onChange={(e) => setCountryFilter(e.target.value)}
+                        className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+                      >
+                        <option value="all">🌍 All Countries</option>
+                        {sortedCountries.map(([country, count]) => (
+                          <option key={country} value={country}>
+                            {country} ({count})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
