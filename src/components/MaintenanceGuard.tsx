@@ -33,6 +33,11 @@ const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
     return <>{children}</>;
   }
 
+  // If not logged in during maintenance, redirect to auth
+  if (!user) {
+    return <Auth />;
+  }
+
   // If user is in the allowed list, let them through
   const userEmail = user?.email || '';
   const isAllowed = maintenance.allowed_emails.includes(userEmail);
