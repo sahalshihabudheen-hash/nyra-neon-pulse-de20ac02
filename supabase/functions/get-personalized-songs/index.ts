@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { fetchYouTubeWithFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
+import { fetchYouTubeWithBackupFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -99,7 +99,7 @@ serve(async (req) => {
 
     console.log(`Fetching personalized songs: type=${type}, query=${searchQuery} using ${keys.length} API keys`);
 
-    const result = await fetchYouTubeWithFailover(
+    const result = await fetchYouTubeWithBackupFailover(
       keys,
       (apiKey) => `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=12&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`,
     );

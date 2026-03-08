@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
@@ -121,12 +121,17 @@ const Admin = () => {
   const [activeGamersCount, setActiveGamersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean}[]>([]);
+  const [backupKeys, setBackupKeys] = useState<{key: string; status: string; message: string}[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addKeyDialogOpen, setAddKeyDialogOpen] = useState(false);
   const [newKeyValue, setNewKeyValue] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
   const [addingKey, setAddingKey] = useState(false);
+  const [addBackupKeyDialogOpen, setAddBackupKeyDialogOpen] = useState(false);
+  const [newBackupKeyValue, setNewBackupKeyValue] = useState('');
+  const [newBackupKeyName, setNewBackupKeyName] = useState('');
+  const [addingBackupKey, setAddingBackupKey] = useState(false);
   
   // Admin login state
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -251,7 +256,10 @@ const Admin = () => {
         { headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' } }
       );
       const data = await response.json();
-      if (response.ok) setYoutubeKeys(data.keys || []);
+      if (response.ok) {
+        setYoutubeKeys(data.keys || []);
+        setBackupKeys(data.backupKeys || []);
+      }
     } catch (err) {
       console.error('Error fetching YouTube key status:', err);
     } finally {
@@ -311,6 +319,59 @@ const Admin = () => {
       toast.error('Failed to add key');
     } finally {
       setAddingKey(false);
+    }
+  };
+
+  const addBackupKey = async () => {
+    if (!newBackupKeyValue.trim()) { toast.error('Please enter an API key'); return; }
+    setAddingBackupKey(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const keyName = newBackupKeyName.trim() || `BACKUP_API_${backupKeys.length + 1}`;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add_backup_key', keyName, keyValue: newBackupKeyValue.trim() }),
+        }
+      );
+      if (response.ok) {
+        toast.success(`Backup key ${keyName} added!`);
+        setAddBackupKeyDialogOpen(false);
+        setNewBackupKeyValue('');
+        setNewBackupKeyName('');
+        fetchYoutubeKeyStatus();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to add backup key');
+      }
+    } catch (err) {
+      toast.error('Failed to add backup key');
+    } finally {
+      setAddingBackupKey(false);
+    }
+  };
+
+  const deleteBackupKey = async (keyName: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_backup_key', keyName }),
+        }
+      );
+      if (response.ok) {
+        toast.success(`Backup key ${keyName} deleted`);
+        fetchYoutubeKeyStatus();
+      }
+    } catch (err) {
+      toast.error('Failed to delete backup key');
     }
   };
 
@@ -1435,6 +1496,105 @@ const Admin = () => {
                         💡 Each Google Cloud project gets <strong>10,000 units/day</strong>. A search costs 100 units.
                         Keys from the same project share quota. The failover system automatically rotates to the next working key.
                       </p>
+                    </div>
+
+                    {/* Backup API Keys Section */}
+                    <div className="mt-6 pt-6 border-t border-dashed border-muted-foreground/20">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-primary" />
+                          <div>
+                            <h3 className="font-semibold text-sm">Backup API Keys</h3>
+                            <p className="text-xs text-muted-foreground">
+                              Only activate automatically when all primary keys are exhausted
+                            </p>
+                          </div>
+                        </div>
+                        <Dialog open={addBackupKeyDialogOpen} onOpenChange={setAddBackupKeyDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1">
+                              <Plus className="w-3 h-3" /> Add Backup
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Add Backup API Key</DialogTitle>
+                              <DialogDescription>
+                                This key will only be used when all primary keys are exhausted or disabled.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-sm font-medium">Key Name</label>
+                                <Input
+                                  placeholder="e.g. BACKUP API"
+                                  value={newBackupKeyName}
+                                  onChange={(e) => setNewBackupKeyName(e.target.value)}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium">API Key</label>
+                                <Input
+                                  placeholder="AIza..."
+                                  value={newBackupKeyValue}
+                                  onChange={(e) => setNewBackupKeyValue(e.target.value)}
+                                  type="password"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={addBackupKey} disabled={addingBackupKey}>
+                                {addingBackupKey ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Adding...</> : 'Add Backup Key'}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+
+                      {backupKeys.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground border border-dashed rounded-lg">
+                          <Shield className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                          <p className="text-sm">No backup keys configured</p>
+                          <p className="text-xs opacity-70">Add backup keys as emergency fallback</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {backupKeys.map((bk, index) => {
+                            const isActive = bk.status === 'active';
+                            return (
+                              <div
+                                key={index}
+                                className={`p-3 rounded-lg border flex items-center justify-between ${
+                                  isActive
+                                    ? 'border-primary/30 bg-primary/5'
+                                    : 'border-muted/30 bg-muted/5'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  <span className="font-mono font-semibold text-sm">{bk.key}</span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                    isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
+                                  }`}>
+                                    {bk.message} • Standby
+                                  </span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteBackupKey(bk.key)}
+                                  className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                          <p className="text-[11px] text-muted-foreground mt-2">
+                            🛡️ These keys remain on standby and automatically activate only when all primary keys fail.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
