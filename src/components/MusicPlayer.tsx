@@ -438,7 +438,7 @@ const MusicPlayer = ({
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
           {!isMiniMode && (
-            <div className="flex items-center mr-2">
+            <div className="flex items-center gap-1.5 mr-2">
               <button
                 onClick={() => setLyricsOpen(!lyricsOpen)}
                 className={cn(
@@ -450,6 +450,17 @@ const MusicPlayer = ({
               >
                 <Music2 className="w-3.5 h-3.5" />
                 <span>Lyrics</span>
+              </button>
+              <button
+                onClick={() => setShowEQ(!showEQ)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all active:scale-95 border',
+                  showEQ
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50 hover:bg-secondary'
+                )}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
