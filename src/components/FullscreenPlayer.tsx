@@ -49,6 +49,7 @@ const FullscreenPlayer = ({
   progress,
   duration,
   onSeek,
+  audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
   const [showQueue, setShowQueue] = useState(false);
