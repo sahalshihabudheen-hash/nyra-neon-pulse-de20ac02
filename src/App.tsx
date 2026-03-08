@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import FloatingMiniPlayer from "@/components/FloatingMiniPlayer";
 import MaintenanceGuard from "@/components/MaintenanceGuard";
+import TutorialWrapper from "@/components/TutorialWrapper";
 import Index from "./pages/Index";
 import PlaylistView from "./pages/PlaylistView";
 import PlaylistsManager from "./pages/PlaylistsManager";
@@ -49,6 +50,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <FloatingMiniPlayer />
+              <TutorialWrapper />
             </MaintenanceGuard>
           </MusicPlayerProvider>
         </BrowserRouter>
