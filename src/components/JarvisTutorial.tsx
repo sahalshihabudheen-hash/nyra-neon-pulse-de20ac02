@@ -35,7 +35,7 @@ const steps: TutorialStep[] = [
   {
     title: "📋 Your Sidebar",
     message: "This is your sidebar — your command center! Each icon takes you to a different section. Let me walk you through the important ones...",
-    cardPosition: 'bottom-right',
+    cardPosition: 'mid-left',
     navigateTo: '/',
     highlightSelectors: ['aside nav'],
     highlightLabels: ['Navigate from here'],
