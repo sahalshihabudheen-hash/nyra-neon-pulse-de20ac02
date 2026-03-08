@@ -343,6 +343,7 @@ const Admin = () => {
     }
   };
 
+  const addBackupKey = async () => {
     if (!newBackupKeyValue.trim()) { toast.error('Please enter an API key'); return; }
     setAddingBackupKey(true);
     try {
