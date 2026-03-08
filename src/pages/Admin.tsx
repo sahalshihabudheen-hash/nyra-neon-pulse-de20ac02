@@ -460,6 +460,15 @@ const Admin = () => {
     });
   };
 
+  const isUserOnline = (u: AdminUser): boolean => {
+    const lastActive = u.location?.last_updated || u.last_sign_in_at;
+    if (!lastActive) return false;
+    const diffMs = Date.now() - new Date(lastActive).getTime();
+    return diffMs < 5 * 60 * 1000; // 5 minutes
+  };
+
+  const onlineCount = users.filter(isUserOnline).length;
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
