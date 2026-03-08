@@ -1,4 +1,6 @@
-export function getYouTubeApiKeys(): string[] {
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+export function getYouTubeApiKeysFromEnv(): string[] {
   const env = Deno.env.toObject();
 
   const keys = Object.entries(env)
@@ -16,6 +18,65 @@ export function getYouTubeApiKeys(): string[] {
     .map(([, value]) => value as string);
 
   return [...new Set(keys)];
+}
+
+// Keep backward compat alias
+export const getYouTubeApiKeys = getYouTubeApiKeysFromEnv;
+
+export interface NamedKey {
+  label: string;
+  value: string;
+}
+
+/**
+ * Get all YouTube API keys: env vars + extra keys stored in app_settings.
+ * Returns labelled keys for the admin panel.
+ */
+export async function getAllYouTubeApiKeys(): Promise<NamedKey[]> {
+  const env = Deno.env.toObject();
+
+  // Env-based keys with labels
+  const envKeys: NamedKey[] = Object.entries(env)
+    .filter(([name, value]) => /^YOUTUBE_API_KEY(?:_\d+)?$/.test(name) && !!value)
+    .sort(([a], [b]) => {
+      if (a === "YOUTUBE_API_KEY") return -1;
+      if (b === "YOUTUBE_API_KEY") return 1;
+      const aNum = Number(a.match(/_(\d+)$/)?.[1] ?? Infinity);
+      const bNum = Number(b.match(/_(\d+)$/)?.[1] ?? Infinity);
+      return aNum - bNum;
+    })
+    .map(([name, value]) => ({ label: name, value }));
+
+  // Extra keys from app_settings
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "extra_youtube_keys")
+      .single();
+
+    if (data?.value && Array.isArray(data.value)) {
+      for (const extra of data.value as { label: string; value: string }[]) {
+        if (extra.label && extra.value) {
+          envKeys.push({ label: extra.label, value: extra.value });
+        }
+      }
+    }
+  } catch {
+    // Ignore — extra keys not available
+  }
+
+  // Dedupe by value
+  const seen = new Set<string>();
+  return envKeys.filter((k) => {
+    if (seen.has(k.value)) return false;
+    seen.add(k.value);
+    return true;
+  });
 }
 
 export async function fetchYouTubeWithFailover(
