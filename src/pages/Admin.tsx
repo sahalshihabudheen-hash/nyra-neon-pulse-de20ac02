@@ -1588,16 +1588,29 @@ const Admin = () => {
                           <p className="text-sm">No backup keys configured</p>
                           <p className="text-xs opacity-70">Add backup keys as emergency fallback</p>
                         </div>
-                      ) : (
+                      ) : (() => {
+                        const allPrimaryDown = youtubeKeys.length > 0 && youtubeKeys.every(k => 
+                          k.status === 'disabled' || k.status === 'quota_exceeded' || k.status === 'error' || k.status === 'expired'
+                        );
+                        return (
                         <div className="space-y-2">
+                          {allPrimaryDown && (
+                            <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/10 border border-primary/30 text-primary text-xs font-medium">
+                              <AlertTriangle className="w-4 h-4" />
+                              Backup keys are currently active — all primary keys are down
+                            </div>
+                          )}
                           {backupKeys.map((bk, index) => {
                             const isActive = bk.status === 'active';
                             const priorityLabel = index === 0 ? '1st Backup' : index === 1 ? '2nd Backup' : `${index + 1}th Backup`;
+                            const isInUse = allPrimaryDown && isActive;
                             return (
                               <div
                                 key={index}
                                 className={`p-3 rounded-lg border flex items-center justify-between ${
-                                  isActive
+                                  isInUse
+                                    ? 'border-green-500/30 bg-green-500/5'
+                                    : isActive
                                     ? 'border-primary/30 bg-primary/5'
                                     : 'border-muted/30 bg-muted/5'
                                 }`}
@@ -1606,12 +1619,18 @@ const Admin = () => {
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground font-mono font-bold">
                                     #{index + 1}
                                   </span>
-                                  <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  {isInUse ? (
+                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  )}
                                   <span className="font-mono font-semibold text-sm">{bk.key}</span>
                                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                    isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
+                                    isInUse 
+                                      ? 'bg-green-500/20 text-green-500 animate-pulse'
+                                      : isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
                                   }`}>
-                                    {priorityLabel} • Standby
+                                    {isInUse ? `● ${priorityLabel} • In Use` : `${priorityLabel} • Standby`}
                                   </span>
                                 </div>
                                 <Button
@@ -1629,7 +1648,8 @@ const Admin = () => {
                             🛡️ Backup keys activate <strong>sequentially</strong> — #1 is tried first, then #2 only if #1 also fails. They never run simultaneously.
                           </p>
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
