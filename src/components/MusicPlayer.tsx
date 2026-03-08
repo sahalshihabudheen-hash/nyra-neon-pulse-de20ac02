@@ -511,50 +511,50 @@ const MusicPlayer = ({
 
         {/* Mobile Bottom Row */}
         {!isMiniMode && (
-          <div className="flex md:hidden items-center justify-between w-full px-2 gap-2">
-            {/* Mobile Soundwave */}
+          <div className="flex md:hidden items-center justify-between w-full px-2 gap-3">
+            {/* Soundwave */}
             {settings.soundwaveEnabled && (
               <div className="bg-black/30 rounded-lg px-2 py-1 border border-primary/30 flex-shrink-0">
                 <SoundwaveVisualizer isPlaying={isPlaying} className="h-6 w-20" />
               </div>
             )}
 
-            {/* Mobile Lyrics Button */}
-            <button
-              onClick={() => setLyricsOpen(!lyricsOpen)}
-              className={cn(
-                'w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
-                lyricsOpen
-                  ? 'bg-primary/20 text-primary'
-                  : 'text-muted-foreground hover:text-primary hover:bg-secondary'
-              )}
-              title="Lyrics"
-            >
-              <Music2 className="w-4 h-4" />
-            </button>
-
-            {/* Mobile Playlist Button */}
-            <PlaylistDrawer
-              playlist={playlist}
-              currentTrack={currentTrack}
-              onPlayTrack={onPlayFromPlaylist || (() => {})}
-              onRemoveTrack={onRemoveFromPlaylist || (() => {})}
-              onClearPlaylist={onClearPlaylist || (() => {})}
-              isOpen={playlistOpen}
-              onOpenChange={setPlaylistOpen}
-              isPlaying={isPlaying}
-              onReorderPlaylist={onReorderPlaylist}
-            />
-
-            {/* Mobile Volume */}
+            {/* Lyrics + Playlist grouped */}
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setLyricsOpen(!lyricsOpen)}
+                className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
+                  lyricsOpen
+                    ? 'bg-primary/20 text-primary'
+                    : 'text-muted-foreground hover:text-primary hover:bg-secondary'
+                )}
+                title="Lyrics"
+              >
+                <Music2 className="w-4 h-4" />
+              </button>
+              <PlaylistDrawer
+                playlist={playlist}
+                currentTrack={currentTrack}
+                onPlayTrack={onPlayFromPlaylist || (() => {})}
+                onRemoveTrack={onRemoveFromPlaylist || (() => {})}
+                onClearPlaylist={onClearPlaylist || (() => {})}
+                isOpen={playlistOpen}
+                onOpenChange={setPlaylistOpen}
+                isPlaying={isPlaying}
+                onReorderPlaylist={onReorderPlaylist}
+              />
+            </div>
+
+            {/* Volume */}
+            <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 onClick={toggleMute}
                 className="text-muted-foreground hover:text-primary transition-colors active:scale-90 touch-manipulation"
               >
                 {getVolumeIcon()}
               </button>
-              <div className="relative w-20 h-2">
+              <div className="relative w-16 h-2">
                 <div className="absolute inset-0 rounded-full bg-secondary/50" />
                 <div 
                   className="absolute left-0 top-0 h-full rounded-full bg-primary"
