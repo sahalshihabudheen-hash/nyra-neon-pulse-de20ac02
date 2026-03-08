@@ -698,6 +698,8 @@ const Admin = () => {
                                     <div className="flex items-center gap-1.5">
                                       {u.location.device_type === 'Phone' ? (
                                         <Smartphone className="w-3 h-3 text-primary" />
+                                      ) : u.location.device_type === 'Tablet' ? (
+                                        <Tablet className="w-3 h-3 text-primary" />
                                       ) : u.location.device_type === 'Laptop' ? (
                                         <Laptop className="w-3 h-3 text-primary" />
                                       ) : (
