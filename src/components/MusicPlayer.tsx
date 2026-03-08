@@ -5,6 +5,7 @@ import SoundwaveVisualizer from './SoundwaveVisualizer';
 import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
 import LyricsDrawer from './LyricsDrawer';
+import EqualizerPanel from './EqualizerPanel';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Track {
