@@ -160,19 +160,29 @@ const Admin = () => {
 
   useEffect(() => {
     const calcCountdown = () => {
-      const now = new Date();
-      // Midnight Pacific Time (PST = UTC-8, PDT = UTC-7)
-      // Use America/Los_Angeles to auto-handle DST
-      const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-      const midnight = new Date(pacificNow);
-      midnight.setDate(midnight.getDate() + 1);
-      midnight.setHours(0, 0, 0, 0);
-      const diff = midnight.getTime() - pacificNow.getTime();
+      const nowUtc = Date.now();
+      // Determine current Pacific offset (PST=-8, PDT=-7) using Intl
+      const pacificStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false,
+      }).format(nowUtc);
+      // Parse "MM/DD/YYYY, HH:MM:SS"
+      const [datePart, timePart] = pacificStr.split(', ');
+      const [month, day, year] = datePart.split('/').map(Number);
+      const [hour, minute, second] = timePart.split(':').map(Number);
+      
+      // Calculate ms left in the Pacific day until midnight
+      const msInDay = 24 * 60 * 60 * 1000;
+      const elapsedMs = (hour * 3600 + minute * 60 + second) * 1000;
+      const diff = msInDay - elapsedMs;
+      
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
       if (hours > 0) {
-        setQuotaResetCountdown(`~${hours}h`);
+        setQuotaResetCountdown(`~${hours}h ${minutes}m`);
       } else if (minutes > 0) {
         setQuotaResetCountdown(`~${minutes}m`);
       } else {
