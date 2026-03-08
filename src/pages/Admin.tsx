@@ -256,7 +256,10 @@ const Admin = () => {
         { headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' } }
       );
       const data = await response.json();
-      if (response.ok) setYoutubeKeys(data.keys || []);
+      if (response.ok) {
+        setYoutubeKeys(data.keys || []);
+        setBackupKeys(data.backupKeys || []);
+      }
     } catch (err) {
       console.error('Error fetching YouTube key status:', err);
     } finally {
