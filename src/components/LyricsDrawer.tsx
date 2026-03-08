@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Music2, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Music2, Loader2, AlertCircle, Sparkles, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
