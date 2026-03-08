@@ -800,8 +800,14 @@ const Admin = () => {
                           return (
                             <div
                               key={u.id}
-                              className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors"
+                              className="relative flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors overflow-hidden"
                             >
+                              {/* Country flag watermark */}
+                              {getCountryFlag(u.location?.country) && (
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[3rem] opacity-[0.08] pointer-events-none select-none leading-none">
+                                  {getCountryFlag(u.location?.country)}
+                                </span>
+                              )}
                               {/* Online indicator + Avatar + Email */}
                               <div className="flex items-center gap-3 min-w-0 sm:w-[240px]">
                                 <div className="relative flex-shrink-0">
