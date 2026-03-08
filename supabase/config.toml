@@ -33,5 +33,3 @@ verify_jwt = false
 [functions.ai-mood-dj]
 verify_jwt = false
 
-[functions.elevenlabs-music]
-verify_jwt = false
