@@ -10,6 +10,24 @@ export function useAuth() {
 
   const trackUserLocation = async (accessToken: string) => {
     try {
+      // Try to get GPS coordinates first
+      let latitude: number | null = null;
+      let longitude: number | null = null;
+
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 300000, // 5 min cache
+          });
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } catch {
+        console.log('GPS not available, falling back to IP-based location');
+      }
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-user-location`,
         {
@@ -18,6 +36,11 @@ export function useAuth() {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            latitude,
+            longitude,
+            userAgent: navigator.userAgent,
+          }),
         }
       );
       const data = await response.json();
@@ -30,23 +53,19 @@ export function useAuth() {
   };
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
-      // Track location on initial load if user is logged in
       if (session?.access_token) {
         trackUserLocation(session.access_token);
       }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
-      // Track location on sign in
       if (event === 'SIGNED_IN' && session?.access_token) {
         trackUserLocation(session.access_token);
       }

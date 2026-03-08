@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Shield, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin } from 'lucide-react';
+import { Shield, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Copy } from 'lucide-react';
 
 interface AdminUser {
   id: string;
@@ -24,6 +24,8 @@ interface AdminUser {
     timezone: string;
     isp: string;
     last_updated: string;
+    device_type: string | null;
+    device_info: string | null;
   } | null;
 }
 
@@ -249,6 +251,48 @@ const Admin = () => {
     navigate('/');
   };
 
+  const copyPlaylistToAdmin = async (playlist: PlaylistWithItems) => {
+    try {
+      if (!user) return;
+      
+      // Create a new playlist for the admin
+      const { data: newPlaylist, error: createError } = await supabase
+        .from('playlists')
+        .insert({
+          user_id: user.id,
+          name: `${playlist.name} (from ${playlist.user_email})`,
+          description: playlist.description || `Copied from ${playlist.user_email}`,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      // Copy all playlist items
+      if (playlist.playlist_items.length > 0) {
+        const items = playlist.playlist_items.map((item, index) => ({
+          playlist_id: newPlaylist.id,
+          track_id: item.track_id,
+          track_title: item.track_title,
+          track_thumbnail: item.track_thumbnail,
+          track_channel: item.track_channel,
+          position: index,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('playlist_items')
+          .insert(items);
+
+        if (itemsError) throw itemsError;
+      }
+
+      toast.success(`Playlist "${playlist.name}" copied to your account!`);
+    } catch (err: any) {
+      console.error('Error copying playlist:', err);
+      toast.error('Failed to copy playlist');
+    }
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -422,11 +466,17 @@ const Admin = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Email</TableHead>
+                         <TableHead>Email</TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
                               Location
+                            </div>
+                          </TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              <Smartphone className="w-3 h-3" />
+                              Device
                             </div>
                           </TableHead>
                           <TableHead>Signed Up</TableHead>
@@ -437,7 +487,7 @@ const Admin = () => {
                       <TableBody>
                         {users.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                               No users found
                             </TableCell>
                           </TableRow>
@@ -464,6 +514,25 @@ const Admin = () => {
                                   <span className="text-xs text-muted-foreground italic">
                                     No location data
                                   </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {u.location?.device_type ? (
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-1.5">
+                                      {u.location.device_type === 'Phone' ? (
+                                        <Smartphone className="w-3 h-3 text-primary" />
+                                      ) : (
+                                        <Monitor className="w-3 h-3 text-primary" />
+                                      )}
+                                      <span className="text-sm font-medium">{u.location.device_type}</span>
+                                    </div>
+                                    {u.location.device_info && (
+                                      <p className="text-xs text-muted-foreground">{u.location.device_info}</p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Unknown</span>
                                 )}
                               </TableCell>
                               <TableCell>{formatDate(u.created_at)}</TableCell>
@@ -574,9 +643,20 @@ const Admin = () => {
                                 by {playlist.user_email} • {playlist.playlist_items.length} tracks
                               </p>
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(playlist.created_at)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyPlaylistToAdmin(playlist)}
+                                className="flex items-center gap-1.5"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                Copy to Mine
+                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(playlist.created_at)}
+                              </span>
+                            </div>
                           </div>
                           {playlist.playlist_items.length > 0 && (
                             <div className="flex gap-2 overflow-x-auto pb-2">
