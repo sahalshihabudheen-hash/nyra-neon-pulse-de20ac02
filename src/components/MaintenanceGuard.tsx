@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import { useAuth } from '@/hooks/useAuth';
 import MaintenancePage from '@/pages/MaintenancePage';
+import Auth from '@/pages/Auth';
 import { Loader2 } from 'lucide-react';
 
 interface MaintenanceGuardProps {
