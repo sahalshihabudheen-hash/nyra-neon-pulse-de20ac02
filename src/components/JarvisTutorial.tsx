@@ -14,7 +14,7 @@ interface TutorialStep {
   // Labels for each arrow
   highlightLabels?: string[];
   // Card position
-  cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center';
+  cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center' | 'mid-left';
 }
 
 const steps: TutorialStep[] = [
