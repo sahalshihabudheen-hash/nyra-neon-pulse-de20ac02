@@ -1593,33 +1593,33 @@ const Admin = () => {
                                 : 'border-destructive/30 bg-destructive/5'
                             }`}
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                 {isDisabled ? (
-                                  <Circle className="w-5 h-5 text-muted-foreground" />
+                                  <Circle className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
                                 ) : isStandby ? (
-                                  <CheckCircle className="w-5 h-5 text-cyan-500" />
+                                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500 flex-shrink-0" />
                                 ) : isActive ? (
-                                  <CheckCircle className="w-5 h-5 text-green-500" />
+                                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
                                 ) : isQuota ? (
-                                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 flex-shrink-0" />
                                 ) : (
-                                  <XCircle className="w-5 h-5 text-destructive" />
+                                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-destructive flex-shrink-0" />
                                 )}
-                                <span className="font-mono font-semibold text-sm">{keyInfo.key}</span>
+                                <span className="font-mono font-semibold text-xs sm:text-sm truncate">{keyInfo.key}</span>
                                 {keyInfo.isCurrentlyUsed && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-semibold animate-pulse">
-                                    ● CURRENTLY IN USE
+                                  <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/20 text-primary font-semibold animate-pulse whitespace-nowrap">
+                                    ● IN USE
                                   </span>
                                 )}
                                 {isStandby && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-medium">
+                                  <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-medium whitespace-nowrap">
                                     Standby
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium whitespace-nowrap ${
                                   isDisabled
                                     ? 'bg-muted/20 text-muted-foreground'
                                     : isStandby
