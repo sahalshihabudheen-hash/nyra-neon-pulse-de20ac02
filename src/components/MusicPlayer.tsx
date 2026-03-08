@@ -67,6 +67,7 @@ const MusicPlayer = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
+  const [showEQ, setShowEQ] = useState(false);
   const progressRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
