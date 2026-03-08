@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
