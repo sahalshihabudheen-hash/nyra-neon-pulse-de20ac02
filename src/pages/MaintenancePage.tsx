@@ -49,17 +49,29 @@ const MaintenancePage = () => {
         <div className="absolute w-[400px] h-[400px] bg-primary/5 rounded-full blur-3xl -bottom-32 -right-32 animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      {/* Mute button */}
-      <button
-        onClick={toggleMute}
-        className="absolute top-6 right-6 p-3 rounded-full bg-secondary/80 hover:bg-secondary transition-colors z-10"
-      >
-        {muted ? (
-          <VolumeX className="w-5 h-5 text-muted-foreground" />
-        ) : (
-          <Volume2 className="w-5 h-5 text-primary" />
-        )}
-      </button>
+      {/* Top buttons */}
+      <div className="absolute top-6 right-6 flex items-center gap-3 z-10">
+        <button
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+          }}
+          className="p-3 rounded-full bg-secondary/80 hover:bg-secondary transition-colors"
+          title="Log Out"
+        >
+          <LogOut className="w-5 h-5 text-muted-foreground hover:text-destructive" />
+        </button>
+        <button
+          onClick={toggleMute}
+          className="p-3 rounded-full bg-secondary/80 hover:bg-secondary transition-colors"
+        >
+          {muted ? (
+            <VolumeX className="w-5 h-5 text-muted-foreground" />
+          ) : (
+            <Volume2 className="w-5 h-5 text-primary" />
+          )}
+        </button>
+      </div>
 
       <div className="relative z-10 text-center max-w-lg">
         {/* Spinning gear */}
