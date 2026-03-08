@@ -654,11 +654,15 @@ const Admin = () => {
                               key={u.id}
                               className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors"
                             >
-                              {/* Online indicator + Email */}
-                              <div className="flex items-center gap-3 min-w-0 sm:w-[220px]">
+                              {/* Online indicator + Avatar + Email */}
+                              <div className="flex items-center gap-3 min-w-0 sm:w-[240px]">
                                 <div className="relative flex-shrink-0">
-                                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary uppercase">
-                                    {u.email?.[0] || '?'}
+                                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary uppercase overflow-hidden">
+                                    {u.avatar_url ? (
+                                      <img src={u.avatar_url} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      u.email?.[0] || '?'
+                                    )}
                                   </div>
                                   <Circle
                                     className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${
@@ -669,7 +673,10 @@ const Admin = () => {
                                   />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{u.email}</p>
+                                  {u.display_name && (
+                                    <p className="text-sm font-semibold truncate text-foreground">{u.display_name}</p>
+                                  )}
+                                  <p className={`text-sm truncate ${u.display_name ? 'text-muted-foreground text-xs' : 'font-medium'}`}>{u.email}</p>
                                   <p className="text-[11px] text-muted-foreground">
                                     {online ? (
                                       <span className="text-emerald-500 font-medium">Online now</span>
