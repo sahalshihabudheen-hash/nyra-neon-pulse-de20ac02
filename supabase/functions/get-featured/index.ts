@@ -1,19 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchYouTubeWithFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-async function fetchWithKey(apiKey: string, searchQuery: string) {
-  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=10&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`;
-  const response = await fetch(searchUrl);
-  const data = await response.json();
-  if (!response.ok || data.error) {
-    throw new Error(data.error?.message || "YouTube API error");
-  }
-  return data;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,17 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const keys = [
-      Deno.env.get("YOUTUBE_API_KEY"),
-      Deno.env.get("YOUTUBE_API_KEY_2"),
-    ].filter(Boolean) as string[];
-
-    if (keys.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "YouTube API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const keys = getYouTubeApiKeys();
 
     const now = new Date();
     const dateString = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
@@ -50,35 +31,28 @@ serve(async (req) => {
     const categoryIndex = dayOfYear % featuredCategories.length;
     const searchQuery = featuredCategories[categoryIndex];
 
-    console.log(`Fetching featured track with query: ${searchQuery} (date: ${dateString})`);
+    console.log(`Fetching featured track with query: ${searchQuery} (date: ${dateString}) using ${keys.length} API keys`);
 
-    let data;
-    let lastError;
-    for (const key of keys) {
-      try {
-        data = await fetchWithKey(key, searchQuery);
-        break;
-      } catch (err) {
-        lastError = err;
-        console.warn(`Key failed, trying next: ${err.message}`);
-      }
-    }
+    const result = await fetchYouTubeWithFailover(
+      keys,
+      (apiKey) => `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=10&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`,
+    );
 
-    if (!data) {
+    if (!result.ok) {
       return new Response(
-        JSON.stringify({ error: lastError?.message || "All API keys exhausted" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: result.error }),
+        { status: result.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!data.items || data.items.length === 0) {
+    if (!result.data.items || result.data.items.length === 0) {
       return new Response(JSON.stringify(null), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const itemIndex = dayOfYear % data.items.length;
-    const item = data.items[itemIndex];
+    const itemIndex = dayOfYear % result.data.items.length;
+    const item = result.data.items[itemIndex];
 
     const featured = {
       id: item.id.videoId,

@@ -1,19 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchYouTubeWithFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-async function searchWithKey(apiKey: string, query: string) {
-  const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${apiKey}`;
-  const response = await fetch(youtubeUrl);
-  const data = await response.json();
-  if (data.error) {
-    throw new Error(data.error.message || "YouTube API error");
-  }
-  return data;
-}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -31,40 +22,22 @@ serve(async (req) => {
       );
     }
 
-    const keys = [
-      Deno.env.get('YOUTUBE_API_KEY'),
-      Deno.env.get('YOUTUBE_API_KEY_2'),
-    ].filter(Boolean) as string[];
+    const keys = getYouTubeApiKeys();
+    console.log(`Searching YouTube for: ${query} using ${keys.length} API keys`);
 
-    if (keys.length === 0) {
+    const result = await fetchYouTubeWithFailover(
+      keys,
+      (apiKey) => `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&key=${apiKey}`,
+    );
+
+    if (!result.ok) {
       return new Response(
-        JSON.stringify({ error: 'YouTube API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: result.error }),
+        { status: result.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Searching YouTube for: ${query}`);
-
-    let data;
-    let lastError;
-    for (const key of keys) {
-      try {
-        data = await searchWithKey(key, query);
-        break;
-      } catch (err) {
-        lastError = err;
-        console.warn(`Key failed, trying next: ${err.message}`);
-      }
-    }
-
-    if (!data) {
-      return new Response(
-        JSON.stringify({ error: lastError?.message || 'All API keys exhausted' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const results = (data.items || []).map((item: any) => ({
+    const results = (result.data.items || []).map((item: any) => ({
       id: item.id.videoId,
       title: item.snippet.title,
       thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
