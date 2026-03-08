@@ -328,6 +328,32 @@ const Settings = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Reset Genre Preferences */}
+              <div className="border-t border-border pt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-foreground text-sm md:text-base">Genre Preferences</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Reset your genre selections and re-pick your favorites</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (!user) return;
+                      await supabase.from('user_preferences').upsert(
+                        { user_id: user.id, genres: [], onboarding_complete: false },
+                        { onConflict: 'user_id' }
+                      );
+                      toast.success('Genre preferences reset! Pick new genres on the home page.');
+                      navigate('/');
+                    }}
+                    className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset Genres
+                  </Button>
+                </div>
+              </div>
             </div>
           </section>
 
