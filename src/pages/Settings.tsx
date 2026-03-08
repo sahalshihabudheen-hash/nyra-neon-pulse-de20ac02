@@ -51,20 +51,23 @@ const Settings = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [displayNameSaving, setDisplayNameSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load avatar
+  // Load avatar and display name
   useEffect(() => {
     if (!user) return;
-    const loadAvatar = async () => {
+    const loadProfile = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('avatar_url')
+        .select('avatar_url, display_name')
         .eq('user_id', user.id)
         .maybeSingle();
       if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+      if (data?.display_name) setDisplayName(data.display_name);
     };
-    loadAvatar();
+    loadProfile();
   }, [user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,6 +130,25 @@ const Settings = () => {
       toast.error(err.message || 'Failed to change password');
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleSaveUsername = async () => {
+    if (!user || !displayName.trim()) {
+      toast.error('Username cannot be empty');
+      return;
+    }
+    setDisplayNameSaving(true);
+    try {
+      await supabase.from('profiles').upsert(
+        { user_id: user.id, display_name: displayName.trim(), updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
+      toast.success('Username saved!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save username');
+    } finally {
+      setDisplayNameSaving(false);
     }
   };
 
@@ -210,7 +232,31 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* Change Password */}
+              {/* Username */}
+              <div className="border-t border-border pt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-foreground text-sm md:text-base">Username</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Set a display name visible to others</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Enter your username"
+                    className="flex-1 px-4 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <Button
+                    onClick={handleSaveUsername}
+                    disabled={displayNameSaving}
+                    className="active:scale-95 touch-manipulation"
+                  >
+                    {displayNameSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                  </Button>
+                </div>
+              </div>
               <div className="border-t border-border pt-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
