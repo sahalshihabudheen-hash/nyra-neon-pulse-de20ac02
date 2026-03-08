@@ -56,6 +56,8 @@ const MusicPlayer = ({
   audioRef,
   shuffleMode = false,
   onToggleShuffle,
+  loopMode = 'off',
+  onCycleLoopMode,
   queue = [],
   onRemoveFromQueue,
   onPlayFromQueue,
