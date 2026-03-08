@@ -909,24 +909,24 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary" />
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
-            <div>
-              <h1 className="font-bold text-lg">Admin Dashboard</h1>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <div className="min-w-0">
+              <h1 className="font-bold text-sm sm:text-lg truncate">Admin Dashboard</h1>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to App
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => navigate('/')} className="h-8 px-2 sm:px-3">
+              <ArrowLeft className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back to App</span>
             </Button>
-            <Button variant="destructive" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
+            <Button variant="destructive" size="sm" onClick={handleSignOut} className="h-8 px-2 sm:px-3">
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
