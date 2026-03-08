@@ -490,6 +490,8 @@ const PlaylistView = () => {
           audioRef={audioRef}
           shuffleMode={shuffleMode}
           onToggleShuffle={toggleShuffle}
+          loopMode={loopMode}
+          onCycleLoopMode={cycleLoopMode}
           queue={queue}
           onRemoveFromQueue={removeFromQueue}
         />
