@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend } from 'lucide-react';
+import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
@@ -11,7 +11,8 @@ import SettingsSoundwave from '@/components/SettingsSoundwave';
 import SoundwaveVisualizer, { SoundwaveShape } from '@/components/SoundwaveVisualizer';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const themePreview: Record<ThemeName, { label: string; color: string }> = {
   yellow: { label: 'Neon Yellow', color: 'hsl(50 100% 50%)' },
