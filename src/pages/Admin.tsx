@@ -1611,7 +1611,7 @@ const Admin = () => {
                                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                                     isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
                                   }`}>
-                                    {bk.message} • {priorityLabel}
+                                    {priorityLabel} • Standby
                                   </span>
                                 </div>
                                 <Button
