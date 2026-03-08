@@ -251,6 +251,48 @@ const Admin = () => {
     navigate('/');
   };
 
+  const copyPlaylistToAdmin = async (playlist: PlaylistWithItems) => {
+    try {
+      if (!user) return;
+      
+      // Create a new playlist for the admin
+      const { data: newPlaylist, error: createError } = await supabase
+        .from('playlists')
+        .insert({
+          user_id: user.id,
+          name: `${playlist.name} (from ${playlist.user_email})`,
+          description: playlist.description || `Copied from ${playlist.user_email}`,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      // Copy all playlist items
+      if (playlist.playlist_items.length > 0) {
+        const items = playlist.playlist_items.map((item, index) => ({
+          playlist_id: newPlaylist.id,
+          track_id: item.track_id,
+          track_title: item.track_title,
+          track_thumbnail: item.track_thumbnail,
+          track_channel: item.track_channel,
+          position: index,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('playlist_items')
+          .insert(items);
+
+        if (itemsError) throw itemsError;
+      }
+
+      toast.success(`Playlist "${playlist.name}" copied to your account!`);
+    } catch (err: any) {
+      console.error('Error copying playlist:', err);
+      toast.error('Failed to copy playlist');
+    }
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString('en-US', {
