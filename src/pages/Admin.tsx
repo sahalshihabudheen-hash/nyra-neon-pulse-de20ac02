@@ -1484,7 +1484,7 @@ const Admin = () => {
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                   isDisabled
                                     ? 'bg-muted/20 text-muted-foreground'
@@ -1500,6 +1500,16 @@ const Admin = () => {
                                   checked={isEnabled}
                                   onCheckedChange={(checked) => toggleYoutubeKey(keyInfo.key, checked)}
                                 />
+                                {keyInfo.deletable && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deletePrimaryKey(keyInfo.key)}
+                                    className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             {isQuota && (
