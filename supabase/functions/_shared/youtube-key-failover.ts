@@ -149,10 +149,7 @@ export async function fetchYouTubeWithFailover(
 
   for (const [index, apiKey] of keys.entries()) {
 
-  let lastError = "All API keys exhausted";
-  let lastStatus = 403;
-
-  for (const [index, apiKey] of rotatedKeys.entries()) {
+  for (const [index, apiKey] of keys.entries()) {
     try {
       const response = await fetch(buildUrl(apiKey));
       const data = await response.json().catch(() => ({}));
