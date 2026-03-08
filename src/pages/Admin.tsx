@@ -9,8 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Copy, KeyRound } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Copy, KeyRound, Wrench, X, Plus } from 'lucide-react';
+import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
 
@@ -102,6 +104,10 @@ const Admin = () => {
   const [resetTargetUser, setResetTargetUser] = useState<AdminUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Maintenance mode
+  const { maintenance, toggleMaintenance, updateAllowedEmails } = useMaintenanceMode();
+  const [allowedEmailInput, setAllowedEmailInput] = useState('');
 
   // Check if current user is admin
   useEffect(() => {
@@ -472,7 +478,7 @@ const Admin = () => {
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-lg">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Users</span>
@@ -492,6 +498,13 @@ const Admin = () => {
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded-full">
                   {activeGamersCount}
                 </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className="flex items-center gap-2">
+              <Wrench className="w-4 h-4" />
+              <span className="hidden sm:inline">Maintenance</span>
+              {maintenance.enabled && (
+                <span className="ml-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
               )}
             </TabsTrigger>
           </TabsList>
@@ -861,6 +874,144 @@ const Admin = () => {
                     </div>
                   )}
                 </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Maintenance Tab */}
+          <TabsContent value="maintenance">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Wrench className="w-5 h-5 text-primary" />
+                    <div>
+                      <CardTitle>Maintenance Mode</CardTitle>
+                      <CardDescription>
+                        Enable maintenance mode to restrict access to selected users only
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-medium ${maintenance.enabled ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {maintenance.enabled ? 'ACTIVE' : 'Off'}
+                    </span>
+                    <Switch
+                      checked={maintenance.enabled}
+                      onCheckedChange={async (checked) => {
+                        try {
+                          await toggleMaintenance(checked);
+                          toast.success(checked ? 'Maintenance mode enabled' : 'Maintenance mode disabled');
+                        } catch {
+                          toast.error('Failed to toggle maintenance mode');
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {maintenance.enabled && (
+                  <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5">
+                    <p className="text-sm text-destructive font-medium mb-1">⚠️ Maintenance mode is active</p>
+                    <p className="text-xs text-muted-foreground">
+                      Only users listed below can access the app. Everyone else sees the maintenance page.
+                      Admin dashboard (/admin) is always accessible.
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="font-semibold mb-3">Allowed Users</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    These users can access the app even during maintenance mode.
+                  </p>
+
+                  {/* Add email input */}
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      placeholder="Enter email to whitelist..."
+                      value={allowedEmailInput}
+                      onChange={(e) => setAllowedEmailInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && allowedEmailInput.trim()) {
+                          const email = allowedEmailInput.trim();
+                          if (!maintenance.allowed_emails.includes(email)) {
+                            updateAllowedEmails([...maintenance.allowed_emails, email]);
+                            toast.success(`${email} added to whitelist`);
+                          }
+                          setAllowedEmailInput('');
+                        }
+                      }}
+                    />
+                    <Button
+                      onClick={() => {
+                        const email = allowedEmailInput.trim();
+                        if (email && !maintenance.allowed_emails.includes(email)) {
+                          updateAllowedEmails([...maintenance.allowed_emails, email]);
+                          toast.success(`${email} added to whitelist`);
+                        }
+                        setAllowedEmailInput('');
+                      }}
+                      disabled={!allowedEmailInput.trim()}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+
+                  {/* Quick add from existing users */}
+                  {users.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-xs text-muted-foreground mb-2">Quick add from registered users:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {users
+                          .filter(u => !maintenance.allowed_emails.includes(u.email))
+                          .slice(0, 10)
+                          .map(u => (
+                            <button
+                              key={u.id}
+                              onClick={() => {
+                                updateAllowedEmails([...maintenance.allowed_emails, u.email]);
+                                toast.success(`${u.email} added to whitelist`);
+                              }}
+                              className="px-2 py-1 text-xs rounded-full bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+                            >
+                              + {u.email}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Whitelisted emails */}
+                  {maintenance.allowed_emails.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic py-4 text-center">
+                      No users whitelisted yet. Add emails above.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {maintenance.allowed_emails.map((email) => (
+                        <div
+                          key={email}
+                          className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                        >
+                          <span className="text-sm font-medium">{email}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              updateAllowedEmails(maintenance.allowed_emails.filter(e => e !== email));
+                              toast.success(`${email} removed from whitelist`);
+                            }}
+                          >
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
