@@ -322,7 +322,27 @@ const Admin = () => {
     }
   };
 
-  const addBackupKey = async () => {
+  const deletePrimaryKey = async (keyName: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_key', keyName }),
+        }
+      );
+      if (response.ok) {
+        toast.success(`${keyName} removed`);
+        fetchYoutubeKeyStatus();
+      }
+    } catch (err) {
+      toast.error('Failed to delete key');
+    }
+  };
+
     if (!newBackupKeyValue.trim()) { toast.error('Please enter an API key'); return; }
     setAddingBackupKey(true);
     try {
