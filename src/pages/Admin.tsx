@@ -670,6 +670,71 @@ const Admin = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Filter Bar */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, location, ISP..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 h-9"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Status filter */}
+                    {(['all', 'online', 'offline'] as const).map((s) => (
+                      <Button
+                        key={s}
+                        size="sm"
+                        variant={statusFilter === s ? 'default' : 'outline'}
+                        className="h-8 text-xs capitalize"
+                        onClick={() => setStatusFilter(s)}
+                      >
+                        {s === 'online' && <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500 mr-1" />}
+                        {s === 'offline' && <Circle className="w-2 h-2 fill-muted-foreground text-muted-foreground mr-1" />}
+                        {s === 'all' ? `All (${users.length})` : s === 'online' ? `Online (${onlineCount})` : `Offline (${users.length - onlineCount})`}
+                      </Button>
+                    ))}
+                    {/* Device filter */}
+                    {(['all', 'Phone', 'Desktop PC', 'Laptop', 'Tablet', 'Smartwatch'] as const).map((d) => {
+                      const icon = d === 'Phone' ? <Smartphone className="w-3 h-3 mr-1" /> 
+                        : d === 'Tablet' ? <Tablet className="w-3 h-3 mr-1" />
+                        : d === 'Laptop' ? <Laptop className="w-3 h-3 mr-1" />
+                        : d === 'Smartwatch' ? <Watch className="w-3 h-3 mr-1" />
+                        : d === 'Desktop PC' ? <Monitor className="w-3 h-3 mr-1" />
+                        : null;
+                      if (d === 'all') return null;
+                      const count = users.filter(u => u.location?.device_type === d).length;
+                      if (count === 0) return null;
+                      return (
+                        <Button
+                          key={d}
+                          size="sm"
+                          variant={deviceFilter === d ? 'default' : 'outline'}
+                          className="h-8 text-xs"
+                          onClick={() => setDeviceFilter(deviceFilter === d ? 'all' : d)}
+                        >
+                          {icon}{d} ({count})
+                        </Button>
+                      );
+                    })}
+                    {/* VPN filter */}
+                    <Button
+                      size="sm"
+                      variant={vpnFilter === 'vpn' ? 'destructive' : 'outline'}
+                      className="h-8 text-xs"
+                      onClick={() => setVpnFilter(vpnFilter === 'vpn' ? 'all' : 'vpn')}
+                    >
+                      <ShieldAlert className="w-3 h-3 mr-1" />
+                      VPN ({users.filter(u => isLikelyVpn(u)).length})
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Showing {filteredUsers.length} of {users.length} users
+                </p>
+
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -677,10 +742,10 @@ const Admin = () => {
                 ) : (
                   <ScrollArea className="h-[600px]">
                     <div className="space-y-3">
-                      {users.length === 0 ? (
+                      {filteredUsers.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">No users found</div>
                       ) : (
-                        users.map((u) => {
+                        filteredUsers.map((u) => {
                           const online = isUserOnline(u);
                           return (
                             <div
