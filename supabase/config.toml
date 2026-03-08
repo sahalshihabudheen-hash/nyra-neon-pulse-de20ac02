@@ -33,3 +33,6 @@ verify_jwt = false
 [functions.ai-mood-dj]
 verify_jwt = false
 
+[functions.check-youtube-keys]
+verify_jwt = false
+
