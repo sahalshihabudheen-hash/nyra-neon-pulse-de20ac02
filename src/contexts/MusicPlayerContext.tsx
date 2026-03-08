@@ -457,6 +457,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       handleRemoveFromPlaylist, handleClearPlaylist,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
       shuffleMode, toggleShuffle,
+      loopMode, cycleLoopMode,
       isFavorite, toggleFavorite,
       tracks, setTracks,
       showMiniPlayer, setShowMiniPlayer,
