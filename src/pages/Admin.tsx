@@ -1758,22 +1758,22 @@ const Admin = () => {
                                     : 'border-muted/30 bg-muted/5'
                                 }`}
                               >
-                                <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground font-mono font-bold">
                                     #{index + 1}
                                   </span>
                                   {isInUse ? (
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
                                   ) : (
-                                    <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                    <Circle className={`w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                                   )}
-                                  <span className="font-mono font-semibold text-sm">{bk.key}</span>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                  <span className="font-mono font-semibold text-xs sm:text-sm truncate">{bk.key}</span>
+                                  <span className={`text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                                     isInUse 
                                       ? 'bg-green-500/20 text-green-500 animate-pulse'
                                       : isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
                                   }`}>
-                                    {isInUse ? `● ${priorityLabel} • In Use` : `${priorityLabel} • Standby`}
+                                    {isInUse ? `● ${priorityLabel}` : `${priorityLabel}`}
                                   </span>
                                 </div>
                                 <Button
