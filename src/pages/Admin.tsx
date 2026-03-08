@@ -643,9 +643,20 @@ const Admin = () => {
                                 by {playlist.user_email} • {playlist.playlist_items.length} tracks
                               </p>
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(playlist.created_at)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyPlaylistToAdmin(playlist)}
+                                className="flex items-center gap-1.5"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                                Copy to Mine
+                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(playlist.created_at)}
+                              </span>
+                            </div>
                           </div>
                           {playlist.playlist_items.length > 0 && (
                             <div className="flex gap-2 overflow-x-auto pb-2">
