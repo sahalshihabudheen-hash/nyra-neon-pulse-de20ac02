@@ -1,5 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
+
 export function getYouTubeApiKeysFromEnv(): string[] {
   const env = Deno.env.toObject();
 
@@ -20,8 +26,36 @@ export function getYouTubeApiKeysFromEnv(): string[] {
   return [...new Set(keys)];
 }
 
-// Keep backward compat alias
-export const getYouTubeApiKeys = getYouTubeApiKeysFromEnv;
+/**
+ * Get enabled YouTube API keys (filters out disabled keys from app_settings).
+ * This is the function search/trending/featured should use.
+ */
+export async function getEnabledYouTubeApiKeys(): Promise<string[]> {
+  const allKeys = await getAllYouTubeApiKeys();
+
+  // Fetch disabled keys list
+  let disabledLabels: string[] = [];
+  try {
+    const supabase = getSupabaseClient();
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "disabled_youtube_keys")
+      .single();
+    if (data?.value && Array.isArray(data.value)) {
+      disabledLabels = data.value as string[];
+    }
+  } catch {
+    // If we can't read disabled list, use all keys
+  }
+
+  return allKeys
+    .filter((k) => !disabledLabels.includes(k.label))
+    .map((k) => k.value);
+}
+
+// Keep backward compat alias — now returns enabled keys only
+export const getYouTubeApiKeys = getEnabledYouTubeApiKeys;
 
 export interface NamedKey {
   label: string;
