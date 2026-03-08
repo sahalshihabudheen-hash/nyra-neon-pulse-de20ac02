@@ -49,6 +49,9 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
 
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
+        if (!data?.lyrics || data.lyrics === 'LYRICS_NOT_FOUND') {
+          throw new Error('Exact lyrics not found for this track');
+        }
 
         setLyrics(data.lyrics);
         setSource(data.source || 'ai');
