@@ -436,48 +436,19 @@ const MusicPlayer = ({
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
           {!isMiniMode && (
-            <div className="flex items-center gap-2 mr-2">
-              {/* Lyrics + Playlist tabs */}
-              <div className="flex items-center gap-1 bg-secondary/50 rounded-full p-1 border border-border">
-                <button
-                  onClick={() => setLyricsOpen(!lyricsOpen)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95',
-                    lyricsOpen
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <Music2 className="w-3.5 h-3.5" />
-                  <span>Lyrics</span>
-                </button>
-                <button
-                  onClick={() => setPlaylistOpen(!playlistOpen)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95',
-                    playlistOpen
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <ListPlus className="w-3.5 h-3.5" />
-                  <span>Playlist</span>
-                </button>
-              </div>
-              {/* Hidden PlaylistDrawer trigger for desktop */}
-              <div className="hidden">
-                <PlaylistDrawer
-                  playlist={playlist}
-                  currentTrack={currentTrack}
-                  onPlayTrack={onPlayFromPlaylist || (() => {})}
-                  onRemoveTrack={onRemoveFromPlaylist || (() => {})}
-                  onClearPlaylist={onClearPlaylist || (() => {})}
-                  isOpen={playlistOpen}
-                  onOpenChange={setPlaylistOpen}
-                  isPlaying={isPlaying}
-                  onReorderPlaylist={onReorderPlaylist}
-                />
-              </div>
+            <div className="flex items-center mr-2">
+              <button
+                onClick={() => setLyricsOpen(!lyricsOpen)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 border',
+                  lyricsOpen
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50 hover:bg-secondary'
+                )}
+              >
+                <Music2 className="w-3.5 h-3.5" />
+                <span>Lyrics</span>
+              </button>
             </div>
           )}
 
