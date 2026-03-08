@@ -126,6 +126,15 @@ const Index = () => {
             />
           )}
 
+          {/* Recently Played */}
+          {!searchPerformed && (
+            <RecentlyPlayedSection
+              onPlayTrack={handlePlayTrack}
+              currentTrack={currentTrack}
+              isPlaying={isPlaying}
+            />
+          )}
+
           {/* Trending Section */}
           {!searchPerformed && (
             <TrendingSection 
