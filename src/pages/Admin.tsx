@@ -474,6 +474,25 @@ const Admin = () => {
                                   </span>
                                 )}
                               </TableCell>
+                              <TableCell>
+                                {u.location?.device_type ? (
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-1.5">
+                                      {u.location.device_type === 'Phone' ? (
+                                        <Smartphone className="w-3 h-3 text-primary" />
+                                      ) : (
+                                        <Monitor className="w-3 h-3 text-primary" />
+                                      )}
+                                      <span className="text-sm font-medium">{u.location.device_type}</span>
+                                    </div>
+                                    {u.location.device_info && (
+                                      <p className="text-xs text-muted-foreground">{u.location.device_info}</p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Unknown</span>
+                                )}
+                              </TableCell>
                               <TableCell>{formatDate(u.created_at)}</TableCell>
                               <TableCell>{formatDate(u.last_sign_in_at)}</TableCell>
                               <TableCell>
