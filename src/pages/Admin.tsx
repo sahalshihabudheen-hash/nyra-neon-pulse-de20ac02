@@ -478,7 +478,7 @@ const Admin = () => {
       {/* Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-lg">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Users</span>
@@ -498,6 +498,13 @@ const Admin = () => {
                 <span className="ml-1 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded-full">
                   {activeGamersCount}
                 </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="maintenance" className="flex items-center gap-2">
+              <Wrench className="w-4 h-4" />
+              <span className="hidden sm:inline">Maintenance</span>
+              {maintenance.enabled && (
+                <span className="ml-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
               )}
             </TabsTrigger>
           </TabsList>
