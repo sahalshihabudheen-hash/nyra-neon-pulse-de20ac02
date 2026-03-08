@@ -512,3 +512,11 @@ input[type="range"]::-moz-range-thumb:active {
   background: linear-gradient(to left, hsl(0 0% 4%), transparent);
   pointer-events: none;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
