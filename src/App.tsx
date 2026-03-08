@@ -20,7 +20,7 @@ import Favorites from "./pages/Favorites";
 import Admin from "./pages/Admin";
 import Games from "./pages/Games";
 import AiDj from "./pages/AiDj";
-import AiMusicGenerator from "./pages/AiMusicGenerator";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
