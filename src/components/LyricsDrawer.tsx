@@ -130,12 +130,27 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
             )}
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {lyrics && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(lyrics);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center transition-colors"
+              title="Copy lyrics"
+            >
+              {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Track info */}
