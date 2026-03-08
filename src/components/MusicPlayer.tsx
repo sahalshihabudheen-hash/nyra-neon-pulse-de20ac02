@@ -572,6 +572,17 @@ const MusicPlayer = ({
             </div>
           </div>
         )}
+
+        {/* Equalizer Panel - floating above player */}
+        {showEQ && audioRef && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 z-50">
+            <EqualizerPanel
+              audioRef={audioRef}
+              isOpen={showEQ}
+              onClose={() => setShowEQ(false)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Hidden YouTube Player Container */}
