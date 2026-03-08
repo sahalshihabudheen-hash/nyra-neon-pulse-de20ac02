@@ -3,6 +3,7 @@ import { TrendingUp, Play, ListPlus, ChevronLeft, ChevronRight, Heart, Pause, Fl
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import { famousSongs } from '@/data/famousSongs';
 
 interface Track {
   id: string;
@@ -68,7 +69,8 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
           setTrendingTracks(fallbackResults.slice(0, 20));
         }
       } catch {
-        setTrendingTracks([]);
+        // Use famous songs as fallback when all APIs fail
+        setTrendingTracks(famousSongs.slice(0, 12));
       }
     } finally {
       setLoading(false);

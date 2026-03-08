@@ -3,6 +3,7 @@ import { Play, Pause, Heart, ListPlus, ChevronLeft, ChevronRight, MapPin, Music2
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import { famousSongs } from '@/data/famousSongs';
 
 interface Track {
   id: string;
@@ -58,7 +59,9 @@ const PersonalizedSection = ({
       setTracks(data.slice(0, 12));
     } catch (err) {
       console.error('Personalized fetch error:', err);
-      setTracks([]);
+      // Use shuffled famous songs as fallback
+      const shuffled = [...famousSongs].sort(() => Math.random() - 0.5);
+      setTracks(shuffled.slice(0, 8));
     } finally {
       setLoading(false);
     }
