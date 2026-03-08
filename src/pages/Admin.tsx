@@ -125,6 +125,7 @@ const Admin = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
   const [deviceFilter, setDeviceFilter] = useState<'all' | 'Phone' | 'Desktop PC' | 'Laptop' | 'Tablet' | 'Smartwatch'>('all');
   const [vpnFilter, setVpnFilter] = useState<'all' | 'vpn' | 'no-vpn'>('all');
+  const [countryFilter, setCountryFilter] = useState<string>('all');
 
   const handleToggleAdminRole = async (targetUser: AdminUser) => {
     const isCurrentlyAdmin = targetUser.roles.includes('admin');
