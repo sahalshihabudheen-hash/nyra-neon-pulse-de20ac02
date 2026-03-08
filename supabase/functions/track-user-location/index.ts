@@ -12,7 +12,6 @@ function parseUserAgent(ua: string): { deviceType: string; deviceInfo: string } 
   let deviceType = "Desktop";
   let deviceInfo = "";
 
-  // Detect mobile devices
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(ua);
   const isTablet = /iPad|Android(?!.*Mobile)|Tablet/i.test(ua);
 
@@ -25,18 +24,103 @@ function parseUserAgent(ua: string): { deviceType: string; deviceInfo: string } 
   // Extract device model
   const iphoneMatch = ua.match(/iPhone/);
   const ipadMatch = ua.match(/iPad/);
-  const androidMatch = ua.match(/Android\s[\d.]+;\s*([^;)]+)/);
+  // Match Android device: "Android X.X; MODEL" or "Android X.X; xx-xx; MODEL"
+  const androidMatch = ua.match(/Android\s[\d.]+;\s*(?:[a-z]{2}-[a-z]{2};\s*)?([^;)]+)/i);
   const macMatch = ua.match(/Macintosh/);
   const windowsMatch = ua.match(/Windows NT ([\d.]+)/);
   const linuxMatch = ua.match(/Linux/);
   const chromeOsMatch = ua.match(/CrOS/);
 
   if (iphoneMatch) {
+    // Try to get iOS version for rough model mapping
+    const iosVersion = ua.match(/iPhone OS (\d+)/);
     deviceInfo = "iPhone";
+    if (iosVersion) {
+      const ver = parseInt(iosVersion[1]);
+      if (ver >= 18) deviceInfo = "iPhone (iOS 18+)";
+      else if (ver >= 17) deviceInfo = "iPhone (iOS 17)";
+      else if (ver >= 16) deviceInfo = "iPhone (iOS 16)";
+      else deviceInfo = `iPhone (iOS ${ver})`;
+    }
   } else if (ipadMatch) {
     deviceInfo = "iPad";
   } else if (androidMatch) {
-    deviceInfo = androidMatch[1].trim();
+    let model = androidMatch[1].trim();
+    // Remove "Build/" suffix if present
+    model = model.replace(/\s*Build\/.*$/i, "").trim();
+    
+    // Map common manufacturer codes to friendly names
+    const brandMap: [RegExp, string][] = [
+      [/^SM-[A-Z]\d/i, "Samsung"],
+      [/^Galaxy/i, "Samsung"],
+      [/^Pixel/i, "Google Pixel"],
+      [/^M\d{4}/i, "Xiaomi"],
+      [/^Redmi/i, "Xiaomi Redmi"],
+      [/^POCO/i, "Xiaomi POCO"],
+      [/^Mi\s/i, "Xiaomi"],
+      [/^2\d{3}[A-Z]/i, "Xiaomi"],
+      [/^V\d{4}/i, "Vivo"],
+      [/^vivo/i, "Vivo"],
+      [/^CPH\d/i, "Oppo"],
+      [/^OPPO/i, "Oppo"],
+      [/^RMX\d/i, "Realme"],
+      [/^realme/i, "Realme"],
+      [/^IN\d{4}/i, "Micromax"],
+      [/^LE\d/i, "Lenovo"],
+      [/^Lenovo/i, "Lenovo"],
+      [/^moto/i, "Motorola"],
+      [/^Nokia/i, "Nokia"],
+      [/^ASUS/i, "Asus"],
+      [/^OnePlus/i, "OnePlus"],
+      [/^KB\d/i, "OnePlus"],
+      [/^LM-/i, "LG"],
+      [/^Infinix/i, "Infinix"],
+      [/^TECNO/i, "Tecno"],
+      [/^itel/i, "Itel"],
+      [/^HUAWEI/i, "Huawei"],
+      [/^Honor/i, "Honor"],
+      [/^Nothing/i, "Nothing"],
+    ];
+
+    let brand = "";
+    for (const [pattern, name] of brandMap) {
+      if (pattern.test(model)) {
+        brand = name;
+        break;
+      }
+    }
+
+    // Samsung model name mapping for common codes
+    if (brand === "Samsung" && /^SM-/i.test(model)) {
+      const samsungModels: Record<string, string> = {
+        "SM-A546": "Galaxy A54", "SM-A556": "Galaxy A55", "SM-A356": "Galaxy A35",
+        "SM-A256": "Galaxy A25", "SM-A156": "Galaxy A15", "SM-A057": "Galaxy A05s",
+        "SM-S928": "Galaxy S24 Ultra", "SM-S926": "Galaxy S24+", "SM-S921": "Galaxy S24",
+        "SM-S918": "Galaxy S23 Ultra", "SM-S916": "Galaxy S23+", "SM-S911": "Galaxy S23",
+        "SM-S908": "Galaxy S22 Ultra", "SM-S906": "Galaxy S22+", "SM-S901": "Galaxy S22",
+        "SM-G991": "Galaxy S21", "SM-G996": "Galaxy S21+", "SM-G998": "Galaxy S21 Ultra",
+        "SM-F946": "Galaxy Z Fold5", "SM-F731": "Galaxy Z Flip5",
+        "SM-F956": "Galaxy Z Fold6", "SM-F741": "Galaxy Z Flip6",
+        "SM-M346": "Galaxy M34", "SM-M546": "Galaxy M54", "SM-M156": "Galaxy M15",
+        "SM-A155": "Galaxy A15", "SM-A346": "Galaxy A34", "SM-A536": "Galaxy A53",
+      };
+      const prefix = model.substring(0, 6).toUpperCase();
+      const friendly = samsungModels[prefix];
+      if (friendly) {
+        deviceInfo = `Samsung ${friendly}`;
+      } else {
+        deviceInfo = `Samsung ${model}`;
+      }
+    } else if (brand) {
+      // For known brands, show "Brand Model"
+      if (model.toLowerCase().startsWith(brand.toLowerCase().split(" ")[0].toLowerCase())) {
+        deviceInfo = model; // Already has brand name
+      } else {
+        deviceInfo = `${brand} ${model}`;
+      }
+    } else {
+      deviceInfo = model || "Android Device";
+    }
   } else if (macMatch) {
     deviceInfo = "Mac";
   } else if (windowsMatch) {
@@ -56,9 +140,17 @@ function parseUserAgent(ua: string): { deviceType: string; deviceInfo: string } 
   const chromeMatch = ua.match(/Chrome\/([\d.]+)/);
   const firefoxMatch = ua.match(/Firefox\/([\d.]+)/);
   const safariMatch = ua.match(/Safari\/([\d.]+)/) && !chromeMatch;
+  const operaMatch = ua.match(/OPR\//);
+  const samsungBrowser = ua.match(/SamsungBrowser/);
+  const ucBrowser = ua.match(/UCBrowser/);
+  const miBrowser = ua.match(/MiuiBrowser/);
 
   let browser = "";
-  if (braveMatch) browser = "Brave";
+  if (samsungBrowser) browser = "Samsung Browser";
+  else if (ucBrowser) browser = "UC Browser";
+  else if (miBrowser) browser = "Mi Browser";
+  else if (operaMatch) browser = "Opera";
+  else if (braveMatch) browser = "Brave";
   else if (edgeMatch) browser = "Edge";
   else if (firefoxMatch) browser = "Firefox";
   else if (chromeMatch) browser = "Chrome";
