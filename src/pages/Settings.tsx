@@ -232,7 +232,31 @@ const Settings = () => {
                 </div>
               </div>
 
-              {/* Change Password */}
+              {/* Username */}
+              <div className="border-t border-border pt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-foreground text-sm md:text-base">Username</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Set a display name visible to others</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Enter your username"
+                    className="flex-1 px-4 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <Button
+                    onClick={handleSaveUsername}
+                    disabled={displayNameSaving}
+                    className="active:scale-95 touch-manipulation"
+                  >
+                    {displayNameSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                  </Button>
+                </div>
+              </div>
               <div className="border-t border-border pt-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
