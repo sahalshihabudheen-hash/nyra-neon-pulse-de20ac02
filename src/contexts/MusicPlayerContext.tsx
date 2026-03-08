@@ -44,6 +44,8 @@ interface MusicPlayerContextType {
   reorderPlaylist: (startIndex: number, endIndex: number) => void;
   shuffleMode: boolean;
   toggleShuffle: () => void;
+  loopMode: 'off' | 'all' | 'one';
+  cycleLoopMode: () => void;
 
   // Favorites
   isFavorite: (trackId: string) => boolean;
