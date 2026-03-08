@@ -32,6 +32,8 @@ interface MusicPlayerProps {
   audioRef?: React.MutableRefObject<HTMLAudioElement | null>;
   shuffleMode?: boolean;
   onToggleShuffle?: () => void;
+  loopMode?: 'off' | 'all' | 'one';
+  onCycleLoopMode?: () => void;
   queue?: Track[];
   onRemoveFromQueue?: (trackId: string) => void;
   onPlayFromQueue?: (track: Track) => void;
@@ -54,6 +56,8 @@ const MusicPlayer = ({
   audioRef,
   shuffleMode = false,
   onToggleShuffle,
+  loopMode = 'off',
+  onCycleLoopMode,
   queue = [],
   onRemoveFromQueue,
   onPlayFromQueue,
@@ -304,18 +308,7 @@ const MusicPlayer = ({
           isMiniMode ? '' : 'flex-1 w-full'
         )}>
           <div className="flex items-center gap-1 md:gap-3">
-            {!isMiniMode && (
-              <button 
-                onClick={onToggleShuffle}
-                className={cn(
-                  'w-9 h-9 md:w-8 md:h-8 flex items-center justify-center transition-colors rounded-full active:scale-90 touch-manipulation',
-                  shuffleMode ? 'text-primary bg-primary/20' : 'text-muted-foreground hover:text-primary'
-                )}
-                title={shuffleMode ? 'Shuffle On' : 'Shuffle Off'}
-              >
-                <Shuffle className="w-4 h-4" />
-              </button>
-            )}
+            {/* Shuffle & Loop removed from homepage player - only in playlist/fullscreen */}
             <button
               onClick={onPrevious}
               className="w-10 h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-90 touch-manipulation"
@@ -376,11 +369,7 @@ const MusicPlayer = ({
             >
               <SkipForward className="w-5 h-5" fill="currentColor" />
             </button>
-            {!isMiniMode && (
-              <button className="w-9 h-9 md:w-8 md:h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors active:scale-90 rounded-full touch-manipulation">
-                <Repeat className="w-4 h-4" />
-              </button>
-            )}
+            {/* Loop button removed from homepage player */}
           </div>
 
           {/* Progress Bar - ALWAYS VISIBLE */}
@@ -604,6 +593,8 @@ const MusicPlayer = ({
         onPrevious={onPrevious}
         shuffleMode={shuffleMode}
         onToggleShuffle={onToggleShuffle}
+        loopMode={loopMode}
+        onCycleLoopMode={onCycleLoopMode}
         queue={queue}
         onRemoveFromQueue={onRemoveFromQueue}
         onPlayFromQueue={onPlayFromQueue}

@@ -44,6 +44,8 @@ interface MusicPlayerContextType {
   reorderPlaylist: (startIndex: number, endIndex: number) => void;
   shuffleMode: boolean;
   toggleShuffle: () => void;
+  loopMode: 'off' | 'all' | 'one';
+  cycleLoopMode: () => void;
 
   // Favorites
   isFavorite: (trackId: string) => boolean;
@@ -76,6 +78,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
   const [ytApiReady, setYtApiReady] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+  const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
+    return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
+  });
 
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -286,7 +291,27 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     } catch {}
   }, [isPlaying]);
 
+  const cycleLoopMode = useCallback(() => {
+    setLoopMode(prev => {
+      const next = prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off';
+      localStorage.setItem('nyra-loop-mode', next);
+      return next;
+    });
+  }, []);
+
   const handleNext = useCallback(() => {
+    // Loop One: replay the same track
+    if (loopMode === 'one' && currentTrack) {
+      if (audioRef.current && audioRef.current.src) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      } else if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.seekTo(0); ytPlayerRef.current.playVideo(); } catch {}
+      }
+      setIsPlaying(true);
+      return;
+    }
+
     const nextFromQueue = getNextFromQueue(playlist);
     if (nextFromQueue) {
       setCurrentTrack(nextFromQueue);
@@ -302,18 +327,35 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         setLastPlayed(nextTrack.id);
         playWithBackgroundAudio(nextTrack.id);
         return;
+      } else if (loopMode === 'all' && playlist.length > 0) {
+        // Loop All: go back to first track in playlist
+        const firstTrack = playlist[0];
+        setCurrentTrack(firstTrack);
+        setLastPlayed(firstTrack.id);
+        playWithBackgroundAudio(firstTrack.id);
+        return;
       } else { setIsPlaying(false); toast.info('Playlist ended'); return; }
     }
     if (tracks.length === 0) return;
     const nextIndex = currentTrackIndex + 1;
-    if (nextIndex >= tracks.length) { setIsPlaying(false); toast.info('End of tracks'); return; }
+    if (nextIndex >= tracks.length) {
+      if (loopMode === 'all') {
+        const firstTrack = tracks[0];
+        setCurrentTrack(firstTrack);
+        setCurrentTrackIndex(0);
+        setLastPlayed(firstTrack.id);
+        playWithBackgroundAudio(firstTrack.id);
+        return;
+      }
+      setIsPlaying(false); toast.info('End of tracks'); return;
+    }
     const nextTrack = tracks[nextIndex];
     setCurrentTrack(nextTrack);
     setCurrentTrackIndex(nextIndex);
     setPlayingFromPlaylist(false);
     setLastPlayed(nextTrack.id);
     playWithBackgroundAudio(nextTrack.id);
-  }, [currentTrackIndex, tracks, playWithBackgroundAudio, playingFromPlaylist, currentTrack, getNextTrack, getNextFromQueue, playlist, setLastPlayed]);
+  }, [currentTrackIndex, tracks, playWithBackgroundAudio, playingFromPlaylist, currentTrack, getNextTrack, getNextFromQueue, playlist, setLastPlayed, loopMode, audioRef, ytPlayerRef]);
 
   useEffect(() => { handleNextRef.current = handleNext; }, [handleNext]);
 
@@ -415,6 +457,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       handleRemoveFromPlaylist, handleClearPlaylist,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
       shuffleMode, toggleShuffle,
+      loopMode, cycleLoopMode,
       isFavorite, toggleFavorite,
       tracks, setTracks,
       showMiniPlayer, setShowMiniPlayer,

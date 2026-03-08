@@ -44,6 +44,7 @@ const PlaylistView = () => {
     handlePlayPause, handlePlayTrack,
     ytPlayerRef, audioRef,
     shuffleMode, toggleShuffle,
+    loopMode, cycleLoopMode,
     queue, removeFromQueue,
   } = useMusicPlayer();
 
@@ -54,7 +55,7 @@ const PlaylistView = () => {
   const [searchResults, setSearchResults] = useState<Track[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState('playlists');
-  const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>('off');
+  
   const [loading, setLoading] = useState(true);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
@@ -208,10 +209,6 @@ const PlaylistView = () => {
       case 'one': return <Repeat1 className="w-5 h-5" />;
       default: return <Repeat className="w-5 h-5" />;
     }
-  };
-
-  const cycleLoopMode = () => {
-    setLoopMode(prev => prev === 'off' ? 'all' : prev === 'all' ? 'one' : 'off');
   };
 
   // Drag and drop handlers
@@ -493,6 +490,8 @@ const PlaylistView = () => {
           audioRef={audioRef}
           shuffleMode={shuffleMode}
           onToggleShuffle={toggleShuffle}
+          loopMode={loopMode}
+          onCycleLoopMode={cycleLoopMode}
           queue={queue}
           onRemoveFromQueue={removeFromQueue}
         />
