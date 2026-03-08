@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SlidersHorizontal, X, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import jarvisAvatar from '@/assets/jarvis-avatar.gif';
 
 interface EqualizerBand {
   frequency: number;
@@ -262,6 +263,19 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
             <span className="text-[10px] text-muted-foreground font-medium">{band.label}</span>
           </div>
         ))}
+      </div>
+
+      {/* Jarvis Coming Soon Message */}
+      <div className="mt-4 flex items-center gap-3 bg-muted/40 rounded-xl px-3 py-2.5 border border-primary/10">
+        <img
+          src={jarvisAvatar}
+          alt="Jarvis"
+          className="w-9 h-9 rounded-full border-2 border-primary/30 flex-shrink-0"
+        />
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <span className="text-primary font-semibold">JARVIS:</span>{' '}
+          I'm adding full equalizer support soon — stay tuned for real-time audio effects! 🎧
+        </p>
       </div>
     </div>
   );
