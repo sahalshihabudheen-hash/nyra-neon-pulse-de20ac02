@@ -1655,7 +1655,7 @@ const Admin = () => {
                                   </p>
                                 </div>
                                 <p className="text-[11px] text-muted-foreground pl-5">
-                                  Resets at your local time: <span className="font-medium">{quotaResetLocalTime}</span>
+                                  Pacific Time now: <span className="font-medium">{pacificCurrentTime}</span> · Resets at your local time: <span className="font-medium">{quotaResetLocalTime}</span>
                                 </p>
                               </div>
                             )}
