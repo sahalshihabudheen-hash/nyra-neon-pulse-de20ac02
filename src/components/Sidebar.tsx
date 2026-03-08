@@ -1,11 +1,12 @@
 import { Home, Search, ListMusic, Heart, Settings, Menu, X, Users, Shield, Gamepad2, Sparkles, AlertTriangle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import nyraLogo from '@/assets/nyra-logo.png';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SidebarProps {
   activeTab: string;
@@ -14,13 +15,22 @@ interface SidebarProps {
 
 const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { gradient } = useTheme();
   const { user } = useAuth();
   const { maintenance } = useMaintenanceMode();
 
-  const isAdmin = user?.email === 'admin@gmail.com';
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) { setIsAdmin(false); return; }
+      if (user.email === 'admin@gmail.com') { setIsAdmin(true); return; }
+      const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      setIsAdmin(!!data);
+    };
+    checkAdmin();
+  }, [user]);
 
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },

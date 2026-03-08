@@ -157,19 +157,29 @@ const Admin = () => {
 
   // Check if current user is admin
   useEffect(() => {
-    if (!authLoading) {
-      if (user && user.email === 'admin@gmail.com') {
+    const checkAdmin = async () => {
+      if (authLoading) return;
+      if (!user) {
+        setIsAdminLoggedIn(false);
+        setLoading(false);
+        return;
+      }
+      if (user.email === 'admin@gmail.com') {
         setIsAdminLoggedIn(true);
         setLoading(false);
-      } else if (user && user.email !== 'admin@gmail.com') {
+        return;
+      }
+      // Check database role
+      const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      if (data) {
+        setIsAdminLoggedIn(true);
+      } else {
         setIsAdminLoggedIn(false);
         setError('Access denied. You are not an admin.');
-        setLoading(false);
-      } else if (!user) {
-        setIsAdminLoggedIn(false);
-        setLoading(false);
       }
-    }
+      setLoading(false);
+    };
+    checkAdmin();
   }, [user, authLoading]);
 
   // Fetch data when admin is logged in
