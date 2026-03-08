@@ -184,39 +184,6 @@ export type Database = {
         }
         Relationships: []
       }
-      lyrics: {
-        Row: {
-          created_at: string
-          id: string
-          lyrics_text: string
-          source: string
-          track_channel: string
-          track_id: string
-          track_title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          lyrics_text: string
-          source?: string
-          track_channel: string
-          track_id: string
-          track_title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          lyrics_text?: string
-          source?: string
-          track_channel?: string
-          track_id?: string
-          track_title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       playlist_items: {
         Row: {
           created_at: string
