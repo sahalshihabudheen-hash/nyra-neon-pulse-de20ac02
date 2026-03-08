@@ -169,7 +169,7 @@ export async function fetchYouTubeWithFailover(
         /quota|limit|rate|key/i.test(reason) ||
         /quota|limit|rate|key/i.test(message);
 
-      console.warn(`YouTube key attempt ${index + 1}/${rotatedKeys.length} failed: ${message}`);
+      console.warn(`YouTube key attempt ${index + 1}/${keys.length} failed: ${message}`);
 
       if (!shouldTryNextKey) {
         return { ok: false, error: message, status: lastStatus };
@@ -178,7 +178,7 @@ export async function fetchYouTubeWithFailover(
       const message = error instanceof Error ? error.message : "Network error";
       lastError = message;
       lastStatus = 500;
-      console.warn(`YouTube key attempt ${index + 1}/${rotatedKeys.length} failed: ${message}`);
+      console.warn(`YouTube key attempt ${index + 1}/${keys.length} failed: ${message}`);
     }
   }
 
