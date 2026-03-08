@@ -78,6 +78,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
   const [ytApiReady, setYtApiReady] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+  const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
+    return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
+  });
 
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
