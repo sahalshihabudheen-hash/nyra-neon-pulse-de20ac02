@@ -203,8 +203,7 @@ serve(async (req) => {
       });
     }
 
-    const { artist, titleVariants: tv } = parseTrackInfo(trackTitle, trackChannel);
-    const songTitle = tv[0] || trackTitle;
+    const songTitle = titleVariants[0] || trackTitle;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
