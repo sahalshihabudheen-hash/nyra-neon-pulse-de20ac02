@@ -617,6 +617,21 @@ const Admin = () => {
                                   </span>
                                 )}
                               </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setResetTargetUser(u);
+                                    setNewPassword('');
+                                    setResetDialogOpen(true);
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs"
+                                >
+                                  <KeyRound className="w-3.5 h-3.5" />
+                                  Reset PW
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))
                         )}
