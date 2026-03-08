@@ -614,13 +614,20 @@ const Admin = () => {
           {/* Users Tab */}
           <TabsContent value="users">
             <Card>
+          <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Users className="w-5 h-5 text-primary" />
                     <div>
                       <CardTitle>Registered Users</CardTitle>
-                      <CardDescription>View all users who have signed up</CardDescription>
+                      <CardDescription className="flex items-center gap-2">
+                        {users.length} total users
+                        <span className="inline-flex items-center gap-1 text-xs">
+                          <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500" />
+                          {onlineCount} online
+                        </span>
+                      </CardDescription>
                     </div>
                   </div>
                   <Button onClick={fetchAllData} variant="outline" disabled={loading}>
@@ -634,150 +641,145 @@ const Admin = () => {
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                         <TableHead>Email</TableHead>
-                          <TableHead>
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              Location
-                            </div>
-                          </TableHead>
-                          <TableHead>
-                            <div className="flex items-center gap-1">
-                              <Smartphone className="w-3 h-3" />
-                              Device
-                            </div>
-                          </TableHead>
-                          <TableHead>Signed Up</TableHead>
-                          <TableHead>Last Sign In</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                              No users found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          users.map((u) => (
-                            <TableRow key={u.id}>
-                              <TableCell className="font-medium">{u.email}</TableCell>
-                              <TableCell>
+                  <ScrollArea className="h-[600px]">
+                    <div className="space-y-3">
+                      {users.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">No users found</div>
+                      ) : (
+                        users.map((u) => {
+                          const online = isUserOnline(u);
+                          return (
+                            <div
+                              key={u.id}
+                              className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors"
+                            >
+                              {/* Online indicator + Email */}
+                              <div className="flex items-center gap-3 min-w-0 sm:w-[220px]">
+                                <div className="relative flex-shrink-0">
+                                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary uppercase">
+                                    {u.email?.[0] || '?'}
+                                  </div>
+                                  <Circle
+                                    className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 ${
+                                      online
+                                        ? 'fill-emerald-500 text-emerald-500'
+                                        : 'fill-muted-foreground/40 text-muted-foreground/40'
+                                    }`}
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{u.email}</p>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {online ? (
+                                      <span className="text-emerald-500 font-medium">Online now</span>
+                                    ) : (
+                                      <>Last seen {formatDate(u.last_sign_in_at)}</>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* Location */}
+                              <div className="flex items-center gap-2 sm:w-[180px] min-w-0">
+                                <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                                 {u.location ? (
-                                   <div className="space-y-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-sm font-medium">{u.location.city}</span>
+                                  <div className="min-w-0">
+                                    <p className="text-sm truncate">
+                                      {u.location.city}, {u.location.state}
                                       {isLikelyVpn(u.location.isp) && (
-                                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive">
-                                          <ShieldAlert className="w-3 h-3" />
+                                        <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive">
+                                          <ShieldAlert className="w-2.5 h-2.5" />
                                           VPN
                                         </span>
                                       )}
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                      {u.location.state}, {u.location.country}
                                     </p>
-                                    {u.location.isp && (
-                                      <p className="text-[10px] text-muted-foreground/70">
-                                        📡 {u.location.isp}
-                                      </p>
-                                    )}
-                                    {u.location.timezone && (
-                                      <p className="text-[10px] text-muted-foreground/70">
-                                        🕐 {u.location.timezone}
-                                      </p>
-                                    )}
+                                    <p className="text-[11px] text-muted-foreground truncate">{u.location.country}</p>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground italic">
-                                    No location data
-                                  </span>
+                                  <span className="text-xs text-muted-foreground italic">No data</span>
                                 )}
-                              </TableCell>
-                              <TableCell>
+                              </div>
+
+                              {/* Device */}
+                              <div className="flex items-center gap-2 sm:w-[160px] min-w-0">
                                 {u.location?.device_type ? (
-                                  <div className="space-y-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                      {u.location.device_type === 'Phone' ? (
-                                        <Smartphone className="w-3 h-3 text-primary" />
-                                      ) : u.location.device_type === 'Tablet' ? (
-                                        <Tablet className="w-3 h-3 text-primary" />
-                                      ) : u.location.device_type === 'Laptop' ? (
-                                        <Laptop className="w-3 h-3 text-primary" />
-                                      ) : (
-                                        <Monitor className="w-3 h-3 text-primary" />
-                                      )}
-                                      <span className="text-sm font-medium">{u.location.device_type}</span>
-                                    </div>
-                                    {u.location.device_info && (
-                                      <p className="text-xs text-muted-foreground">{u.location.device_info}</p>
+                                  <>
+                                    {u.location.device_type === 'Phone' ? (
+                                      <Smartphone className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                    ) : u.location.device_type === 'Tablet' ? (
+                                      <Tablet className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                    ) : u.location.device_type === 'Laptop' ? (
+                                      <Laptop className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                    ) : (
+                                      <Monitor className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                                     )}
-                                  </div>
+                                    <div className="min-w-0">
+                                      <p className="text-sm">{u.location.device_type}</p>
+                                      {u.location.device_info && (
+                                        <p className="text-[11px] text-muted-foreground truncate">{u.location.device_info}</p>
+                                      )}
+                                    </div>
+                                  </>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground italic">Unknown</span>
+                                  <>
+                                    <Monitor className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                    <span className="text-xs text-muted-foreground italic">Unknown</span>
+                                  </>
                                 )}
-                              </TableCell>
-                              <TableCell>{formatDate(u.created_at)}</TableCell>
-                              <TableCell>{formatDate(u.last_sign_in_at)}</TableCell>
-                              <TableCell>
+                              </div>
+
+                              {/* Role + Status badges */}
+                              <div className="flex items-center gap-1.5 sm:w-[120px]">
+                                {u.roles.includes('admin') && (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-primary/15 text-primary font-semibold">
+                                    <Shield className="w-3 h-3" />
+                                    Admin
+                                  </span>
+                                )}
                                 {u.email_confirmed_at ? (
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-500/10 text-green-500">
-                                    Confirmed
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-emerald-500/10 text-emerald-500">
+                                    Verified
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-500/10 text-yellow-500">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-amber-500/10 text-amber-500">
                                     Pending
                                   </span>
                                 )}
-                              </TableCell>
-                              <TableCell>
-                                {u.roles.includes('admin') ? (
-                                  <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-primary/15 text-primary font-semibold">
-                                      <Shield className="w-3 h-3" />
-                                      Admin
-                                    </span>
-                                    {u.email !== user?.email && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleToggleAdminRole(u)}
-                                        disabled={roleLoading === u.id}
-                                        className="text-xs text-destructive hover:text-destructive h-7 px-2"
-                                      >
-                                        {roleLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
-                                      </Button>
-                                    )}
-                                  </div>
-                                ) : (
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+                                {u.email !== user?.email && !u.roles.includes('admin') && (
                                   <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleToggleAdminRole(u)}
                                     disabled={roleLoading === u.id}
-                                    className="text-xs h-7 gap-1.5"
+                                    className="text-xs h-7 gap-1"
                                   >
                                     {roleLoading === u.id ? (
                                       <Loader2 className="w-3 h-3 animate-spin" />
                                     ) : (
                                       <>
                                         <Shield className="w-3 h-3" />
-                                        Make Admin
+                                        Admin
                                       </>
                                     )}
                                   </Button>
                                 )}
-                              </TableCell>
-                              <TableCell>
+                                {u.email !== user?.email && u.roles.includes('admin') && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleToggleAdminRole(u)}
+                                    disabled={roleLoading === u.id}
+                                    className="text-xs text-destructive hover:text-destructive h-7 px-2"
+                                  >
+                                    {roleLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
+                                  </Button>
+                                )}
                                 {user?.email === 'admin@gmail.com' && u.email !== 'admin@gmail.com' && (
-                                  <div className="flex items-center gap-1">
+                                  <>
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -786,10 +788,9 @@ const Admin = () => {
                                         setNewPassword('');
                                         setResetDialogOpen(true);
                                       }}
-                                      className="flex items-center gap-1.5 text-xs"
+                                      className="text-xs h-7 gap-1"
                                     >
-                                      <KeyRound className="w-3.5 h-3.5" />
-                                      Reset PW
+                                      <KeyRound className="w-3 h-3" />
                                     </Button>
                                     <Button
                                       variant="ghost"
@@ -798,29 +799,23 @@ const Admin = () => {
                                         setDeleteTargetUser(u);
                                         setDeleteDialogOpen(true);
                                       }}
-                                      className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive"
+                                      className="text-xs text-destructive hover:text-destructive h-7"
                                     >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                      Delete
+                                      <Trash2 className="w-3 h-3" />
                                     </Button>
-                                  </div>
+                                  </>
                                 )}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
                 )}
-                <div className="mt-4 text-sm text-muted-foreground">
-                  Total users: {users.length}
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Activity Tab */}
           <TabsContent value="activity">
             <Card>
               <CardHeader>
