@@ -704,6 +704,9 @@ const Admin = () => {
                                       )}
                                     </p>
                                     <p className="text-[11px] text-muted-foreground truncate">{u.location.country}</p>
+                                    {u.location.isp && (
+                                      <p className="text-[10px] text-muted-foreground/70 truncate">📡 {u.location.isp}</p>
+                                    )}
                                   </div>
                                 ) : (
                                   <span className="text-xs text-muted-foreground italic">No data</span>
