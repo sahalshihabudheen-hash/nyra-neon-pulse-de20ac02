@@ -171,7 +171,13 @@ const Admin = () => {
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      setQuotaResetCountdown(`${hours}h ${minutes}m ${seconds}s`);
+      if (hours > 0) {
+        setQuotaResetCountdown(`~${hours}h`);
+      } else if (minutes > 0) {
+        setQuotaResetCountdown(`~${minutes}m`);
+      } else {
+        setQuotaResetCountdown(`${seconds}s`);
+      }
     };
     calcCountdown();
     const interval = setInterval(calcCountdown, 1000);
