@@ -53,6 +53,7 @@ const FullscreenPlayer = ({
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
   const [showQueue, setShowQueue] = useState(false);
+  const [showEQ, setShowEQ] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   // Animate in/out
