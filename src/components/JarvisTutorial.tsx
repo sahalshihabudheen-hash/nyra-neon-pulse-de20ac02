@@ -3,6 +3,7 @@ import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import jarvisAvatar from '@/assets/jarvis-avatar.gif';
 
 interface TutorialStep {
   title: string;
