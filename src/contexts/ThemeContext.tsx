@@ -137,6 +137,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       autoPlayNext: true,
       miniPlayerMode: false,
       soundwaveShape: 'bars' as SoundwaveShape,
+      progressBarStyle: 'classic' as ProgressBarStyle,
     };
   });
 
