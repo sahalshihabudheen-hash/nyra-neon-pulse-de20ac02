@@ -1345,24 +1345,25 @@ const Admin = () => {
                           key={playlist.id}
                           className="p-4 rounded-lg border border-border"
                         >
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <h3 className="font-semibold">{playlist.name}</h3>
-                              <p className="text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-sm sm:text-base truncate">{playlist.name}</h3>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 by {playlist.user_email} • {playlist.playlist_items.length} tracks
                               </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => copyPlaylistToAdmin(playlist)}
-                                className="flex items-center gap-1.5"
+                                className="flex items-center gap-1.5 h-7 text-xs"
                               >
-                                <Copy className="w-3.5 h-3.5" />
-                                Copy to Mine
+                                <Copy className="w-3 h-3" />
+                                <span className="hidden sm:inline">Copy to Mine</span>
+                                <span className="sm:hidden">Copy</span>
                               </Button>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:inline">
                                 {formatDate(playlist.created_at)}
                               </span>
                             </div>
