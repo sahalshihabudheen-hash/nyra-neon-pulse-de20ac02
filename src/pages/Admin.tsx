@@ -284,13 +284,34 @@ const Admin = () => {
 
   const addYoutubeKey = async () => {
     if (!newKeyValue.trim()) { toast.error('Please enter an API key'); return; }
-    const keyName = newKeyName.trim() || `YOUTUBE_API_KEY_${youtubeKeys.length + 1}`;
-    // Copy key info to clipboard for manual setup
-    navigator.clipboard.writeText(`${keyName}=${newKeyValue.trim()}`);
-    toast.success(`Copied ${keyName} to clipboard. Add it as a backend secret to activate it.`, { duration: 5000 });
-    setAddKeyDialogOpen(false);
-    setNewKeyValue('');
-    setNewKeyName('');
+    setAddingKey(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const keyName = newKeyName.trim() || `YOUTUBE_API_KEY_${youtubeKeys.length + 1}`;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add_key', keyName, keyValue: newKeyValue.trim() }),
+        }
+      );
+      if (response.ok) {
+        toast.success(`${keyName} added and activated!`);
+        setAddKeyDialogOpen(false);
+        setNewKeyValue('');
+        setNewKeyName('');
+        fetchYoutubeKeyStatus();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to add key');
+      }
+    } catch (err) {
+      toast.error('Failed to add key');
+    } finally {
+      setAddingKey(false);
+    }
   };
 
   const fetchUsers = async () => {
