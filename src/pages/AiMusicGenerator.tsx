@@ -22,9 +22,9 @@ const genrePresets = [
 ];
 
 const durationOptions = [
-  { label: '15s', value: 15 },
-  { label: '30s', value: 30 },
-  { label: '60s', value: 60 },
+  { label: '5s', value: 5 },
+  { label: '10s', value: 10 },
+  { label: '22s', value: 22 },
 ];
 
 const AiMusicGenerator = () => {
