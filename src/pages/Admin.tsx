@@ -158,6 +158,7 @@ const Admin = () => {
   // Quota reset countdown timer
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
   const [quotaResetLocalTime, setQuotaResetLocalTime] = useState('');
+  const [pacificCurrentTime, setPacificCurrentTime] = useState('');
 
   useEffect(() => {
     const pacificDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -243,8 +244,18 @@ const Admin = () => {
       const localReset = new Date(nextMidnightPacificUtc).toLocaleString(undefined, {
         dateStyle: 'medium',
         timeStyle: 'short',
+        hour12: true,
       });
       setQuotaResetLocalTime(localReset);
+
+      const pacificNow = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Los_Angeles',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+      }).format(now);
+      setPacificCurrentTime(pacificNow);
 
       if (hours > 0) {
         setQuotaResetCountdown(`~${hours}h ${minutes}m`);
@@ -1644,7 +1655,7 @@ const Admin = () => {
                                   </p>
                                 </div>
                                 <p className="text-[11px] text-muted-foreground pl-5">
-                                  Resets at your local time: <span className="font-medium">{quotaResetLocalTime}</span>
+                                  Pacific Time now: <span className="font-medium">{pacificCurrentTime}</span> · Resets at your local time: <span className="font-medium">{quotaResetLocalTime}</span>
                                 </p>
                               </div>
                             )}
