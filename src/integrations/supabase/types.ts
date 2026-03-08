@@ -380,6 +380,7 @@ export type Database = {
           device_type: string | null
           id: string
           ip_address: string | null
+          is_vpn: boolean | null
           isp: string | null
           last_updated: string
           latitude: number | null
@@ -397,6 +398,7 @@ export type Database = {
           device_type?: string | null
           id?: string
           ip_address?: string | null
+          is_vpn?: boolean | null
           isp?: string | null
           last_updated?: string
           latitude?: number | null
@@ -414,6 +416,7 @@ export type Database = {
           device_type?: string | null
           id?: string
           ip_address?: string | null
+          is_vpn?: boolean | null
           isp?: string | null
           last_updated?: string
           latitude?: number | null
