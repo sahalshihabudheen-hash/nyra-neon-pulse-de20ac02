@@ -431,6 +431,7 @@ export type Database = {
           genres: string[]
           id: string
           onboarding_complete: boolean
+          tutorial_complete: boolean
           updated_at: string
           user_id: string
         }
@@ -439,6 +440,7 @@ export type Database = {
           genres?: string[]
           id?: string
           onboarding_complete?: boolean
+          tutorial_complete?: boolean
           updated_at?: string
           user_id: string
         }
@@ -447,6 +449,7 @@ export type Database = {
           genres?: string[]
           id?: string
           onboarding_complete?: boolean
+          tutorial_complete?: boolean
           updated_at?: string
           user_id?: string
         }

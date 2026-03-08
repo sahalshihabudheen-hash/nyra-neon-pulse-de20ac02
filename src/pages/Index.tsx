@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SplashScreen from '@/components/SplashScreen';
+import JarvisTutorial from '@/components/JarvisTutorial';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import TrackGrid from '@/components/TrackGrid';
@@ -40,7 +41,7 @@ const Index = () => {
     setShowMiniPlayer,
   } = useMusicPlayer();
 
-  const { preferences, showOnboarding, savePreferences } = useUserPreferences();
+  const { preferences, showOnboarding, savePreferences, showTutorial, completeTutorial } = useUserPreferences();
   const { location } = useUserLocation();
 
   // Redirect to auth if not logged in
@@ -116,6 +117,11 @@ const Index = () => {
             open={showOnboarding && !showSplash}
             onComplete={savePreferences}
           />
+
+          {/* JARVIS Tutorial - shows once for every user */}
+          {showTutorial && !showOnboarding && !showSplash && (
+            <JarvisTutorial onComplete={completeTutorial} />
+          )}
 
           {/* Hero Section - only on home without search */}
           {!searchPerformed && (
