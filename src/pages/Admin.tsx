@@ -157,6 +157,7 @@ const Admin = () => {
 
   // Quota reset countdown timer
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
+  const [quotaResetLocalTime, setQuotaResetLocalTime] = useState('');
 
   useEffect(() => {
     const pacificDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -238,6 +239,12 @@ const Admin = () => {
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      const localReset = new Date(nextMidnightPacificUtc).toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+      setQuotaResetLocalTime(localReset);
 
       if (hours > 0) {
         setQuotaResetCountdown(`~${hours}h ${minutes}m`);
@@ -1629,10 +1636,15 @@ const Admin = () => {
                               </div>
                             </div>
                             {isQuota && (
-                              <div className="flex items-center gap-2 mt-2">
-                                <Clock className="w-3.5 h-3.5 text-yellow-500/80" />
-                                <p className="text-xs text-yellow-500/80">
-                                  Quota resets in <span className="font-mono font-semibold text-yellow-400">{quotaResetCountdown}</span>
+                              <div className="flex flex-col gap-1 mt-2">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-3.5 h-3.5 text-yellow-500/80" />
+                                  <p className="text-xs text-yellow-500/80">
+                                    Quota resets in <span className="font-mono font-semibold text-yellow-400">{quotaResetCountdown}</span>
+                                  </p>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground pl-5">
+                                  Resets at your local time: <span className="font-medium">{quotaResetLocalTime}</span>
                                 </p>
                               </div>
                             )}
