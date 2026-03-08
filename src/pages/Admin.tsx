@@ -1005,18 +1005,18 @@ const Admin = () => {
                       className="pl-9 h-9"
                     />
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                     {/* Status filter */}
                     {(['all', 'online', 'offline'] as const).map((s) => (
                       <Button
                         key={s}
                         size="sm"
                         variant={statusFilter === s ? 'default' : 'outline'}
-                        className="h-8 text-xs capitalize"
+                        className="h-7 sm:h-8 text-[10px] sm:text-xs capitalize px-1.5 sm:px-3"
                         onClick={() => setStatusFilter(s)}
                       >
-                        {s === 'online' && <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500 mr-1" />}
-                        {s === 'offline' && <Circle className="w-2 h-2 fill-muted-foreground text-muted-foreground mr-1" />}
+                        {s === 'online' && <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500 mr-0.5 sm:mr-1" />}
+                        {s === 'offline' && <Circle className="w-2 h-2 fill-muted-foreground text-muted-foreground mr-0.5 sm:mr-1" />}
                         {s === 'all' ? `All (${users.length})` : s === 'online' ? `Online (${onlineCount})` : `Offline (${users.length - onlineCount})`}
                       </Button>
                     ))}
