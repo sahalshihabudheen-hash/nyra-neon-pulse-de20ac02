@@ -153,20 +153,23 @@ const Index = () => {
             />
           )}
 
-          {/* Genre-based Section from preferences */}
+          {/* Genre-based Sections from preferences — show ALL genres */}
           {!searchPerformed && preferences?.genres && preferences.genres.length > 0 && (
-            <PersonalizedSection
-              title={`Because you love ${preferences.genres[0]}`}
-              subtitle={`Handpicked ${preferences.genres[0]} tracks for you`}
-              icon="genre"
-              searchParams={{ type: 'genre', genre: preferences.genres[0] }}
-              onPlayTrack={handlePlayTrack}
-              currentTrack={currentTrack}
-              isPlaying={isPlaying}
-              onAddToQueue={handleAddToQueue}
-              isFavorite={isFavorite}
-              onToggleFavorite={toggleFavorite}
-            />
+            preferences.genres.map((genre) => (
+              <PersonalizedSection
+                key={genre}
+                title={`Because you love ${genre}`}
+                subtitle={`Handpicked ${genre} tracks for you`}
+                icon="genre"
+                searchParams={{ type: 'genre', genre }}
+                onPlayTrack={handlePlayTrack}
+                currentTrack={currentTrack}
+                isPlaying={isPlaying}
+                onAddToQueue={handleAddToQueue}
+                isFavorite={isFavorite}
+                onToggleFavorite={toggleFavorite}
+              />
+            ))
           )}
 
           {searchPerformed && tracks.length > 0 && (
