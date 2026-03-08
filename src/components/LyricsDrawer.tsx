@@ -49,12 +49,16 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
 
         if (fnError) throw fnError;
         if (data?.error) throw new Error(data.error);
-        if (!data?.lyrics || data.lyrics === 'LYRICS_NOT_FOUND') {
-          throw new Error('Exact lyrics not found for this track');
+
+        if (!data?.lyrics) {
+          setLyrics(null);
+          setSource(data?.source || 'unavailable');
+          setError(null);
+          return;
         }
 
         setLyrics(data.lyrics);
-        setSource(data.source || 'ai');
+        setSource(data.source || 'official');
       } catch (e: any) {
         console.error('Lyrics fetch error:', e);
         setError(e.message || 'Could not load lyrics');
