@@ -909,61 +909,61 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary" />
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
-            <div>
-              <h1 className="font-bold text-lg">Admin Dashboard</h1>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <div className="min-w-0">
+              <h1 className="font-bold text-sm sm:text-lg truncate">Admin Dashboard</h1>
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to App
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => navigate('/')} className="h-8 px-2 sm:px-3">
+              <ArrowLeft className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back to App</span>
             </Button>
-            <Button variant="destructive" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
+            <Button variant="destructive" size="sm" onClick={handleSignOut} className="h-8 px-2 sm:px-3">
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-3xl">
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Users</span>
+      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <Tabs defaultValue="users" className="space-y-4 sm:space-y-6">
+          <TabsList className="flex w-full overflow-x-auto no-scrollbar">
+            <TabsTrigger value="users" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="flex items-center gap-2">
-              <Music className="w-4 h-4" />
-              <span className="hidden sm:inline">Activity</span>
+            <TabsTrigger value="activity" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Music className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Activity</span>
             </TabsTrigger>
-            <TabsTrigger value="playlists" className="flex items-center gap-2">
-              <ListMusic className="w-4 h-4" />
-              <span className="hidden sm:inline">Playlists</span>
+            <TabsTrigger value="playlists" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <ListMusic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Playlists</span>
             </TabsTrigger>
-            <TabsTrigger value="games" className="flex items-center gap-2">
-              <Gamepad2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Games</span>
+            <TabsTrigger value="games" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Games</span>
               {activeGamersCount > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded-full">
+                <span className="ml-1 px-1 py-0.5 text-[10px] bg-green-500 text-white rounded-full">
                   {activeGamersCount}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="api-keys" className="flex items-center gap-2">
-              <Key className="w-4 h-4" />
-              <span className="hidden sm:inline">API Keys</span>
+            <TabsTrigger value="api-keys" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Key className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Keys</span>
             </TabsTrigger>
-            <TabsTrigger value="maintenance" className="flex items-center gap-2">
-              <Wrench className="w-4 h-4" />
-              <span className="hidden sm:inline">Maint.</span>
+            <TabsTrigger value="maintenance" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Wrench className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Maint.</span>
               {maintenance.enabled && (
                 <span className="ml-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
               )}
@@ -1005,18 +1005,18 @@ const Admin = () => {
                       className="pl-9 h-9"
                     />
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
                     {/* Status filter */}
                     {(['all', 'online', 'offline'] as const).map((s) => (
                       <Button
                         key={s}
                         size="sm"
                         variant={statusFilter === s ? 'default' : 'outline'}
-                        className="h-8 text-xs capitalize"
+                        className="h-7 sm:h-8 text-[10px] sm:text-xs capitalize px-1.5 sm:px-3"
                         onClick={() => setStatusFilter(s)}
                       >
-                        {s === 'online' && <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500 mr-1" />}
-                        {s === 'offline' && <Circle className="w-2 h-2 fill-muted-foreground text-muted-foreground mr-1" />}
+                        {s === 'online' && <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500 mr-0.5 sm:mr-1" />}
+                        {s === 'offline' && <Circle className="w-2 h-2 fill-muted-foreground text-muted-foreground mr-0.5 sm:mr-1" />}
                         {s === 'all' ? `All (${users.length})` : s === 'online' ? `Online (${onlineCount})` : `Offline (${users.length - onlineCount})`}
                       </Button>
                     ))}
@@ -1294,22 +1294,22 @@ const Admin = () => {
                       {listeningHistory.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50"
+                          className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg bg-secondary/50"
                         >
                           <img
                             src={item.track_thumbnail}
                             alt={item.track_title}
-                            className="w-12 h-12 rounded object-cover"
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{item.track_title}</p>
-                            <p className="text-sm text-muted-foreground truncate">
+                            <p className="font-medium text-sm truncate">{item.track_title}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
                               {item.track_channel}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-primary">{item.user_email}</p>
-                            <p className="text-xs text-muted-foreground">{formatTimeAgo(item.played_at)}</p>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs sm:text-sm font-medium text-primary truncate max-w-[100px] sm:max-w-none">{item.user_email}</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">{formatTimeAgo(item.played_at)}</p>
                           </div>
                         </div>
                       ))}
@@ -1345,24 +1345,25 @@ const Admin = () => {
                           key={playlist.id}
                           className="p-4 rounded-lg border border-border"
                         >
-                          <div className="flex items-center justify-between mb-3">
-                            <div>
-                              <h3 className="font-semibold">{playlist.name}</h3>
-                              <p className="text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                            <div className="min-w-0">
+                              <h3 className="font-semibold text-sm sm:text-base truncate">{playlist.name}</h3>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                 by {playlist.user_email} • {playlist.playlist_items.length} tracks
                               </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => copyPlaylistToAdmin(playlist)}
-                                className="flex items-center gap-1.5"
+                                className="flex items-center gap-1.5 h-7 text-xs"
                               >
-                                <Copy className="w-3.5 h-3.5" />
-                                Copy to Mine
+                                <Copy className="w-3 h-3" />
+                                <span className="hidden sm:inline">Copy to Mine</span>
+                                <span className="sm:hidden">Copy</span>
                               </Button>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-[10px] sm:text-xs text-muted-foreground hidden sm:inline">
                                 {formatDate(playlist.created_at)}
                               </span>
                             </div>
@@ -1435,41 +1436,41 @@ const Admin = () => {
                               : 'border-border bg-secondary/50'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                                 session.is_active ? 'bg-green-500/20' : 'bg-primary/20'
                               }`}>
-                                <Gamepad2 className={`w-5 h-5 ${
+                                <Gamepad2 className={`w-4 h-4 sm:w-5 sm:h-5 ${
                                   session.is_active ? 'text-green-500' : 'text-primary'
                                 }`} />
                               </div>
-                              <div>
-                                <p className="font-medium flex items-center gap-2">
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm flex items-center gap-2 flex-wrap">
                                   {session.game_name}
                                   {session.is_active && (
-                                    <span className="px-2 py-0.5 text-xs bg-green-500 text-white rounded-full animate-pulse">
+                                    <span className="px-1.5 py-0.5 text-[10px] bg-green-500 text-white rounded-full animate-pulse">
                                       LIVE
                                     </span>
                                   )}
                                 </p>
-                                <p className="text-sm text-muted-foreground">{session.user_email}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground truncate">{session.user_email}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-primary">{session.score} pts</p>
+                            <div className="text-left sm:text-right flex sm:block items-center gap-3 pl-10 sm:pl-0">
+                              <p className="font-bold text-primary text-sm">{session.score} pts</p>
                               <p className="text-xs text-muted-foreground">
                                 💎 {session.gems_collected}
                               </p>
                             </div>
                           </div>
                           
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <div className="flex items-center gap-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                               {session.track_playing && (
                                 <span className="flex items-center gap-1">
                                   <Music className="w-3 h-3" />
-                                  <span className="truncate max-w-[150px]">{session.track_playing}</span>
+                                  <span className="truncate max-w-[120px] sm:max-w-[150px]">{session.track_playing}</span>
                                   {session.track_source && (
                                     <span className="text-primary">({session.track_source})</span>
                                   )}
@@ -1479,7 +1480,7 @@ const Admin = () => {
                                 ⏱️ {Math.floor(session.duration_seconds / 60)}m {session.duration_seconds % 60}s
                               </span>
                             </div>
-                            <span>{formatTimeAgo(session.started_at)}</span>
+                            <span className="pl-0 sm:pl-0">{formatTimeAgo(session.started_at)}</span>
                           </div>
                         </div>
                       ))}
@@ -1548,7 +1549,7 @@ const Admin = () => {
                     )}
 
                     {/* Summary */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
                         <p className="text-2xl font-bold text-green-500">
                           {youtubeKeys.filter(k => k.status === 'active').length}
@@ -1593,33 +1594,33 @@ const Admin = () => {
                                 : 'border-destructive/30 bg-destructive/5'
                             }`}
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0 flex-wrap">
                                 {isDisabled ? (
-                                  <Circle className="w-5 h-5 text-muted-foreground" />
+                                  <Circle className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground flex-shrink-0" />
                                 ) : isStandby ? (
-                                  <CheckCircle className="w-5 h-5 text-cyan-500" />
+                                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500 flex-shrink-0" />
                                 ) : isActive ? (
-                                  <CheckCircle className="w-5 h-5 text-green-500" />
+                                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
                                 ) : isQuota ? (
-                                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 flex-shrink-0" />
                                 ) : (
-                                  <XCircle className="w-5 h-5 text-destructive" />
+                                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-destructive flex-shrink-0" />
                                 )}
-                                <span className="font-mono font-semibold text-sm">{keyInfo.key}</span>
+                                <span className="font-mono font-semibold text-xs sm:text-sm truncate">{keyInfo.key}</span>
                                 {keyInfo.isCurrentlyUsed && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-semibold animate-pulse">
-                                    ● CURRENTLY IN USE
+                                  <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/20 text-primary font-semibold animate-pulse whitespace-nowrap">
+                                    ● IN USE
                                   </span>
                                 )}
                                 {isStandby && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-medium">
+                                  <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-medium whitespace-nowrap">
                                     Standby
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                                <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium whitespace-nowrap ${
                                   isDisabled
                                     ? 'bg-muted/20 text-muted-foreground'
                                     : isStandby
@@ -1757,22 +1758,22 @@ const Admin = () => {
                                     : 'border-muted/30 bg-muted/5'
                                 }`}
                               >
-                                <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-wrap">
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground font-mono font-bold">
                                     #{index + 1}
                                   </span>
                                   {isInUse ? (
-                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0" />
                                   ) : (
-                                    <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                                    <Circle className={`w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                                   )}
-                                  <span className="font-mono font-semibold text-sm">{bk.key}</span>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                  <span className="font-mono font-semibold text-xs sm:text-sm truncate">{bk.key}</span>
+                                  <span className={`text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
                                     isInUse 
                                       ? 'bg-green-500/20 text-green-500 animate-pulse'
                                       : isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
                                   }`}>
-                                    {isInUse ? `● ${priorityLabel} • In Use` : `${priorityLabel} • Standby`}
+                                    {isInUse ? `● ${priorityLabel}` : `${priorityLabel}`}
                                   </span>
                                 </div>
                                 <Button
