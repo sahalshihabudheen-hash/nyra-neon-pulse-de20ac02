@@ -302,6 +302,32 @@ const Settings = () => {
                   </div>
                 )}
               </div>
+
+              {/* Replay Tutorial */}
+              <div className="border-t border-border pt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-foreground text-sm md:text-base">JARVIS Tutorial</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Re-watch the guided tour of NYRA</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (!user) return;
+                      await supabase.from('user_preferences').upsert(
+                        { user_id: user.id, tutorial_complete: false },
+                        { onConflict: 'user_id' }
+                      );
+                      toast.success('Tutorial will play on your next visit to Home');
+                      navigate('/');
+                    }}
+                    className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Replay Tutorial
+                  </Button>
+                </div>
+              </div>
             </div>
           </section>
 
