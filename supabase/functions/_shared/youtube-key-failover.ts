@@ -143,14 +143,11 @@ export async function fetchYouTubeWithFailover(
     return { ok: false, error: "YouTube API key not configured", status: 500 };
   }
 
-  // Rotate starting key to spread quota usage across all configured keys.
-  const startIndex = Math.floor(Date.now() / 60_000) % keys.length;
-  const rotatedKeys = keys.map((_, index) => keys[(startIndex + index) % keys.length]);
-
+  // Always start from the first key (top of list), only move to next on failure.
   let lastError = "All API keys exhausted";
   let lastStatus = 403;
 
-  for (const [index, apiKey] of rotatedKeys.entries()) {
+  for (const [index, apiKey] of keys.entries()) {
     try {
       const response = await fetch(buildUrl(apiKey));
       const data = await response.json().catch(() => ({}));

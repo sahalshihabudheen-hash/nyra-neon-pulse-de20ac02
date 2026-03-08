@@ -230,12 +230,10 @@ serve(async (req) => {
       backupKeys.map(({ label, value: apiKey }) => checkKey(label, apiKey, false, true))
     );
 
-    // Mark the first active key as currently in use
-    const startIndex = allKeys.length > 0 ? Math.floor(Date.now() / 60_000) % allKeys.length : 0;
+    // Mark the first active key (from top) as currently in use
     for (let i = 0; i < results.length; i++) {
-      const idx = (startIndex + i) % results.length;
-      if (results[idx].status === "active" && results[idx].enabled) {
-        results[idx].isCurrentlyUsed = true;
+      if (results[i].status === "active" && results[i].enabled) {
+        results[i].isCurrentlyUsed = true;
         break;
       }
     }
