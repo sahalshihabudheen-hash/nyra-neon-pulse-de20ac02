@@ -41,6 +41,7 @@ interface AdminUser {
     last_updated: string;
     device_type: string | null;
     device_info: string | null;
+    is_vpn: boolean;
   } | null;
 }
 
