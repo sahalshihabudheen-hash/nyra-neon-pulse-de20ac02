@@ -1294,22 +1294,22 @@ const Admin = () => {
                       {listeningHistory.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50"
+                          className="flex items-center gap-2 sm:gap-4 p-2 sm:p-3 rounded-lg bg-secondary/50"
                         >
                           <img
                             src={item.track_thumbnail}
                             alt={item.track_title}
-                            className="w-12 h-12 rounded object-cover"
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{item.track_title}</p>
-                            <p className="text-sm text-muted-foreground truncate">
+                            <p className="font-medium text-sm truncate">{item.track_title}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
                               {item.track_channel}
                             </p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-primary">{item.user_email}</p>
-                            <p className="text-xs text-muted-foreground">{formatTimeAgo(item.played_at)}</p>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs sm:text-sm font-medium text-primary truncate max-w-[100px] sm:max-w-none">{item.user_email}</p>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">{formatTimeAgo(item.played_at)}</p>
                           </div>
                         </div>
                       ))}
