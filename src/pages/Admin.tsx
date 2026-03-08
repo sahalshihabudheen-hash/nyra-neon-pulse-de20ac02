@@ -763,20 +763,34 @@ const Admin = () => {
                                 )}
                               </TableCell>
                               <TableCell>
-                                {user?.email === 'admin@gmail.com' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setResetTargetUser(u);
-                                      setNewPassword('');
-                                      setResetDialogOpen(true);
-                                    }}
-                                    className="flex items-center gap-1.5 text-xs"
-                                  >
-                                    <KeyRound className="w-3.5 h-3.5" />
-                                    Reset PW
-                                  </Button>
+                                {user?.email === 'admin@gmail.com' && u.email !== 'admin@gmail.com' && (
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setResetTargetUser(u);
+                                        setNewPassword('');
+                                        setResetDialogOpen(true);
+                                      }}
+                                      className="flex items-center gap-1.5 text-xs"
+                                    >
+                                      <KeyRound className="w-3.5 h-3.5" />
+                                      Reset PW
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setDeleteTargetUser(u);
+                                        setDeleteDialogOpen(true);
+                                      }}
+                                      className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      Delete
+                                    </Button>
+                                  </div>
                                 )}
                               </TableCell>
                             </TableRow>
