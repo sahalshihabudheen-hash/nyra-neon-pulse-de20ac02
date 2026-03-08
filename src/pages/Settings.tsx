@@ -51,20 +51,23 @@ const Settings = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [displayNameSaving, setDisplayNameSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load avatar
+  // Load avatar and display name
   useEffect(() => {
     if (!user) return;
-    const loadAvatar = async () => {
+    const loadProfile = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('avatar_url')
+        .select('avatar_url, display_name')
         .eq('user_id', user.id)
         .maybeSingle();
       if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+      if (data?.display_name) setDisplayName(data.display_name);
     };
-    loadAvatar();
+    loadProfile();
   }, [user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
