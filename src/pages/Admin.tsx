@@ -1330,6 +1330,17 @@ const Admin = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {/* Warning banner when all keys are disabled */}
+                    {youtubeKeys.length > 0 && youtubeKeys.every(k => k.status === 'disabled') && (
+                      <div className="flex items-center gap-3 p-4 rounded-lg bg-destructive/15 border border-destructive/30 text-destructive">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold text-sm">All API keys are disabled</p>
+                          <p className="text-xs opacity-80">Music search, trending, and personalized features will not work until at least one key is enabled.</p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Summary */}
                     <div className="grid grid-cols-3 gap-3">
                       <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
