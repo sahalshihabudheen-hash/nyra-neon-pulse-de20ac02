@@ -39,9 +39,12 @@ const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
     return <Auth />;
   }
 
-  // If user is in the allowed list, let them through
+  // Admins always bypass maintenance
   const userEmail = user?.email || '';
-  const isAllowed = maintenance.allowed_emails.includes(userEmail);
+  const isAdmin = userEmail === 'admin@gmail.com';
+  
+  // If user is admin or in the allowed list, let them through
+  const isAllowed = isAdmin || maintenance.allowed_emails.includes(userEmail);
 
   if (isAllowed) {
     return <>{children}</>;
