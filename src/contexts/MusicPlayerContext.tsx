@@ -402,6 +402,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, [handleNext, handlePrevious]);
 
+  // Animate browser tab with track info + soundwave
+  useTabTitle(currentTrack?.title || null, isPlaying);
+
   return (
     <MusicPlayerContext.Provider value={{
       currentTrack, isPlaying, useBackgroundAudioMode,
