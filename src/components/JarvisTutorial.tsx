@@ -3,6 +3,7 @@ import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import jarvisAvatar from '@/assets/jarvis-avatar.gif';
 
 interface TutorialStep {
   title: string;
@@ -255,17 +256,11 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
         {/* JARVIS Header with Avatar */}
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
-            {adminAvatar ? (
-              <img
-                src={adminAvatar}
-                alt="JARVIS"
-                className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/50"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center ring-2 ring-primary/50">
-                <span className="text-primary font-bold text-sm">J</span>
-              </div>
-            )}
+            <img
+              src={jarvisAvatar}
+              alt="JARVIS"
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/50"
+            />
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-card" />
           </div>
           <div>
