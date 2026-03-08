@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
 import FloatingMiniPlayer from "@/components/FloatingMiniPlayer";
+import MaintenanceGuard from "@/components/MaintenanceGuard";
 import Index from "./pages/Index";
 import PlaylistView from "./pages/PlaylistView";
 import PlaylistsManager from "./pages/PlaylistsManager";
@@ -30,23 +31,25 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <MusicPlayerProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/playlists" element={<PlaylistsManager />} />
-              <Route path="/playlist/:id" element={<PlaylistView />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/artists" element={<Artists />} />
-              <Route path="/artist/:id" element={<ArtistProfile />} />
-              <Route path="/become-artist" element={<BecomeArtist />} />
-              <Route path="/favorites" element={<Favorites />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/ai-dj" element={<AiDj />} />
-              {/* <Route path="/games" element={<Games />} /> */}
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <FloatingMiniPlayer />
+            <MaintenanceGuard>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/playlists" element={<PlaylistsManager />} />
+                <Route path="/playlist/:id" element={<PlaylistView />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/artists" element={<Artists />} />
+                <Route path="/artist/:id" element={<ArtistProfile />} />
+                <Route path="/become-artist" element={<BecomeArtist />} />
+                <Route path="/favorites" element={<Favorites />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/ai-dj" element={<AiDj />} />
+                {/* <Route path="/games" element={<Games />} /> */}
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <FloatingMiniPlayer />
+            </MaintenanceGuard>
           </MusicPlayerProvider>
         </BrowserRouter>
       </TooltipProvider>
