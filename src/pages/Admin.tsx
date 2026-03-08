@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Copy, KeyRound, Wrench, X, Plus } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Copy, KeyRound, Wrench, X, Plus, Trash2 } from 'lucide-react';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
@@ -105,6 +105,11 @@ const Admin = () => {
   const [resetTargetUser, setResetTargetUser] = useState<AdminUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+
+  // Delete user state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetUser, setDeleteTargetUser] = useState<AdminUser | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Maintenance mode
   const { maintenance, toggleMaintenance, updateAllowedEmails } = useMaintenanceMode();
@@ -411,6 +416,38 @@ const Admin = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteTargetUser) return;
+    setDeleteLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ target_user_id: deleteTargetUser.id }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      toast.success(`User ${deleteTargetUser.email} deleted`);
+      setUsers(prev => prev.filter(u => u.id !== deleteTargetUser.id));
+      setDeleteDialogOpen(false);
+      setDeleteTargetUser(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete user');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
@@ -726,20 +763,34 @@ const Admin = () => {
                                 )}
                               </TableCell>
                               <TableCell>
-                                {user?.email === 'admin@gmail.com' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setResetTargetUser(u);
-                                      setNewPassword('');
-                                      setResetDialogOpen(true);
-                                    }}
-                                    className="flex items-center gap-1.5 text-xs"
-                                  >
-                                    <KeyRound className="w-3.5 h-3.5" />
-                                    Reset PW
-                                  </Button>
+                                {user?.email === 'admin@gmail.com' && u.email !== 'admin@gmail.com' && (
+                                  <div className="flex items-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setResetTargetUser(u);
+                                        setNewPassword('');
+                                        setResetDialogOpen(true);
+                                      }}
+                                      className="flex items-center gap-1.5 text-xs"
+                                    >
+                                      <KeyRound className="w-3.5 h-3.5" />
+                                      Reset PW
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setDeleteTargetUser(u);
+                                        setDeleteDialogOpen(true);
+                                      }}
+                                      className="flex items-center gap-1.5 text-xs text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      Delete
+                                    </Button>
+                                  </div>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -1155,6 +1206,48 @@ const Admin = () => {
                 </>
               ) : (
                 'Update Password'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Delete User
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to permanently delete this user? This action cannot be undone.
+            </p>
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="font-medium text-sm">{deleteTargetUser?.email}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                All their data (playlists, favorites, history) will be removed.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteUser}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete User'
               )}
             </Button>
           </DialogFooter>
