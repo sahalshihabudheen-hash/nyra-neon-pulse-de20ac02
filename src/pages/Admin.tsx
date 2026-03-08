@@ -16,9 +16,10 @@ import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
 
-const isLikelyVpn = (isp: string | undefined): boolean => {
-  if (!isp) return false;
-  const lower = isp.toLowerCase();
+const isLikelyVpn = (user: AdminUser): boolean => {
+  if (user.location?.is_vpn) return true;
+  if (!user.location?.isp) return false;
+  const lower = user.location.isp.toLowerCase();
   return VPN_KEYWORDS.some((kw) => lower.includes(kw));
 };
 
@@ -40,6 +41,7 @@ interface AdminUser {
     last_updated: string;
     device_type: string | null;
     device_info: string | null;
+    is_vpn: boolean;
   } | null;
 }
 
@@ -694,7 +696,7 @@ const Admin = () => {
                                   <div className="min-w-0">
                                     <p className="text-sm truncate">
                                       {u.location.city}, {u.location.state}
-                                      {isLikelyVpn(u.location.isp) && (
+                                      {isLikelyVpn(u) && (
                                         <span className="ml-1.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/15 text-destructive">
                                           <ShieldAlert className="w-2.5 h-2.5" />
                                           VPN

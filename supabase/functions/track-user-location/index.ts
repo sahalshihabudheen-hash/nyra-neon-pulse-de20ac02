@@ -289,11 +289,12 @@ serve(async (req) => {
       longitude: 0,
       timezone: "",
       isp: "",
+      isVpn: false,
     };
 
     try {
       const geoResponse = await fetch(
-        `http://ip-api.com/json/${userIp}?fields=status,message,country,regionName,city,lat,lon,timezone,isp`
+        `http://ip-api.com/json/${userIp}?fields=status,message,country,regionName,city,lat,lon,timezone,isp,proxy,hosting`
       );
       const geoData = await geoResponse.json();
       console.log(`Geo API response:`, JSON.stringify(geoData));
@@ -307,6 +308,7 @@ serve(async (req) => {
           longitude: geoData.lon || 0,
           timezone: geoData.timezone || "",
           isp: geoData.isp || "",
+          isVpn: geoData.proxy === true || geoData.hosting === true,
         };
       }
     } catch (geoError) {
@@ -329,6 +331,7 @@ serve(async (req) => {
           longitude: locationData.longitude,
           timezone: locationData.timezone,
           isp: locationData.isp,
+          is_vpn: locationData.isVpn,
           device_type: deviceType,
           device_info: deviceInfo,
           user_agent: clientUserAgent,
