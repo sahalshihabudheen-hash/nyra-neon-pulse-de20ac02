@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { SlidersHorizontal, X } from 'lucide-react';
+import { SlidersHorizontal, X, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface EqualizerBand {
@@ -11,7 +11,7 @@ interface EqualizerBand {
 interface Preset {
   name: string;
   icon: string;
-  bands: number[]; // gains for each band
+  bands: number[];
 }
 
 const PRESETS: Preset[] = [
@@ -40,18 +40,28 @@ interface EqualizerPanelProps {
 const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
   const [bands, setBands] = useState<EqualizerBand[]>(DEFAULT_BANDS);
   const [activePreset, setActivePreset] = useState('Flat');
+  const [isConnected, setIsConnected] = useState(false);
   const filtersRef = useRef<BiquadFilterNode[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const connectedAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Initialize Web Audio API filters
   const initAudioContext = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio) { setIsConnected(false); return; }
+
+    // Check if audio element actually has a valid source playing
+    if (!audio.src || audio.src === '' || audio.src === window.location.href) {
+      setIsConnected(false);
+      return;
+    }
 
     // Don't reconnect if same audio element
     if (connectedAudioRef.current === audio && audioContextRef.current) {
+      if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+      setIsConnected(!audio.paused && audio.currentTime > 0);
       return;
     }
 
@@ -72,7 +82,7 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
         const filter = ctx.createBiquadFilter();
         filter.type = i === 0 ? 'lowshelf' : i === DEFAULT_BANDS.length - 1 ? 'highshelf' : 'peaking';
         filter.frequency.value = band.frequency;
-        filter.gain.value = band.gain;
+        filter.gain.value = bands[i]?.gain ?? band.gain;
         if (filter.type === 'peaking') filter.Q.value = 1.4;
         return filter;
       });
@@ -85,35 +95,51 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
       filters[filters.length - 1].connect(ctx.destination);
 
       filtersRef.current = filters;
+      setIsConnected(true);
+      console.log('Equalizer connected to audio element');
     } catch (err) {
       console.error('Failed to init equalizer:', err);
+      setIsConnected(false);
     }
-  }, [audioRef]);
+  }, [audioRef, bands]);
 
-  // Connect when panel opens and audio is available, also watch for src changes
+  // Watch audio state to update connection status
   useEffect(() => {
     if (!isOpen) return;
     const audio = audioRef.current;
     if (!audio) return;
 
     const tryInit = () => {
-      if (audio.src && audio.src !== '') {
+      if (audio.src && audio.src !== '' && audio.src !== window.location.href) {
         initAudioContext();
-        // Resume suspended AudioContext (browser autoplay policy)
         if (audioContextRef.current?.state === 'suspended') {
           audioContextRef.current.resume();
         }
+      } else {
+        setIsConnected(false);
       }
+    };
+
+    const updateStatus = () => {
+      setIsConnected(!audio.paused && audio.currentTime > 0 && !!audioContextRef.current);
     };
 
     tryInit();
 
-    // Also listen for when a new source is loaded
     audio.addEventListener('loadeddata', tryInit);
-    audio.addEventListener('play', tryInit);
+    audio.addEventListener('play', () => { tryInit(); updateStatus(); });
+    audio.addEventListener('pause', updateStatus);
+    audio.addEventListener('emptied', () => setIsConnected(false));
+
+    // Poll status periodically
+    const interval = setInterval(updateStatus, 2000);
+
     return () => {
       audio.removeEventListener('loadeddata', tryInit);
       audio.removeEventListener('play', tryInit);
+      audio.removeEventListener('pause', updateStatus);
+      audio.removeEventListener('emptied', () => setIsConnected(false));
+      clearInterval(interval);
     };
   }, [isOpen, initAudioContext, audioRef]);
 
@@ -145,6 +171,19 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-bold text-foreground">Equalizer</h3>
+          {/* Connection status */}
+          <div className={cn(
+            "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
+            isConnected
+              ? "bg-green-500/20 text-green-400"
+              : "bg-muted text-muted-foreground"
+          )}>
+            {isConnected ? (
+              <><Wifi className="w-3 h-3" /> Active</>
+            ) : (
+              <><WifiOff className="w-3 h-3" /> Inactive</>
+            )}
+          </div>
         </div>
         <button
           onClick={onClose}
@@ -153,6 +192,13 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {/* Inactive notice */}
+      {!isConnected && (
+        <div className="mb-3 px-3 py-2 rounded-lg bg-muted/50 text-muted-foreground text-[11px] leading-relaxed">
+          EQ is inactive — audio is playing via YouTube. The equalizer works when direct audio streaming is available.
+        </div>
+      )}
 
       {/* Presets */}
       <div className="flex gap-1.5 mb-5 flex-wrap">
@@ -173,15 +219,15 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
       </div>
 
       {/* Sliders */}
-      <div className="flex items-end justify-between gap-3 md:gap-5">
+      <div className={cn(
+        "flex items-end justify-between gap-3 md:gap-5 transition-opacity",
+        !isConnected && "opacity-50"
+      )}>
         {bands.map((band, i) => (
           <div key={band.frequency} className="flex flex-col items-center gap-2">
-            {/* Gain label */}
             <span className="text-[10px] text-muted-foreground font-mono">
               {band.gain > 0 ? '+' : ''}{band.gain.toFixed(0)}
             </span>
-
-            {/* Vertical slider */}
             <div className="relative w-6 h-28 md:h-36 flex items-center justify-center">
               <div className="absolute w-1 h-full rounded-full bg-muted" />
               <div
@@ -192,7 +238,6 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
                   top: band.gain < 0 ? '50%' : undefined,
                 }}
               />
-              {/* Center line */}
               <div className="absolute w-3 h-px bg-muted-foreground/30" />
               <input
                 type="range"
@@ -202,12 +247,8 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
                 value={band.gain}
                 onChange={(e) => handleBandChange(i, parseFloat(e.target.value))}
                 className="absolute w-28 md:w-36 opacity-0 cursor-pointer"
-                style={{
-                  transform: 'rotate(-90deg)',
-                  transformOrigin: 'center',
-                }}
+                style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
               />
-              {/* Thumb indicator */}
               <div
                 className="absolute w-4 h-4 rounded-full bg-primary border-2 border-primary-foreground shadow-lg pointer-events-none transition-all"
                 style={{
@@ -216,8 +257,6 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
                 }}
               />
             </div>
-
-            {/* Frequency label */}
             <span className="text-[10px] text-muted-foreground font-medium">{band.label}</span>
           </div>
         ))}
