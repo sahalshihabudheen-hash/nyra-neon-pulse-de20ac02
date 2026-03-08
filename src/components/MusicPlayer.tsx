@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
+import StyledProgressBar from './StyledProgressBar';
 import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
 import LyricsDrawer from './LyricsDrawer';
@@ -406,33 +407,15 @@ const MusicPlayer = ({
                 <span className="text-xs text-foreground/70 w-10 text-right tabular-nums font-mono">
                   {formatTime(progress)}
                 </span>
-                <div className="relative flex-1 h-2 group rounded-full bg-white/10 border border-white/20 overflow-hidden">
-                  {/* Background track */}
-                  <div className="absolute inset-0 bg-muted/30" />
-                  {/* Progress fill */}
-                  <div 
-                    className="absolute left-0 top-0 h-full rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))] transition-all"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                  <input
-                    ref={progressRef}
-                    type="range"
-                    min="0"
-                    max={duration || 100}
-                    value={progress}
-                    onChange={handleProgressChange}
-                    onMouseDown={handleProgressMouseDown}
-                    onMouseUp={handleProgressMouseUp}
-                    onTouchStart={handleProgressMouseDown}
-                    onTouchEnd={handleProgressMouseUp}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none"
-                  />
-                  {/* Progress handle - always visible */}
-                  <div 
-                    className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
-                    style={{ left: `calc(${progressPercent}% - 7px)` }}
-                  />
-                </div>
+                <StyledProgressBar
+                  progress={progress}
+                  duration={duration}
+                  onSeek={handleSeek}
+                  onMouseDown={handleProgressMouseDown}
+                  onMouseUp={handleProgressMouseUp}
+                  inputRef={progressRef}
+                  className="flex-1"
+                />
                 <span className="text-xs text-foreground/70 w-10 tabular-nums font-mono">
                   {formatTime(duration)}
                 </span>

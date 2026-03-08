@@ -56,11 +56,14 @@ export interface GradientConfig {
   angle: number;
 }
 
+export type ProgressBarStyle = 'classic' | 'wavy' | 'dots' | 'thin' | 'rounded';
+
 interface AppSettings {
   soundwaveEnabled: boolean;
   autoPlayNext: boolean;
   miniPlayerMode: boolean;
   soundwaveShape: SoundwaveShape;
+  progressBarStyle: ProgressBarStyle;
 }
 
 interface ThemeContextType {
@@ -134,6 +137,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       autoPlayNext: true,
       miniPlayerMode: false,
       soundwaveShape: 'bars' as SoundwaveShape,
+      progressBarStyle: 'classic' as ProgressBarStyle,
     };
   });
 
