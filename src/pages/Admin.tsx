@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff } from 'lucide-react';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
@@ -119,6 +119,12 @@ const Admin = () => {
   const { maintenance, toggleMaintenance, updateAllowedEmails } = useMaintenanceMode();
   const [allowedEmailInput, setAllowedEmailInput] = useState('');
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
+  const [deviceFilter, setDeviceFilter] = useState<'all' | 'Phone' | 'Desktop PC' | 'Laptop' | 'Tablet' | 'Smartwatch'>('all');
+  const [vpnFilter, setVpnFilter] = useState<'all' | 'vpn' | 'no-vpn'>('all');
 
   const handleToggleAdminRole = async (targetUser: AdminUser) => {
     const isCurrentlyAdmin = targetUser.roles.includes('admin');
@@ -473,6 +479,31 @@ const Admin = () => {
 
   const onlineCount = users.filter(isUserOnline).length;
 
+  const filteredUsers = users.filter((u) => {
+    // Search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = 
+        u.email?.toLowerCase().includes(q) ||
+        u.display_name?.toLowerCase().includes(q) ||
+        u.location?.city?.toLowerCase().includes(q) ||
+        u.location?.state?.toLowerCase().includes(q) ||
+        u.location?.country?.toLowerCase().includes(q) ||
+        u.location?.isp?.toLowerCase().includes(q) ||
+        u.location?.device_info?.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+    }
+    // Status
+    if (statusFilter === 'online' && !isUserOnline(u)) return false;
+    if (statusFilter === 'offline' && isUserOnline(u)) return false;
+    // Device
+    if (deviceFilter !== 'all' && u.location?.device_type !== deviceFilter) return false;
+    // VPN
+    if (vpnFilter === 'vpn' && !isLikelyVpn(u)) return false;
+    if (vpnFilter === 'no-vpn' && isLikelyVpn(u)) return false;
+    return true;
+  });
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -639,6 +670,71 @@ const Admin = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Filter Bar */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, location, ISP..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 h-9"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Status filter */}
+                    {(['all', 'online', 'offline'] as const).map((s) => (
+                      <Button
+                        key={s}
+                        size="sm"
+                        variant={statusFilter === s ? 'default' : 'outline'}
+                        className="h-8 text-xs capitalize"
+                        onClick={() => setStatusFilter(s)}
+                      >
+                        {s === 'online' && <Circle className="w-2 h-2 fill-emerald-500 text-emerald-500 mr-1" />}
+                        {s === 'offline' && <Circle className="w-2 h-2 fill-muted-foreground text-muted-foreground mr-1" />}
+                        {s === 'all' ? `All (${users.length})` : s === 'online' ? `Online (${onlineCount})` : `Offline (${users.length - onlineCount})`}
+                      </Button>
+                    ))}
+                    {/* Device filter */}
+                    {(['all', 'Phone', 'Desktop PC', 'Laptop', 'Tablet', 'Smartwatch'] as const).map((d) => {
+                      const icon = d === 'Phone' ? <Smartphone className="w-3 h-3 mr-1" /> 
+                        : d === 'Tablet' ? <Tablet className="w-3 h-3 mr-1" />
+                        : d === 'Laptop' ? <Laptop className="w-3 h-3 mr-1" />
+                        : d === 'Smartwatch' ? <Watch className="w-3 h-3 mr-1" />
+                        : d === 'Desktop PC' ? <Monitor className="w-3 h-3 mr-1" />
+                        : null;
+                      if (d === 'all') return null;
+                      const count = users.filter(u => u.location?.device_type === d).length;
+                      if (count === 0) return null;
+                      return (
+                        <Button
+                          key={d}
+                          size="sm"
+                          variant={deviceFilter === d ? 'default' : 'outline'}
+                          className="h-8 text-xs"
+                          onClick={() => setDeviceFilter(deviceFilter === d ? 'all' : d)}
+                        >
+                          {icon}{d} ({count})
+                        </Button>
+                      );
+                    })}
+                    {/* VPN filter */}
+                    <Button
+                      size="sm"
+                      variant={vpnFilter === 'vpn' ? 'destructive' : 'outline'}
+                      className="h-8 text-xs"
+                      onClick={() => setVpnFilter(vpnFilter === 'vpn' ? 'all' : 'vpn')}
+                    >
+                      <ShieldAlert className="w-3 h-3 mr-1" />
+                      VPN ({users.filter(u => isLikelyVpn(u)).length})
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Showing {filteredUsers.length} of {users.length} users
+                </p>
+
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -646,10 +742,10 @@ const Admin = () => {
                 ) : (
                   <ScrollArea className="h-[600px]">
                     <div className="space-y-3">
-                      {users.length === 0 ? (
+                      {filteredUsers.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">No users found</div>
                       ) : (
-                        users.map((u) => {
+                        filteredUsers.map((u) => {
                           const online = isUserOnline(u);
                           return (
                             <div
