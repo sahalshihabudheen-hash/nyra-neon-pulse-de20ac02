@@ -161,6 +161,19 @@ serve(async (req) => {
     const backupKeys = await getBackupYouTubeApiKeys();
     console.log(`Checking ${allKeys.length} primary + ${backupKeys.length} backup YouTube API keys`);
 
+    // Get extra keys list to mark which are deletable
+    let extraKeyLabels: string[] = [];
+    try {
+      const { data: extraSetting } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "extra_youtube_keys")
+        .single();
+      if (extraSetting?.value && Array.isArray(extraSetting.value)) {
+        extraKeyLabels = (extraSetting.value as { label: string }[]).map(k => k.label);
+      }
+    } catch {}
+
     const { data: disabledSetting } = await supabase
       .from("app_settings")
       .select("value")
@@ -169,9 +182,9 @@ serve(async (req) => {
 
     const disabledKeys: string[] = (disabledSetting?.value as string[]) || [];
 
-    const checkKey = async (label: string, apiKey: string, isDisabled: boolean) => {
+    const checkKey = async (label: string, apiKey: string, isDisabled: boolean, deletable: boolean = false) => {
       if (isDisabled) {
-        return { key: label, status: "disabled", message: "Disabled", enabled: false, isCurrentlyUsed: false };
+        return { key: label, status: "disabled", message: "Disabled", enabled: false, isCurrentlyUsed: false, deletable };
       }
 
       try {
@@ -180,7 +193,7 @@ serve(async (req) => {
         const data = await response.json();
 
         if (response.ok && !data.error) {
-          return { key: label, status: "active", message: "Working", enabled: true, isCurrentlyUsed: false };
+          return { key: label, status: "active", message: "Working", enabled: true, isCurrentlyUsed: false, deletable };
         }
 
         const errorMsg = data?.error?.message || `Error ${response.status}`;
@@ -193,6 +206,7 @@ serve(async (req) => {
           message: isQuota ? "Quota exceeded" : isExpired ? "Key expired/invalid" : errorMsg,
           enabled: true,
           isCurrentlyUsed: false,
+          deletable,
         };
       } catch (err) {
         return {
@@ -201,16 +215,19 @@ serve(async (req) => {
           message: err instanceof Error ? err.message : "Network error",
           enabled: true,
           isCurrentlyUsed: false,
+          deletable,
         };
       }
     };
 
     const results = await Promise.all(
-      allKeys.map(({ label, value: apiKey }) => checkKey(label, apiKey, disabledKeys.includes(label)))
+      allKeys.map(({ label, value: apiKey }) => 
+        checkKey(label, apiKey, disabledKeys.includes(label), extraKeyLabels.includes(label))
+      )
     );
 
     const backupResults = await Promise.all(
-      backupKeys.map(({ label, value: apiKey }) => checkKey(label, apiKey, false))
+      backupKeys.map(({ label, value: apiKey }) => checkKey(label, apiKey, false, true))
     );
 
     // Mark the first active key as currently in use

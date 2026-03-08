@@ -120,7 +120,7 @@ const Admin = () => {
   const [gameSessions, setGameSessions] = useState<GameSession[]>([]);
   const [activeGamersCount, setActiveGamersCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean}[]>([]);
+  const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean; deletable?: boolean}[]>([]);
   const [backupKeys, setBackupKeys] = useState<{key: string; status: string; message: string}[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -319,6 +319,27 @@ const Admin = () => {
       toast.error('Failed to add key');
     } finally {
       setAddingKey(false);
+    }
+  };
+
+  const deletePrimaryKey = async (keyName: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_key', keyName }),
+        }
+      );
+      if (response.ok) {
+        toast.success(`${keyName} removed`);
+        fetchYoutubeKeyStatus();
+      }
+    } catch (err) {
+      toast.error('Failed to delete key');
     }
   };
 
@@ -1463,7 +1484,7 @@ const Admin = () => {
                                   </span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                   isDisabled
                                     ? 'bg-muted/20 text-muted-foreground'
@@ -1479,6 +1500,16 @@ const Admin = () => {
                                   checked={isEnabled}
                                   onCheckedChange={(checked) => toggleYoutubeKey(keyInfo.key, checked)}
                                 />
+                                {keyInfo.deletable && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => deletePrimaryKey(keyInfo.key)}
+                                    className="text-destructive hover:text-destructive h-7 w-7 p-0"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             {isQuota && (
@@ -1561,6 +1592,7 @@ const Admin = () => {
                         <div className="space-y-2">
                           {backupKeys.map((bk, index) => {
                             const isActive = bk.status === 'active';
+                            const priorityLabel = index === 0 ? '1st Backup' : index === 1 ? '2nd Backup' : `${index + 1}th Backup`;
                             return (
                               <div
                                 key={index}
@@ -1571,12 +1603,15 @@ const Admin = () => {
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground font-mono font-bold">
+                                    #{index + 1}
+                                  </span>
                                   <Circle className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                                   <span className="font-mono font-semibold text-sm">{bk.key}</span>
                                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                                     isActive ? 'bg-primary/20 text-primary' : 'bg-muted/20 text-muted-foreground'
                                   }`}>
-                                    {bk.message} • Standby
+                                    {bk.message} • {priorityLabel}
                                   </span>
                                 </div>
                                 <Button
@@ -1591,7 +1626,7 @@ const Admin = () => {
                             );
                           })}
                           <p className="text-[11px] text-muted-foreground mt-2">
-                            🛡️ These keys remain on standby and automatically activate only when all primary keys fail.
+                            🛡️ Backup keys activate <strong>sequentially</strong> — #1 is tried first, then #2 only if #1 also fails. They never run simultaneously.
                           </p>
                         </div>
                       )}
