@@ -416,6 +416,38 @@ const Admin = () => {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!deleteTargetUser) return;
+    setDeleteLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ target_user_id: deleteTargetUser.id }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+
+      toast.success(`User ${deleteTargetUser.email} deleted`);
+      setUsers(prev => prev.filter(u => u.id !== deleteTargetUser.id));
+      setDeleteDialogOpen(false);
+      setDeleteTargetUser(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete user');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
