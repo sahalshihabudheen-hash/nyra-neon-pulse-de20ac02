@@ -122,15 +122,31 @@ function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScre
       deviceInfo = model || "Android Device";
     }
   } else if (macMatch) {
-    deviceInfo = "Mac";
+    // Use battery hint to distinguish laptop vs desktop
+    if (hints?.hasBattery) {
+      deviceType = "Laptop";
+      deviceInfo = "MacBook";
+    } else {
+      deviceType = "Desktop PC";
+      deviceInfo = "Mac (iMac/Mac Mini/Studio)";
+    }
   } else if (windowsMatch) {
     const versions: Record<string, string> = {
       "10.0": "Windows 10/11", "6.3": "Windows 8.1", "6.2": "Windows 8", "6.1": "Windows 7"
     };
-    deviceInfo = versions[windowsMatch[1]] || `Windows NT ${windowsMatch[1]}`;
+    const winVersion = versions[windowsMatch[1]] || `Windows NT ${windowsMatch[1]}`;
+    if (hints?.hasBattery) {
+      deviceType = "Laptop";
+      deviceInfo = `${winVersion} Laptop`;
+    } else {
+      deviceType = "Desktop PC";
+      deviceInfo = `${winVersion} Desktop`;
+    }
   } else if (chromeOsMatch) {
+    deviceType = hints?.hasBattery ? "Laptop" : "Desktop PC";
     deviceInfo = "Chromebook";
   } else if (linuxMatch) {
+    deviceType = hints?.hasBattery ? "Laptop" : "Desktop PC";
     deviceInfo = "Linux PC";
   }
 
