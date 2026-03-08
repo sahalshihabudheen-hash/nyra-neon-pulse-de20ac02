@@ -88,12 +88,7 @@ const steps: TutorialStep[] = [
 
 // Pulsing arrow component that points to an element
 const HighlightArrow = ({ targetRect, label, index }: { targetRect: DOMRect; label: string; index: number }) => {
-  // Position the arrow above/below the element
-  const arrowTop = targetRect.top - 50;
   const arrowLeft = targetRect.left + targetRect.width / 2;
-  const showAbove = targetRect.top > 120;
-
-  // Clamp position so it doesn't overflow viewport
   const clampedLeft = Math.min(Math.max(arrowLeft, 100), window.innerWidth - 100);
   const showAbove = targetRect.top > 160;
 
