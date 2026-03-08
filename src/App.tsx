@@ -17,6 +17,7 @@ import BecomeArtist from "./pages/BecomeArtist";
 import Favorites from "./pages/Favorites";
 import Admin from "./pages/Admin";
 import Games from "./pages/Games";
+import AiDj from "./pages/AiDj";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
