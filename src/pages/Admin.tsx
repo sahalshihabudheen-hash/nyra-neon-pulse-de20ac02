@@ -159,28 +159,53 @@ const Admin = () => {
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
 
   useEffect(() => {
-    const calcCountdown = () => {
-      const nowUtc = Date.now();
-      // Determine current Pacific offset (PST=-8, PDT=-7) using Intl
-      const pacificStr = new Intl.DateTimeFormat('en-US', {
+    const pacificDateFormatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const getPacificOffsetMinutes = (utcTimestamp: number) => {
+      const parts = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/Los_Angeles',
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: false,
-      }).format(nowUtc);
-      // Parse "MM/DD/YYYY, HH:MM:SS"
-      const [datePart, timePart] = pacificStr.split(', ');
-      const [month, day, year] = datePart.split('/').map(Number);
-      const [hour, minute, second] = timePart.split(':').map(Number);
-      
-      // Calculate ms left in the Pacific day until midnight
-      const msInDay = 24 * 60 * 60 * 1000;
-      const elapsedMs = (hour * 3600 + minute * 60 + second) * 1000;
-      const diff = msInDay - elapsedMs;
-      
+        timeZoneName: 'shortOffset',
+        hour: '2-digit',
+      }).formatToParts(new Date(utcTimestamp));
+
+      const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-8';
+      const match = tzPart.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/i);
+      if (!match) return -8 * 60;
+
+      const sign = match[1] === '-' ? -1 : 1;
+      const hours = Number(match[2] ?? '0');
+      const minutes = Number(match[3] ?? '0');
+      return sign * (hours * 60 + minutes);
+    };
+
+    const getPacificMidnightUtc = (year: number, month: number, day: number) => {
+      const guessUtc = Date.UTC(year, month - 1, day, 8, 0, 0);
+      const offsetMinutes = getPacificOffsetMinutes(guessUtc);
+      return Date.UTC(year, month - 1, day, 0, 0, 0) - offsetMinutes * 60 * 1000;
+    };
+
+    const calcCountdown = () => {
+      const now = Date.now();
+      const pacificToday = pacificDateFormatter.format(new Date(now)); // YYYY-MM-DD
+      const [year, month, day] = pacificToday.split('-').map(Number);
+
+      const nextPacificDate = new Date(Date.UTC(year, month - 1, day + 1));
+      const nextYear = nextPacificDate.getUTCFullYear();
+      const nextMonth = nextPacificDate.getUTCMonth() + 1;
+      const nextDay = nextPacificDate.getUTCDate();
+
+      const nextMidnightUtc = getPacificMidnightUtc(nextYear, nextMonth, nextDay);
+      const diff = Math.max(0, nextMidnightUtc - now);
+
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
       if (hours > 0) {
         setQuotaResetCountdown(`~${hours}h ${minutes}m`);
       } else if (minutes > 0) {
@@ -189,6 +214,7 @@ const Admin = () => {
         setQuotaResetCountdown(`${seconds}s`);
       }
     };
+
     calcCountdown();
     const interval = setInterval(calcCountdown, 1000);
     return () => clearInterval(interval);
