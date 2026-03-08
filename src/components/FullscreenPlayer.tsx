@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import StyledProgressBar from './StyledProgressBar';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import EqualizerPanel from './EqualizerPanel';
 import { ScrollArea } from './ui/scroll-area';
