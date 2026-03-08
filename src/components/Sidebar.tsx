@@ -122,6 +122,17 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
           </ul>
         </nav>
 
+        {/* Maintenance Notice */}
+        {maintenance.enabled && (
+          <div className="mx-4 mb-3 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+            <div className="flex items-center gap-2 text-yellow-500">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-semibold">Maintenance Mode</span>
+            </div>
+            <p className="text-[10px] text-yellow-500/70 mt-1">Site is currently under maintenance for other users.</p>
+          </div>
+        )}
+
         {/* Bottom Section */}
         <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground text-center">
