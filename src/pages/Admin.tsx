@@ -28,6 +28,7 @@ interface AdminUser {
   created_at: string;
   last_sign_in_at: string | null;
   email_confirmed_at: string | null;
+  roles: string[];
   location: {
     country: string;
     state: string;
