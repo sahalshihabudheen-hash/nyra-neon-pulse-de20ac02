@@ -55,7 +55,7 @@ const PlaylistView = () => {
   const [searchResults, setSearchResults] = useState<Track[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState('playlists');
-  const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>('off');
+  
   const [loading, setLoading] = useState(true);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
