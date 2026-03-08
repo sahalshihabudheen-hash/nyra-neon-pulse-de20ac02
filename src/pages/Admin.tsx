@@ -121,12 +121,17 @@ const Admin = () => {
   const [activeGamersCount, setActiveGamersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean}[]>([]);
+  const [backupKeys, setBackupKeys] = useState<{key: string; status: string; message: string}[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addKeyDialogOpen, setAddKeyDialogOpen] = useState(false);
   const [newKeyValue, setNewKeyValue] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
   const [addingKey, setAddingKey] = useState(false);
+  const [addBackupKeyDialogOpen, setAddBackupKeyDialogOpen] = useState(false);
+  const [newBackupKeyValue, setNewBackupKeyValue] = useState('');
+  const [newBackupKeyName, setNewBackupKeyName] = useState('');
+  const [addingBackupKey, setAddingBackupKey] = useState(false);
   
   // Admin login state
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
