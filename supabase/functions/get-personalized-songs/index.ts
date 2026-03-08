@@ -53,7 +53,6 @@ const regionMusicMap: Record<string, string[]> = {
   "China": ["Chinese pop songs new C-pop", "华语音乐新歌"],
 };
 
-// Map genres to YouTube search queries
 const genreSearchMap: Record<string, string> = {
   "Pop": "top pop songs hits new",
   "Hip-Hop": "hip hop rap songs new hits",
@@ -69,14 +68,28 @@ const genreSearchMap: Record<string, string> = {
   "Afrobeats": "Afrobeats new songs hits latest",
 };
 
+async function fetchWithKey(apiKey: string, searchQuery: string) {
+  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=12&q=${encodeURIComponent(searchQuery)}&key=${apiKey}`;
+  const response = await fetch(searchUrl);
+  const data = await response.json();
+  if (!response.ok || data.error) {
+    throw new Error(data.error?.message || "YouTube API error");
+  }
+  return data;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
-    if (!YOUTUBE_API_KEY) {
+    const keys = [
+      Deno.env.get("YOUTUBE_API_KEY"),
+      Deno.env.get("YOUTUBE_API_KEY_2"),
+    ].filter(Boolean) as string[];
+
+    if (keys.length === 0) {
       return new Response(
         JSON.stringify({ error: "YouTube API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -84,7 +97,7 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const type = url.searchParams.get("type") || "regional"; // "regional" or "genre"
+    const type = url.searchParams.get("type") || "regional";
     const state = url.searchParams.get("state") || "";
     const country = url.searchParams.get("country") || "";
     const genre = url.searchParams.get("genre") || "";
@@ -92,14 +105,11 @@ serve(async (req) => {
     let searchQuery = "";
 
     if (type === "regional") {
-      // Try state first, then country
       const queries = regionMusicMap[state] || regionMusicMap[country] || null;
       if (queries) {
-        // Use date to rotate between queries
         const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
         searchQuery = queries[dayOfYear % queries.length];
       } else {
-        // Generic popular music for unknown regions
         searchQuery = `popular music songs ${country || "worldwide"} new hits`;
       }
     } else if (type === "genre") {
@@ -108,16 +118,22 @@ serve(async (req) => {
 
     console.log(`Fetching personalized songs: type=${type}, query=${searchQuery}`);
 
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&maxResults=12&q=${encodeURIComponent(searchQuery)}&key=${YOUTUBE_API_KEY}`;
+    let data;
+    let lastError;
+    for (const key of keys) {
+      try {
+        data = await fetchWithKey(key, searchQuery);
+        break;
+      } catch (err) {
+        lastError = err;
+        console.warn(`Key failed, trying next: ${err.message}`);
+      }
+    }
 
-    const response = await fetch(searchUrl);
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("YouTube API error:", data);
+    if (!data) {
       return new Response(
-        JSON.stringify({ error: data.error?.message || "Failed to fetch" }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: lastError?.message || "All API keys exhausted" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -128,16 +144,14 @@ serve(async (req) => {
       channel: item.snippet.channelTitle,
     }));
 
-    return new Response(
-      JSON.stringify(tracks),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(tracks), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: unknown) {
     console.error("Personalized songs error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: message }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
