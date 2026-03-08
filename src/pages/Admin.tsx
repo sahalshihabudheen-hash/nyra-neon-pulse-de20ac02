@@ -1311,14 +1311,18 @@ const Admin = () => {
                       {youtubeKeys.map((keyInfo, index) => {
                         const isActive = keyInfo.status === 'active';
                         const isQuota = keyInfo.status === 'quota_exceeded';
+                        const isDisabled = keyInfo.status === 'disabled';
                         const quotaPercent = isActive ? Math.floor(Math.random() * 40 + 10) : isQuota ? 100 : 0;
                         const remainingPercent = isActive ? 100 - quotaPercent : 0;
+                        const isEnabled = keyInfo.enabled !== false;
 
                         return (
                           <div
                             key={index}
                             className={`p-4 rounded-lg border ${
-                              isActive
+                              isDisabled
+                                ? 'border-muted/30 bg-muted/5 opacity-60'
+                                : isActive
                                 ? 'border-green-500/30 bg-green-500/5'
                                 : isQuota
                                 ? 'border-yellow-500/30 bg-yellow-500/5'
@@ -1327,7 +1331,9 @@ const Admin = () => {
                           >
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-2">
-                                {isActive ? (
+                                {isDisabled ? (
+                                  <Circle className="w-5 h-5 text-muted-foreground" />
+                                ) : isActive ? (
                                   <CheckCircle className="w-5 h-5 text-green-500" />
                                 ) : isQuota ? (
                                   <AlertTriangle className="w-5 h-5 text-yellow-500" />
@@ -1335,53 +1341,68 @@ const Admin = () => {
                                   <XCircle className="w-5 h-5 text-destructive" />
                                 )}
                                 <span className="font-mono font-semibold text-sm">{keyInfo.key}</span>
+                                {keyInfo.isCurrentlyUsed && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-semibold animate-pulse">
+                                    ● CURRENTLY IN USE
+                                  </span>
+                                )}
                               </div>
-                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                isActive
-                                  ? 'bg-green-500/20 text-green-500'
-                                  : isQuota
-                                  ? 'bg-yellow-500/20 text-yellow-500'
-                                  : 'bg-destructive/20 text-destructive'
-                              }`}>
-                                {keyInfo.message}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  isDisabled
+                                    ? 'bg-muted/20 text-muted-foreground'
+                                    : isActive
+                                    ? 'bg-green-500/20 text-green-500'
+                                    : isQuota
+                                    ? 'bg-yellow-500/20 text-yellow-500'
+                                    : 'bg-destructive/20 text-destructive'
+                                }`}>
+                                  {keyInfo.message}
+                                </span>
+                                <Switch
+                                  checked={isEnabled}
+                                  onCheckedChange={(checked) => toggleYoutubeKey(keyInfo.key, checked)}
+                                />
+                              </div>
                             </div>
 
                             {/* Quota Progress Bar */}
-                            <div className="space-y-1.5">
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Quota Usage</span>
-                                <span>
-                                  {isActive
-                                    ? `~${quotaPercent}% used`
-                                    : isQuota
-                                    ? '100% used (resets at midnight PT)'
-                                    : 'N/A'}
-                                </span>
-                              </div>
-                              <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    isActive
-                                      ? 'bg-green-500'
+                            {!isDisabled && (
+                              <div className="space-y-1.5">
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>Quota Usage</span>
+                                  <span>
+                                    {isActive
+                                      ? `~${quotaPercent}% used`
                                       : isQuota
-                                      ? 'bg-yellow-500'
-                                      : 'bg-destructive'
-                                  }`}
-                                  style={{ width: `${isQuota ? 100 : isActive ? quotaPercent : 100}%` }}
-                                />
+                                      ? '100% used (resets at midnight PT)'
+                                      : 'N/A'}
+                                  </span>
+                                </div>
+                                <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                      isActive
+                                        ? 'bg-green-500'
+                                        : isQuota
+                                        ? 'bg-yellow-500'
+                                        : 'bg-destructive'
+                                    }`}
+                                    style={{ width: `${isQuota ? 100 : isActive ? quotaPercent : 100}%` }}
+                                  />
+                                </div>
+                                {isActive && (
+                                  <p className="text-xs text-green-500/80">
+                                    ≈ {Math.floor(10000 * remainingPercent / 100).toLocaleString()} / 10,000 units remaining
+                                  </p>
+                                )}
+                                {isQuota && (
+                                  <p className="text-xs text-yellow-500/80">
+                                    Daily quota exhausted • Resets at 12:00 AM Pacific Time
+                                  </p>
+                                )}
                               </div>
-                              {isActive && (
-                                <p className="text-xs text-green-500/80">
-                                  ≈ {Math.floor(10000 * remainingPercent / 100).toLocaleString()} / 10,000 units remaining
-                                </p>
-                              )}
-                              {isQuota && (
-                                <p className="text-xs text-yellow-500/80">
-                                  Daily quota exhausted • Resets at 12:00 AM Pacific Time
-                                </p>
-                              )}
-                            </div>
+                            )}
                           </div>
                         );
                       })}
