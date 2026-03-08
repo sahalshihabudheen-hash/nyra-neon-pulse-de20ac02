@@ -24,6 +24,8 @@ interface FullscreenPlayerProps {
   onPrevious: () => void;
   shuffleMode?: boolean;
   onToggleShuffle?: () => void;
+  loopMode?: 'off' | 'all' | 'one';
+  onCycleLoopMode?: () => void;
   queue: Track[];
   onRemoveFromQueue?: (trackId: string) => void;
   onPlayFromQueue?: (track: Track) => void;
