@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Music2, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Music2, Loader2, AlertCircle, Sparkles, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -17,6 +17,7 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
   const lastTrackId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -129,12 +130,27 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
             )}
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {lyrics && (
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(lyrics);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center transition-colors"
+              title="Copy lyrics"
+            >
+              {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-secondary/60 hover:bg-secondary flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Track info */}
