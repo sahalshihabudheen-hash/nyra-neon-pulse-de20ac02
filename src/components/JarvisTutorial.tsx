@@ -88,24 +88,24 @@ const steps: TutorialStep[] = [
 
 // Pulsing arrow component that points to an element
 const HighlightArrow = ({ targetRect, label, index }: { targetRect: DOMRect; label: string; index: number }) => {
-  // Position the arrow above/below the element
-  const arrowTop = targetRect.top - 50;
   const arrowLeft = targetRect.left + targetRect.width / 2;
-  const showAbove = targetRect.top > 120;
+  const clampedLeft = Math.min(Math.max(arrowLeft, 100), window.innerWidth - 100);
+  const showAbove = targetRect.top > 160;
 
   return (
     <div
       className="fixed z-[103] flex flex-col items-center pointer-events-none animate-bounce"
       style={{
         top: showAbove ? targetRect.top - 60 : targetRect.bottom + 8,
-        left: Math.min(Math.max(arrowLeft, 80), window.innerWidth - 80),
+        left: clampedLeft,
         transform: 'translateX(-50%)',
         animationDelay: `${index * 200}ms`,
+        maxWidth: '90vw',
       }}
     >
       {showAbove ? (
         <>
-          <span className="text-xs font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 whitespace-nowrap mb-1">
+          <span className="text-[11px] font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 text-center mb-1 max-w-[200px] truncate">
             {label}
           </span>
           <svg width="20" height="16" viewBox="0 0 20 16" className="text-primary drop-shadow-lg">
@@ -117,7 +117,7 @@ const HighlightArrow = ({ targetRect, label, index }: { targetRect: DOMRect; lab
           <svg width="20" height="16" viewBox="0 0 20 16" className="text-primary drop-shadow-lg">
             <path d="M10 0L18 12H2L10 0z" fill="currentColor" />
           </svg>
-          <span className="text-xs font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 whitespace-nowrap mt-1">
+          <span className="text-[11px] font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 text-center mt-1 max-w-[200px] truncate">
             {label}
           </span>
         </>
