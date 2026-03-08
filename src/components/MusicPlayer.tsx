@@ -304,18 +304,7 @@ const MusicPlayer = ({
           isMiniMode ? '' : 'flex-1 w-full'
         )}>
           <div className="flex items-center gap-1 md:gap-3">
-            {!isMiniMode && (
-              <button 
-                onClick={onToggleShuffle}
-                className={cn(
-                  'w-9 h-9 md:w-8 md:h-8 flex items-center justify-center transition-colors rounded-full active:scale-90 touch-manipulation',
-                  shuffleMode ? 'text-primary bg-primary/20' : 'text-muted-foreground hover:text-primary'
-                )}
-                title={shuffleMode ? 'Shuffle On' : 'Shuffle Off'}
-              >
-                <Shuffle className="w-4 h-4" />
-              </button>
-            )}
+            {/* Shuffle & Loop removed from homepage player - only in playlist/fullscreen */}
             <button
               onClick={onPrevious}
               className="w-10 h-10 flex items-center justify-center text-foreground hover:text-primary transition-colors active:scale-90 touch-manipulation"
