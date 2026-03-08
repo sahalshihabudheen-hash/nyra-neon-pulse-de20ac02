@@ -123,6 +123,10 @@ const Admin = () => {
   const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean}[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addKeyDialogOpen, setAddKeyDialogOpen] = useState(false);
+  const [newKeyValue, setNewKeyValue] = useState('');
+  const [newKeyName, setNewKeyName] = useState('');
+  const [addingKey, setAddingKey] = useState(false);
   
   // Admin login state
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
@@ -278,7 +282,17 @@ const Admin = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  const addYoutubeKey = async () => {
+    if (!newKeyValue.trim()) { toast.error('Please enter an API key'); return; }
+    const keyName = newKeyName.trim() || `YOUTUBE_API_KEY_${youtubeKeys.length + 1}`;
+    // Copy key info to clipboard for manual setup
+    navigator.clipboard.writeText(`${keyName}=${newKeyValue.trim()}`);
+    toast.success(`Copied ${keyName} to clipboard. Add it as a backend secret to activate it.`, { duration: 5000 });
+    setAddKeyDialogOpen(false);
+    setNewKeyValue('');
+    setNewKeyName('');
+  };
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -1260,15 +1274,25 @@ const Admin = () => {
                       <CardDescription>Monitor quota status of all configured API keys</CardDescription>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchYoutubeKeyStatus}
-                    disabled={keysLoading}
-                  >
-                    {keysLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    <span className="ml-2 hidden sm:inline">Refresh</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAddKeyDialogOpen(true)}
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="ml-1 hidden sm:inline">Add Key</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchYoutubeKeyStatus}
+                      disabled={keysLoading}
+                    >
+                      {keysLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                      <span className="ml-2 hidden sm:inline">Refresh</span>
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -1608,6 +1632,42 @@ const Admin = () => {
               ) : (
                 'Delete User'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add API Key Dialog */}
+      <Dialog open={addKeyDialogOpen} onOpenChange={setAddKeyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add YouTube API Key</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Key Name (optional)</label>
+              <Input
+                placeholder="e.g. YOUTUBE_API_KEY_5"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Leave blank to auto-name</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">API Key</label>
+              <Input
+                placeholder="AIzaSy..."
+                value={newKeyValue}
+                onChange={(e) => setNewKeyValue(e.target.value)}
+                type="password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddKeyDialogOpen(false)}>Cancel</Button>
+            <Button onClick={addYoutubeKey} disabled={addingKey}>
+              {addingKey ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              Add Key
             </Button>
           </DialogFooter>
         </DialogContent>
