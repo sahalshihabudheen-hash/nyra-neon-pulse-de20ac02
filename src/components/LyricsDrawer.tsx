@@ -17,6 +17,7 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
   const lastTrackId = useRef<string | null>(null);
 
   useEffect(() => {
