@@ -511,7 +511,7 @@ const MusicPlayer = ({
 
         {/* Mobile Bottom Row */}
         {!isMiniMode && (
-          <div className="flex md:hidden items-center justify-between w-full px-2 gap-3">
+          <div className="flex md:hidden items-center justify-between w-full px-2 gap-2">
             {/* Soundwave */}
             {settings.soundwaveEnabled && (
               <div className="bg-black/30 rounded-lg px-2 py-1 border border-primary/30 flex-shrink-0">
@@ -519,20 +519,35 @@ const MusicPlayer = ({
               </div>
             )}
 
-            {/* Lyrics + Playlist grouped */}
-            <div className="flex items-center gap-1">
+            {/* Lyrics + Playlist tabs */}
+            <div className="flex items-center gap-1 bg-secondary/50 rounded-full p-1 border border-border">
               <button
                 onClick={() => setLyricsOpen(!lyricsOpen)}
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation',
                   lyricsOpen
-                    ? 'bg-primary/20 text-primary'
-                    : 'text-muted-foreground hover:text-primary hover:bg-secondary'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
-                title="Lyrics"
               >
-                <Music2 className="w-4 h-4" />
+                <Music2 className="w-3.5 h-3.5" />
+                <span>Lyrics</span>
               </button>
+              <button
+                onClick={() => setPlaylistOpen(!playlistOpen)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation',
+                  playlistOpen
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <ListPlus className="w-3.5 h-3.5" />
+                <span>Playlist</span>
+              </button>
+            </div>
+            {/* Hidden PlaylistDrawer trigger for mobile */}
+            <div className="hidden">
               <PlaylistDrawer
                 playlist={playlist}
                 currentTrack={currentTrack}
