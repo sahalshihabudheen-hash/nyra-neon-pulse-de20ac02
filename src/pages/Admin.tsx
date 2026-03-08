@@ -1548,7 +1548,7 @@ const Admin = () => {
                     )}
 
                     {/* Summary */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
                       <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
                         <p className="text-2xl font-bold text-green-500">
                           {youtubeKeys.filter(k => k.status === 'active').length}
