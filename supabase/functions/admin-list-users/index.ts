@@ -72,7 +72,7 @@ serve(async (req) => {
     // Fetch all user locations with device info
     const { data: locations } = await supabaseAdmin
       .from("user_locations")
-      .select("user_id, country, state, city, timezone, isp, last_updated, device_type, device_info");
+      .select("user_id, country, state, city, timezone, isp, last_updated, device_type, device_info, is_vpn");
 
     // Fetch all user roles
     const { data: roles } = await supabaseAdmin
