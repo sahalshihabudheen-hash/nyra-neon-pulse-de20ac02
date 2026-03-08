@@ -46,6 +46,7 @@ const App = () => (
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/ai-dj" element={<AiDj />} />
+                <Route path="/ai-music" element={<AiMusicGenerator />} />
                 {/* <Route path="/games" element={<Games />} /> */}
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
