@@ -213,10 +213,17 @@ serve(async (req) => {
 
     // Parse request body for user agent
     let clientUserAgent = "";
+    let deviceHints: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number } = {};
 
     try {
       const body = await req.json();
       clientUserAgent = body.userAgent || "";
+      deviceHints = {
+        hasBattery: body.hasBattery,
+        hasTouchScreen: body.hasTouchScreen,
+        screenWidth: body.screenWidth,
+        screenHeight: body.screenHeight,
+      };
     } catch {
       // No body
     }
@@ -225,7 +232,7 @@ serve(async (req) => {
       clientUserAgent = req.headers.get("user-agent") || "";
     }
 
-    const { deviceType, deviceInfo } = parseUserAgent(clientUserAgent);
+    const { deviceType, deviceInfo } = parseUserAgent(clientUserAgent, deviceHints);
     console.log(`Device: ${deviceType} - ${deviceInfo}`);
 
     // Get IP
