@@ -16,9 +16,10 @@ import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
 
-const isLikelyVpn = (isp: string | undefined): boolean => {
-  if (!isp) return false;
-  const lower = isp.toLowerCase();
+const isLikelyVpn = (user: AdminUser): boolean => {
+  if (user.location?.is_vpn) return true;
+  if (!user.location?.isp) return false;
+  const lower = user.location.isp.toLowerCase();
   return VPN_KEYWORDS.some((kw) => lower.includes(kw));
 };
 
