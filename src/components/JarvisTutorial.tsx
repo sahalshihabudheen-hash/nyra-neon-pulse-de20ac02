@@ -14,7 +14,7 @@ interface TutorialStep {
   // Labels for each arrow
   highlightLabels?: string[];
   // Card position
-  cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center';
+  cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center' | 'mid-left';
 }
 
 const steps: TutorialStep[] = [
@@ -35,7 +35,7 @@ const steps: TutorialStep[] = [
   {
     title: "📋 Your Sidebar",
     message: "This is your sidebar — your command center! Each icon takes you to a different section. Let me walk you through the important ones...",
-    cardPosition: 'bottom-right',
+    cardPosition: 'mid-left',
     navigateTo: '/',
     highlightSelectors: ['aside nav'],
     highlightLabels: ['Navigate from here'],
@@ -268,6 +268,8 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
         return 'bottom-8 right-4 md:right-8';
       case 'bottom-left':
         return 'bottom-8 left-4 md:left-[calc(16rem+2rem)]';
+      case 'mid-left':
+        return 'top-1/3 left-4 md:left-[calc(16rem+2rem)]';
       case 'top-center':
         return 'top-24 left-1/2 -translate-x-1/2 md:left-[calc(50%+8rem)] md:-translate-x-1/2';
       default:
