@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { getAllYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
+import { getAllYouTubeApiKeys, getBackupYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,7 +30,6 @@ serve(async (req) => {
           });
         }
 
-        // Get existing extra keys
         const { data: setting } = await supabase
           .from("app_settings")
           .select("value")
@@ -39,7 +38,6 @@ serve(async (req) => {
 
         const extraKeys: { label: string; value: string }[] = (setting?.value as any[]) || [];
         
-        // Check for duplicate name
         if (extraKeys.some(k => k.label === keyName)) {
           return new Response(JSON.stringify({ error: "Key with that name already exists" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -78,6 +76,61 @@ serve(async (req) => {
         });
       }
 
+      // Add a backup key
+      if (action === "add_backup_key") {
+        const { keyName, keyValue } = body;
+        if (!keyName || !keyValue) {
+          return new Response(JSON.stringify({ error: "keyName and keyValue required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: setting } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "backup_youtube_keys")
+          .single();
+
+        const backupKeys: { label: string; value: string }[] = (setting?.value as any[]) || [];
+
+        if (backupKeys.some(k => k.label === keyName)) {
+          return new Response(JSON.stringify({ error: "Backup key with that name already exists" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        backupKeys.push({ label: keyName, value: keyValue });
+
+        await supabase
+          .from("app_settings")
+          .upsert({ key: "backup_youtube_keys", value: backupKeys as any }, { onConflict: "key" });
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Delete a backup key
+      if (action === "delete_backup_key") {
+        const { keyName } = body;
+        const { data: setting } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "backup_youtube_keys")
+          .single();
+
+        let backupKeys: { label: string; value: string }[] = (setting?.value as any[]) || [];
+        backupKeys = backupKeys.filter(k => k.label !== keyName);
+
+        await supabase
+          .from("app_settings")
+          .upsert({ key: "backup_youtube_keys", value: backupKeys as any }, { onConflict: "key" });
+
+        return new Response(JSON.stringify({ success: true }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Toggle key enabled/disabled
       const { keyLabel, enabled } = body;
       const { data: disabledSetting } = await supabase
@@ -103,9 +156,10 @@ serve(async (req) => {
       });
     }
 
-    // GET: check all keys
+    // GET: check all keys + backup keys
     const allKeys = await getAllYouTubeApiKeys();
-    console.log(`Checking ${allKeys.length} YouTube API keys`);
+    const backupKeys = await getBackupYouTubeApiKeys();
+    console.log(`Checking ${allKeys.length} primary + ${backupKeys.length} backup YouTube API keys`);
 
     const { data: disabledSetting } = await supabase
       .from("app_settings")
@@ -115,44 +169,48 @@ serve(async (req) => {
 
     const disabledKeys: string[] = (disabledSetting?.value as string[]) || [];
 
+    const checkKey = async (label: string, apiKey: string, isDisabled: boolean) => {
+      if (isDisabled) {
+        return { key: label, status: "disabled", message: "Disabled", enabled: false, isCurrentlyUsed: false };
+      }
+
+      try {
+        const url = `https://www.googleapis.com/youtube/v3/videos?part=id&id=dQw4w9WgXcQ&key=${apiKey}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (response.ok && !data.error) {
+          return { key: label, status: "active", message: "Working", enabled: true, isCurrentlyUsed: false };
+        }
+
+        const errorMsg = data?.error?.message || `Error ${response.status}`;
+        const isQuota = /quota|limit|rate/i.test(errorMsg);
+        const isExpired = /expired|invalid/i.test(errorMsg);
+
+        return {
+          key: label,
+          status: isQuota ? "quota_exceeded" : isExpired ? "expired" : "error",
+          message: isQuota ? "Quota exceeded" : isExpired ? "Key expired/invalid" : errorMsg,
+          enabled: true,
+          isCurrentlyUsed: false,
+        };
+      } catch (err) {
+        return {
+          key: label,
+          status: "error",
+          message: err instanceof Error ? err.message : "Network error",
+          enabled: true,
+          isCurrentlyUsed: false,
+        };
+      }
+    };
+
     const results = await Promise.all(
-      allKeys.map(async ({ label, value: apiKey }) => {
-        const isDisabled = disabledKeys.includes(label);
+      allKeys.map(({ label, value: apiKey }) => checkKey(label, apiKey, disabledKeys.includes(label)))
+    );
 
-        if (isDisabled) {
-          return { key: label, status: "disabled", message: "Disabled", enabled: false, isCurrentlyUsed: false };
-        }
-
-        try {
-          const url = `https://www.googleapis.com/youtube/v3/videos?part=id&id=dQw4w9WgXcQ&key=${apiKey}`;
-          const response = await fetch(url);
-          const data = await response.json();
-
-          if (response.ok && !data.error) {
-            return { key: label, status: "active", message: "Working", enabled: true, isCurrentlyUsed: false };
-          }
-
-          const errorMsg = data?.error?.message || `Error ${response.status}`;
-          const isQuota = /quota|limit|rate/i.test(errorMsg);
-          const isExpired = /expired|invalid/i.test(errorMsg);
-
-          return {
-            key: label,
-            status: isQuota ? "quota_exceeded" : isExpired ? "expired" : "error",
-            message: isQuota ? "Quota exceeded" : isExpired ? "Key expired/invalid" : errorMsg,
-            enabled: true,
-            isCurrentlyUsed: false,
-          };
-        } catch (err) {
-          return {
-            key: label,
-            status: "error",
-            message: err instanceof Error ? err.message : "Network error",
-            enabled: true,
-            isCurrentlyUsed: false,
-          };
-        }
-      })
+    const backupResults = await Promise.all(
+      backupKeys.map(({ label, value: apiKey }) => checkKey(label, apiKey, false))
     );
 
     // Mark the first active key as currently in use
@@ -165,7 +223,7 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ keys: results, total: allKeys.length }), {
+    return new Response(JSON.stringify({ keys: results, backupKeys: backupResults, total: allKeys.length }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

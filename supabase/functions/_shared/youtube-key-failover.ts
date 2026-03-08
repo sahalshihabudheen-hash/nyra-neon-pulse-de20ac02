@@ -83,9 +83,7 @@ export async function getAllYouTubeApiKeys(): Promise<NamedKey[]> {
 
   // Extra keys from app_settings
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = getSupabaseClient();
 
     const { data } = await supabase
       .from("app_settings")
@@ -111,6 +109,30 @@ export async function getAllYouTubeApiKeys(): Promise<NamedKey[]> {
     seen.add(k.value);
     return true;
   });
+}
+
+/**
+ * Get backup YouTube API keys from app_settings.
+ * These are only used when ALL primary keys are exhausted.
+ */
+export async function getBackupYouTubeApiKeys(): Promise<NamedKey[]> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "backup_youtube_keys")
+      .single();
+
+    if (data?.value && Array.isArray(data.value)) {
+      return (data.value as { label: string; value: string }[]).filter(
+        (k) => k.label && k.value
+      );
+    }
+  } catch {
+    // Ignore
+  }
+  return [];
 }
 
 export async function fetchYouTubeWithFailover(
@@ -164,4 +186,37 @@ export async function fetchYouTubeWithFailover(
   }
 
   return { ok: false, error: lastError, status: lastStatus };
+}
+
+/**
+ * Fetch YouTube with full failover: tries primary keys first,
+ * then automatically falls back to backup keys if all primary keys fail.
+ */
+export async function fetchYouTubeWithBackupFailover(
+  primaryKeys: string[],
+  buildUrl: (apiKey: string) => string,
+): Promise<{ ok: true; data: any; usedBackup?: boolean } | { ok: false; error: string; status: number }> {
+  // Try primary keys first
+  const primaryResult = await fetchYouTubeWithFailover(primaryKeys, buildUrl);
+  if (primaryResult.ok) {
+    return { ...primaryResult, usedBackup: false };
+  }
+
+  // All primary keys failed — try backup keys
+  const backupKeys = await getBackupYouTubeApiKeys();
+  if (backupKeys.length === 0) {
+    return primaryResult; // No backups, return original error
+  }
+
+  console.warn(`All ${primaryKeys.length} primary keys exhausted, trying ${backupKeys.length} backup key(s)...`);
+  const backupResult = await fetchYouTubeWithFailover(
+    backupKeys.map((k) => k.value),
+    buildUrl,
+  );
+
+  if (backupResult.ok) {
+    return { ...backupResult, usedBackup: true };
+  }
+
+  return backupResult;
 }
