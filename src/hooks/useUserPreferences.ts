@@ -17,6 +17,7 @@ export function useUserPreferences() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -39,10 +40,16 @@ export function useUserPreferences() {
 
       if (!data) {
         setShowOnboarding(true);
+        setShowTutorial(true);
         setPreferences(null);
       } else {
-        setPreferences({ genres: data.genres || [], onboarding_complete: data.onboarding_complete });
+        setPreferences({
+          genres: data.genres || [],
+          onboarding_complete: data.onboarding_complete,
+          tutorial_complete: data.tutorial_complete ?? false,
+        });
         setShowOnboarding(!data.onboarding_complete);
+        setShowTutorial(!data.tutorial_complete);
       }
     } catch (err) {
       console.error('Failed to fetch preferences:', err);
@@ -64,12 +71,31 @@ export function useUserPreferences() {
 
       if (error) throw error;
 
-      setPreferences({ genres, onboarding_complete: true });
+      setPreferences(prev => ({ genres, onboarding_complete: true, tutorial_complete: prev?.tutorial_complete ?? false }));
       setShowOnboarding(false);
     } catch (err) {
       console.error('Failed to save preferences:', err);
     }
   }, [user]);
 
-  return { preferences, loading, showOnboarding, setShowOnboarding, savePreferences };
+  const completeTutorial = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: user.id,
+          tutorial_complete: true,
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+
+      setPreferences(prev => prev ? { ...prev, tutorial_complete: true } : { genres: [], onboarding_complete: false, tutorial_complete: true });
+      setShowTutorial(false);
+    } catch (err) {
+      console.error('Failed to complete tutorial:', err);
+    }
+  }, [user]);
+
+  return { preferences, loading, showOnboarding, setShowOnboarding, savePreferences, showTutorial, completeTutorial };
 }
