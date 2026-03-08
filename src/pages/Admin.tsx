@@ -322,7 +322,59 @@ const Admin = () => {
     }
   };
 
-  const fetchUsers = async () => {
+  const addBackupKey = async () => {
+    if (!newBackupKeyValue.trim()) { toast.error('Please enter an API key'); return; }
+    setAddingBackupKey(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const keyName = newBackupKeyName.trim() || `BACKUP_API_${backupKeys.length + 1}`;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add_backup_key', keyName, keyValue: newBackupKeyValue.trim() }),
+        }
+      );
+      if (response.ok) {
+        toast.success(`Backup key ${keyName} added!`);
+        setAddBackupKeyDialogOpen(false);
+        setNewBackupKeyValue('');
+        setNewBackupKeyName('');
+        fetchYoutubeKeyStatus();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to add backup key');
+      }
+    } catch (err) {
+      toast.error('Failed to add backup key');
+    } finally {
+      setAddingBackupKey(false);
+    }
+  };
+
+  const deleteBackupKey = async (keyName: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys`,
+        {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_backup_key', keyName }),
+        }
+      );
+      if (response.ok) {
+        toast.success(`Backup key ${keyName} deleted`);
+        fetchYoutubeKeyStatus();
+      }
+    } catch (err) {
+      toast.error('Failed to delete backup key');
+    }
+  };
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
