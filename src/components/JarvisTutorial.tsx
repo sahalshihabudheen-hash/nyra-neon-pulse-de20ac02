@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,69 +8,123 @@ import jarvisAvatar from '@/assets/jarvis-avatar.gif';
 interface TutorialStep {
   title: string;
   message: string;
-  highlight: 'center' | 'top-right' | 'left' | 'bottom' | 'page-center';
-  pointTo?: string;
-  navigateTo?: string; // Navigate to this route when step becomes active
+  navigateTo?: string;
+  // CSS selector(s) to highlight with arrows
+  highlightSelectors?: string[];
+  // Labels for each arrow
+  highlightLabels?: string[];
+  // Card position
+  cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center';
 }
 
 const steps: TutorialStep[] = [
   {
     title: "Welcome to NYRA!",
     message: "Hey there! I'm JARVIS, your personal assistant. Let me give you a quick tour of NYRA so you can start vibing right away! I'll walk you through each section.",
-    highlight: 'center',
+    cardPosition: 'center',
     navigateTo: '/',
   },
   {
-    title: "🔍 Search Bar",
-    message: "See this search bar at the top? Type any song name, artist, or keyword and hit Enter. NYRA will find it for you instantly from millions of tracks!",
-    highlight: 'top-right',
-    pointTo: 'search',
+    title: "🔍 Search for Music",
+    message: "This is your search bar! Type any song name, artist, or keyword here and press Enter. NYRA will find it for you instantly from millions of tracks!",
+    cardPosition: 'bottom-left',
     navigateTo: '/',
+    highlightSelectors: ['header .relative:has(input)'],
+    highlightLabels: ['Type your search here'],
   },
   {
-    title: "📋 Sidebar Navigation",
-    message: "This is your sidebar — your command center! It has links to Home, Artists, Playlists, Favorites, AI DJ, and Settings. Let me show you each one...",
-    highlight: 'left',
-    pointTo: 'sidebar',
+    title: "📋 Your Sidebar",
+    message: "This is your sidebar — your command center! Each icon takes you to a different section. Let me walk you through the important ones...",
+    cardPosition: 'bottom-right',
     navigateTo: '/',
+    highlightSelectors: ['aside nav'],
+    highlightLabels: ['Navigate from here'],
   },
   {
-    title: "🎵 Playlists",
-    message: "Welcome to Playlists! Here you can create your own music collections. Tap '+ New Playlist' to create one, then search for songs and add them. You can drag to reorder and shuffle your jams!",
-    highlight: 'page-center',
+    title: "🎵 Create Playlists",
+    message: "This is your Playlists page! Tap the 'Create Playlist' button in the top-right to make a new collection. Then go search for songs and add them to your playlist!",
+    cardPosition: 'bottom-left',
     navigateTo: '/playlists',
+    highlightSelectors: ['button:has(.lucide-plus)', 'main h1'],
+    highlightLabels: ['Tap here to create a playlist', 'Your playlists appear here'],
   },
   {
-    title: "🤖 AI DJ",
-    message: "This is the AI DJ! Just tell it your mood — like 'chill vibes' or 'workout energy' — and it'll generate the perfect playlist for you. It's like having your own personal DJ!",
-    highlight: 'page-center',
+    title: "🤖 AI DJ — Your Mood, Your Music",
+    message: "Welcome to AI DJ! Pick a quick mood button above, or type exactly how you're feeling in the text box below. Hit 'Generate AI Playlist' and the AI will create a perfect playlist for your vibe!",
+    cardPosition: 'bottom-left',
     navigateTo: '/ai-dj',
+    highlightSelectors: ['button:has(.lucide-sparkles):not(aside button)', 'input[placeholder*="mood"], input[placeholder*="feeling"], textarea'],
+    highlightLabels: ['Generate your playlist', 'Type your mood here'],
   },
   {
-    title: "❤️ Favorites",
-    message: "Your Favorites page! Whenever you hear a song you love, tap the heart icon on any track. All your liked songs show up here for easy access.",
-    highlight: 'page-center',
+    title: "❤️ Your Favorites",
+    message: "This is your Favorites! Whenever you hear a song you love, tap the heart icon ❤️ on any track card. All your liked songs will show up right here.",
+    cardPosition: 'center',
     navigateTo: '/favorites',
   },
   {
-    title: "🎤 Artists",
-    message: "Discover artists here! Browse through profiles, check out their albums, and listen to their tracks. You can even become an artist yourself!",
-    highlight: 'page-center',
+    title: "🎤 Discover Artists",
+    message: "Browse artists here! Check out their profiles, albums, and tracks. Want to share your own music? Tap 'Become an Artist' to get started!",
+    cardPosition: 'bottom-right',
     navigateTo: '/artists',
+    highlightSelectors: ['a[href="/become-artist"], button:has(.lucide-mic)'],
+    highlightLabels: ['Become an artist'],
   },
   {
-    title: "⚙️ Settings",
-    message: "This is your Settings page! Here you can set your username, upload an avatar (PNG or GIF), change your password, pick a theme, customize gradients, and tweak player options. Make NYRA yours!",
-    highlight: 'page-center',
+    title: "⚙️ Your Settings",
+    message: "This is Settings! Set your username, upload a profile picture (PNG or GIF), change your password, pick a theme color, and customize gradients. Make NYRA truly yours!",
+    cardPosition: 'bottom-right',
     navigateTo: '/settings',
+    highlightSelectors: ['[class*="avatar"], .relative:has(img[alt="Avatar"])'],
+    highlightLabels: ['Upload your avatar here'],
   },
   {
     title: "🎶 You're All Set!",
     message: "That's the tour! Head back home, search for your favorite song, and start listening. The music player will appear at the bottom when you play a track. Enjoy NYRA! 🎵",
-    highlight: 'center',
+    cardPosition: 'center',
     navigateTo: '/',
   },
 ];
+
+// Pulsing arrow component that points to an element
+const HighlightArrow = ({ targetRect, label, index }: { targetRect: DOMRect; label: string; index: number }) => {
+  // Position the arrow above/below the element
+  const arrowTop = targetRect.top - 50;
+  const arrowLeft = targetRect.left + targetRect.width / 2;
+  const showAbove = targetRect.top > 120;
+
+  return (
+    <div
+      className="fixed z-[103] flex flex-col items-center pointer-events-none animate-bounce"
+      style={{
+        top: showAbove ? targetRect.top - 60 : targetRect.bottom + 8,
+        left: Math.min(Math.max(arrowLeft, 80), window.innerWidth - 80),
+        transform: 'translateX(-50%)',
+        animationDelay: `${index * 200}ms`,
+      }}
+    >
+      {showAbove ? (
+        <>
+          <span className="text-xs font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 whitespace-nowrap mb-1">
+            {label}
+          </span>
+          <svg width="20" height="16" viewBox="0 0 20 16" className="text-primary drop-shadow-lg">
+            <path d="M10 16L2 4h16L10 16z" fill="currentColor" />
+          </svg>
+        </>
+      ) : (
+        <>
+          <svg width="20" height="16" viewBox="0 0 20 16" className="text-primary drop-shadow-lg">
+            <path d="M10 0L18 12H2L10 0z" fill="currentColor" />
+          </svg>
+          <span className="text-xs font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 whitespace-nowrap mt-1">
+            {label}
+          </span>
+        </>
+      )}
+    </div>
+  );
+};
 
 interface JarvisTutorialProps {
   onComplete: () => void;
@@ -81,54 +135,15 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
-  const [adminAvatar, setAdminAvatar] = useState<string | null>(null);
+  const [highlightRects, setHighlightRects] = useState<{ rect: DOMRect; label: string }[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Fetch admin/JARVIS avatar
-  useEffect(() => {
-    const fetchJarvisAvatar = async () => {
-      try {
-        const { data: setting } = await supabase
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'jarvis_avatar')
-          .maybeSingle();
-
-        if (setting?.value && typeof setting.value === 'string') {
-          setAdminAvatar(setting.value);
-          return;
-        }
-
-        const { data: adminRoles } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'admin')
-          .limit(1);
-
-        if (adminRoles && adminRoles.length > 0) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('user_id', adminRoles[0].user_id)
-            .maybeSingle();
-
-          if (profile?.avatar_url) {
-            setAdminAvatar(profile.avatar_url);
-          }
-        }
-      } catch (err) {
-        console.warn('Could not fetch JARVIS avatar:', err);
-      }
-    };
-    fetchJarvisAvatar();
-  }, []);
 
   useEffect(() => {
     setTimeout(() => setIsVisible(true), 300);
   }, []);
 
-  // Navigate to the correct page for each step
+  // Navigate to the correct page
   useEffect(() => {
     const step = steps[currentStep];
     if (step.navigateTo && location.pathname !== step.navigateTo) {
@@ -136,44 +151,66 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
     }
   }, [currentStep, navigate, location.pathname]);
 
-  // Highlight UI elements
+  // Find and highlight elements with arrows
   useEffect(() => {
     const step = steps[currentStep];
-    const cleanup = () => {
-      document.querySelectorAll('[data-tutorial-highlight]').forEach(el => {
-        (el as HTMLElement).removeAttribute('data-tutorial-highlight');
-        (el as HTMLElement).style.removeProperty('position');
-        (el as HTMLElement).style.removeProperty('z-index');
-        (el as HTMLElement).style.removeProperty('box-shadow');
-      });
-      const sidebar = document.querySelector('aside');
-      if (sidebar) (sidebar as HTMLElement).style.removeProperty('z-index');
-    };
 
-    cleanup();
+    // Clear previous highlights
+    document.querySelectorAll('[data-tutorial-glow]').forEach(el => {
+      (el as HTMLElement).style.removeProperty('box-shadow');
+      (el as HTMLElement).style.removeProperty('z-index');
+      (el as HTMLElement).style.removeProperty('position');
+      (el as HTMLElement).removeAttribute('data-tutorial-glow');
+    });
+    setHighlightRects([]);
 
-    // Delay highlight to let page render after navigation
+    if (!step.highlightSelectors?.length) return;
+
+    // Wait for page to render after navigation
     const timer = setTimeout(() => {
-      if (step.pointTo === 'search') {
-        const header = document.querySelector('header');
-        if (header) {
-          (header as HTMLElement).setAttribute('data-tutorial-highlight', 'true');
-          (header as HTMLElement).style.zIndex = '101';
-          (header as HTMLElement).style.boxShadow = '0 0 0 4px hsl(var(--primary) / 0.5), 0 0 30px hsl(var(--primary) / 0.3)';
+      const rects: { rect: DOMRect; label: string }[] = [];
+
+      step.highlightSelectors!.forEach((selector, i) => {
+        const el = document.querySelector(selector) as HTMLElement;
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const label = step.highlightLabels?.[i] || '';
+          rects.push({ rect, label });
+
+          // Add glow to the element
+          el.setAttribute('data-tutorial-glow', 'true');
+          el.style.position = 'relative';
+          el.style.zIndex = '101';
+          el.style.boxShadow = '0 0 0 3px hsl(var(--primary) / 0.6), 0 0 25px hsl(var(--primary) / 0.3)';
         }
-      } else if (step.pointTo === 'sidebar') {
-        const sidebar = document.querySelector('aside');
-        if (sidebar) {
-          (sidebar as HTMLElement).setAttribute('data-tutorial-highlight', 'true');
-          (sidebar as HTMLElement).style.zIndex = '101';
-          (sidebar as HTMLElement).style.boxShadow = '0 0 0 4px hsl(var(--primary) / 0.5), 0 0 30px hsl(var(--primary) / 0.3)';
-        }
+      });
+
+      // Bring sidebar above overlay if highlighting sidebar elements
+      const sidebar = document.querySelector('aside');
+      if (sidebar && step.highlightSelectors!.some(s => s.includes('aside') || s.includes('nav'))) {
+        (sidebar as HTMLElement).style.zIndex = '101';
       }
-    }, 200);
+      // Bring header above overlay if highlighting search
+      const header = document.querySelector('header');
+      if (header && step.highlightSelectors!.some(s => s.includes('header') || s.includes('input'))) {
+        (header as HTMLElement).style.zIndex = '101';
+      }
+
+      setHighlightRects(rects);
+    }, 500);
 
     return () => {
       clearTimeout(timer);
-      cleanup();
+      document.querySelectorAll('[data-tutorial-glow]').forEach(el => {
+        (el as HTMLElement).style.removeProperty('box-shadow');
+        (el as HTMLElement).style.removeProperty('z-index');
+        (el as HTMLElement).style.removeProperty('position');
+        (el as HTMLElement).removeAttribute('data-tutorial-glow');
+      });
+      const sidebar = document.querySelector('aside');
+      if (sidebar) (sidebar as HTMLElement).style.removeProperty('z-index');
+      const header = document.querySelector('header');
+      if (header) (header as HTMLElement).style.removeProperty('z-index');
     };
   }, [currentStep]);
 
@@ -209,17 +246,16 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
-    document.querySelectorAll('[data-tutorial-highlight]').forEach(el => {
-      (el as HTMLElement).removeAttribute('data-tutorial-highlight');
-      (el as HTMLElement).style.removeProperty('position');
-      (el as HTMLElement).style.removeProperty('z-index');
+    document.querySelectorAll('[data-tutorial-glow]').forEach(el => {
       (el as HTMLElement).style.removeProperty('box-shadow');
+      (el as HTMLElement).style.removeProperty('z-index');
+      (el as HTMLElement).style.removeProperty('position');
+      (el as HTMLElement).removeAttribute('data-tutorial-glow');
     });
     const sidebar = document.querySelector('aside');
     if (sidebar) (sidebar as HTMLElement).style.removeProperty('z-index');
     const header = document.querySelector('header');
     if (header) (header as HTMLElement).style.removeProperty('z-index');
-    // Navigate home before completing
     navigate('/');
     setTimeout(onComplete, 400);
   }, [onComplete, navigate]);
@@ -227,15 +263,13 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   const step = steps[currentStep];
 
   const getCardPosition = () => {
-    switch (step.highlight) {
-      case 'top-right':
-        return 'top-24 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-8';
-      case 'left':
-        return 'top-1/2 -translate-y-1/2 left-4 md:left-72';
-      case 'bottom':
-        return 'bottom-24 left-1/2 -translate-x-1/2';
-      case 'page-center':
-        return 'top-1/3 left-1/2 -translate-x-1/2 md:left-[calc(50%+8rem)] md:-translate-x-1/2';
+    switch (step.cardPosition) {
+      case 'bottom-right':
+        return 'bottom-8 right-4 md:right-8';
+      case 'bottom-left':
+        return 'bottom-8 left-4 md:left-[calc(16rem+2rem)]';
+      case 'top-center':
+        return 'top-24 left-1/2 -translate-x-1/2 md:left-[calc(50%+8rem)] md:-translate-x-1/2';
       default:
         return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
     }
@@ -245,6 +279,11 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
     <div className={`fixed inset-0 z-[100] transition-all duration-400 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
+
+      {/* Highlight arrows pointing to elements */}
+      {highlightRects.map((hr, i) => (
+        <HighlightArrow key={i} targetRect={hr.rect} label={hr.label} index={i} />
+      ))}
 
       {/* JARVIS Card */}
       <div className={`fixed ${getCardPosition()} w-[88vw] max-w-md bg-card/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl shadow-primary/20 p-5 md:p-6 transition-all duration-500 z-[102] ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
