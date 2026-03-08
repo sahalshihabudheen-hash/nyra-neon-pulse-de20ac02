@@ -478,7 +478,53 @@ const Settings = () => {
             </div>
           </section>
 
-          {/* Soundwave Shape Selection */}
+          {/* Progress Bar Style */}
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <Sliders className="w-6 h-6 text-primary" />
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground">Progress Bar Style</h2>
+            </div>
+
+            <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
+              {/* Preview */}
+              <div className="flex items-center justify-center mb-6 p-4 bg-background/50 rounded-lg">
+                <div className="w-full max-w-md">
+                  <StyledProgressBar
+                    progress={35}
+                    duration={100}
+                    onSeek={() => {}}
+                  />
+                </div>
+              </div>
+
+              {/* Style Options */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {([
+                  { value: 'classic' as ProgressBarStyle, label: 'Classic', icon: '━━━●━' },
+                  { value: 'wavy' as ProgressBarStyle, label: 'Wavy', icon: '∿∿●∿∿' },
+                  { value: 'dots' as ProgressBarStyle, label: 'Dots', icon: '●●●○○' },
+                  { value: 'thin' as ProgressBarStyle, label: 'Thin', icon: '──●──' },
+                  { value: 'rounded' as ProgressBarStyle, label: 'Rounded', icon: '▬▬●▬▬' },
+                ]).map((style) => (
+                  <button
+                    key={style.value}
+                    onClick={() => updateSettings({ progressBarStyle: style.value })}
+                    className={cn(
+                      'p-3 md:p-4 rounded-xl border-2 transition-all active:scale-95 touch-manipulation flex flex-col items-center gap-2',
+                      settings.progressBarStyle === style.value
+                        ? 'border-primary bg-primary/10 neon-glow'
+                        : 'border-border hover:border-primary/50 bg-background/50'
+                    )}
+                  >
+                    <span className="text-lg md:text-xl text-primary font-mono">{style.icon}</span>
+                    <span className="text-xs md:text-sm text-foreground">{style.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+
           <section className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <Waves className="w-6 h-6 text-primary" />
