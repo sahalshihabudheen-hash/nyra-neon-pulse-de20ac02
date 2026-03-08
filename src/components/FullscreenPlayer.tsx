@@ -45,6 +45,8 @@ const FullscreenPlayer = ({
   onPrevious,
   shuffleMode = false,
   onToggleShuffle,
+  loopMode = 'off',
+  onCycleLoopMode,
   queue,
   onRemoveFromQueue,
   onPlayFromQueue,
