@@ -451,8 +451,16 @@ const FullscreenPlayer = ({
             <SkipForward className="w-6 h-6" fill="currentColor" />
           </button>
           
-          <button className="w-11 h-11 md:w-12 md:h-12 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 flex items-center justify-center transition-all active:scale-90 touch-manipulation">
-            <Repeat className="w-5 h-5" />
+          <button 
+            onClick={onCycleLoopMode}
+            className={cn(
+              'w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
+              loopMode !== 'off' ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
+            )}
+            style={loopMode !== 'off' ? { background: 'var(--theme-gradient, hsl(var(--primary) / 0.2))' } : undefined}
+            title={`Loop: ${loopMode}`}
+          >
+            {loopMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
           </button>
         </div>
 
