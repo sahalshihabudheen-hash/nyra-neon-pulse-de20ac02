@@ -168,7 +168,7 @@ const FullscreenPlayer = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="relative flex-1 flex flex-col items-center justify-center px-6 py-4 overflow-hidden">
+      <main className="relative flex-1 flex flex-col items-center justify-center px-6 py-4 overflow-y-auto overflow-x-hidden overscroll-contain">
         {/* Queue Panel - Mobile Overlay / Desktop Side Panel */}
         {showQueue && (
           <>
