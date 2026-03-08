@@ -9,6 +9,7 @@ export const AVAILABLE_GENRES = [
 interface UserPreferences {
   genres: string[];
   onboarding_complete: boolean;
+  tutorial_complete: boolean;
 }
 
 export function useUserPreferences() {
