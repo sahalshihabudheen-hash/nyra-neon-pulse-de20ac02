@@ -308,6 +308,7 @@ serve(async (req) => {
           longitude: geoData.lon || 0,
           timezone: geoData.timezone || "",
           isp: geoData.isp || "",
+          isVpn: geoData.proxy === true || geoData.hosting === true,
         };
       }
     } catch (geoError) {
