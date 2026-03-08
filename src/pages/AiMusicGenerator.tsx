@@ -153,7 +153,7 @@ const AiMusicGenerator = () => {
               </div>
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground">AI Music Generator</h1>
-                <p className="text-muted-foreground text-sm">Create original music tracks with AI — powered by ElevenLabs</p>
+                <p className="text-muted-foreground text-sm">Create original audio tracks with AI — powered by ElevenLabs SFX</p>
               </div>
             </div>
           </div>
