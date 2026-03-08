@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
 import LyricsDrawer from './LyricsDrawer';
+import EqualizerPanel from './EqualizerPanel';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Track {
@@ -66,6 +67,7 @@ const MusicPlayer = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
+  const [showEQ, setShowEQ] = useState(false);
   const progressRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -436,7 +438,7 @@ const MusicPlayer = ({
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
           {!isMiniMode && (
-            <div className="flex items-center mr-2">
+            <div className="flex items-center gap-1.5 mr-2">
               <button
                 onClick={() => setLyricsOpen(!lyricsOpen)}
                 className={cn(
@@ -448,6 +450,17 @@ const MusicPlayer = ({
               >
                 <Music2 className="w-3.5 h-3.5" />
                 <span>Lyrics</span>
+              </button>
+              <button
+                onClick={() => setShowEQ(!showEQ)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all active:scale-95 border',
+                  showEQ
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50 hover:bg-secondary'
+                )}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -506,19 +519,32 @@ const MusicPlayer = ({
               </div>
             )}
 
-            {/* Lyrics button */}
-            <button
-              onClick={() => setLyricsOpen(!lyricsOpen)}
-              className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation border',
-                lyricsOpen
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50'
-              )}
-            >
-              <Music2 className="w-3.5 h-3.5" />
-              <span>Lyrics</span>
-            </button>
+            {/* Lyrics & EQ buttons */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setLyricsOpen(!lyricsOpen)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation border',
+                  lyricsOpen
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50'
+                )}
+              >
+                <Music2 className="w-3.5 h-3.5" />
+                <span>Lyrics</span>
+              </button>
+              <button
+                onClick={() => setShowEQ(!showEQ)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation border',
+                  showEQ
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50'
+                )}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {/* Volume */}
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -544,6 +570,17 @@ const MusicPlayer = ({
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Equalizer Panel - floating above player */}
+        {showEQ && audioRef && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 z-50">
+            <EqualizerPanel
+              audioRef={audioRef}
+              isOpen={showEQ}
+              onClose={() => setShowEQ(false)}
+            />
           </div>
         )}
       </div>
