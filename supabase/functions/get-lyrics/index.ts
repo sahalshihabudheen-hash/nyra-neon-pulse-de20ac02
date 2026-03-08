@@ -7,6 +7,79 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type LrcLibEntry = {
+  trackName?: string;
+  artistName?: string;
+  plainLyrics?: string;
+  syncedLyrics?: string;
+};
+
+const cleanArtist = (value?: string) =>
+  (value || "")
+    .replace(/\s*-\s*topic$/i, "")
+    .replace(/\s*VEVO$/i, "")
+    .trim();
+
+const cleanTitle = (value: string) =>
+  value
+    .replace(/\s*\([^)]*(official|video|lyrics|audio|live|hd)[^)]*\)/gi, "")
+    .replace(/\s*\[[^\]]*(official|video|lyrics|audio|live|hd)[^\]]*\]/gi, "")
+    .replace(/\s*\|\s*.*/g, "")
+    .trim();
+
+const parseTrackInfo = (trackTitle: string, trackChannel?: string) => {
+  const artist = cleanArtist(trackChannel) || "Unknown Artist";
+  let title = cleanTitle(trackTitle);
+
+  const artistPrefix = `${artist.toLowerCase()} - `;
+  if (title.toLowerCase().startsWith(artistPrefix)) {
+    title = title.slice(artist.length + 3).trim();
+  }
+
+  return {
+    artist,
+    title: title || trackTitle,
+    titleVariants: Array.from(new Set([title, trackTitle, cleanTitle(trackTitle)].filter(Boolean))),
+  };
+};
+
+const stripSyncedTimestamps = (syncedLyrics?: string) =>
+  (syncedLyrics || "")
+    .replace(/^\[\d{2}:\d{2}(?:\.\d{1,2})?\]\s?/gm, "")
+    .trim();
+
+const extractLrcLibLyrics = (entry?: LrcLibEntry | null) => {
+  if (!entry) return null;
+  const plain = entry.plainLyrics?.trim();
+  if (plain) return plain;
+  const synced = stripSyncedTimestamps(entry.syncedLyrics);
+  return synced || null;
+};
+
+const fetchFromLrcLib = async (title: string, artist: string) => {
+  const exactUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
+  const exactRes = await fetch(exactUrl);
+
+  if (exactRes.ok) {
+    const exactData = (await exactRes.json()) as LrcLibEntry;
+    const lyrics = extractLrcLibLyrics(exactData);
+    if (lyrics) return lyrics;
+  }
+
+  const searchUrl = `https://lrclib.net/api/search?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
+  const searchRes = await fetch(searchUrl);
+
+  if (!searchRes.ok) return null;
+
+  const searchData = (await searchRes.json()) as LrcLibEntry[];
+  for (const row of searchData || []) {
+    const lyrics = extractLrcLibLyrics(row);
+    if (lyrics) return lyrics;
+  }
+
+  return null;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,7 +99,6 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check cache/manual override first
     const { data: cached } = await supabase
       .from("lyrics")
       .select("lyrics_text, source")
@@ -40,7 +112,29 @@ serve(async (req) => {
       );
     }
 
-    // Generate with AI
+    const { artist, title, titleVariants } = parseTrackInfo(trackTitle, trackChannel);
+
+    for (const candidateTitle of titleVariants) {
+      const officialLyrics = await fetchFromLrcLib(candidateTitle, artist);
+      if (officialLyrics) {
+        supabase
+          .from("lyrics")
+          .insert({
+            track_id: trackId,
+            track_title: trackTitle,
+            track_channel: trackChannel || "Unknown",
+            lyrics_text: officialLyrics,
+            source: "lrclib",
+          })
+          .then(() => {});
+
+        return new Response(
+          JSON.stringify({ lyrics: officialLyrics, source: "lrclib" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI not configured" }), {
@@ -56,19 +150,18 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "google/gemini-2.5-pro",
         messages: [
           {
             role: "system",
-            content: `You are a lyrics retrieval assistant. When given a song title and artist, provide the EXACT official lyrics of the song word-for-word.
-CRITICAL: Only provide lyrics you are confident are accurate and match the original song. Do NOT guess, approximate, or make up lyrics.
-If you are not confident about the exact lyrics, respond with: "LYRICS_NOT_FOUND"
-Format the lyrics with proper line breaks. Include section markers like [Verse 1], [Chorus], [Bridge] etc.
-Only return the lyrics text, nothing else.`,
+            content: `You are a lyrics verification assistant.
+Return ONLY exact, official lyrics for the requested song and artist.
+Do not paraphrase, do not translate, and do not transliterate.
+If you are not fully certain the lyrics are exact, return exactly: LYRICS_NOT_FOUND`,
           },
           {
             role: "user",
-            content: `Provide the exact lyrics for "${trackTitle}" by ${trackChannel || "Unknown Artist"}`,
+            content: `Song title: ${title}\nArtist: ${artist}\nOriginal title input: ${trackTitle}`,
           },
         ],
       }),
@@ -93,14 +186,13 @@ Only return the lyrics text, nothing else.`,
     const aiData = await aiResponse.json();
     const lyricsText = aiData.choices?.[0]?.message?.content?.trim();
 
-    if (!lyricsText) {
-      return new Response(JSON.stringify({ error: "Could not generate lyrics" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!lyricsText || lyricsText === "LYRICS_NOT_FOUND") {
+      return new Response(
+        JSON.stringify({ error: "Exact lyrics not found for this track" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Cache in DB (fire and forget)
     supabase
       .from("lyrics")
       .insert({
