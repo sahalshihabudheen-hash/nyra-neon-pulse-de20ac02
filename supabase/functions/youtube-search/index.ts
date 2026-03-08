@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { fetchYouTubeWithFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
+import { fetchYouTubeWithBackupFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
