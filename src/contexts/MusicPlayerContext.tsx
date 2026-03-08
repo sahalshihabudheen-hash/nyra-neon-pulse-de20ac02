@@ -5,6 +5,7 @@ import { useQueue } from '@/hooks/useQueue';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTabTitle } from '@/hooks/useTabTitle';
 
 export interface Track {
   id: string;
