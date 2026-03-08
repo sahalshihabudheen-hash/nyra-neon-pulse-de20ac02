@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Copy, KeyRound, Wrench, X, Plus, Trash2 } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2 } from 'lucide-react';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
@@ -698,6 +698,8 @@ const Admin = () => {
                                     <div className="flex items-center gap-1.5">
                                       {u.location.device_type === 'Phone' ? (
                                         <Smartphone className="w-3 h-3 text-primary" />
+                                      ) : u.location.device_type === 'Tablet' ? (
+                                        <Tablet className="w-3 h-3 text-primary" />
                                       ) : u.location.device_type === 'Laptop' ? (
                                         <Laptop className="w-3 h-3 text-primary" />
                                       ) : (
