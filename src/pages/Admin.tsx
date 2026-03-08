@@ -159,48 +159,23 @@ const Admin = () => {
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
 
   useEffect(() => {
-    const pacificDateFormatter = new Intl.DateTimeFormat('en-CA', {
+    const pacificClockFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Los_Angeles',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
     });
 
-    const getPacificOffsetMinutes = (utcTimestamp: number) => {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Los_Angeles',
-        timeZoneName: 'shortOffset',
-        hour: '2-digit',
-      }).formatToParts(new Date(utcTimestamp));
-
-      const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT-8';
-      const match = tzPart.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/i);
-      if (!match) return -8 * 60;
-
-      const sign = match[1] === '-' ? -1 : 1;
-      const hours = Number(match[2] ?? '0');
-      const minutes = Number(match[3] ?? '0');
-      return sign * (hours * 60 + minutes);
-    };
-
-    const getPacificMidnightUtc = (year: number, month: number, day: number) => {
-      const guessUtc = Date.UTC(year, month - 1, day, 8, 0, 0);
-      const offsetMinutes = getPacificOffsetMinutes(guessUtc);
-      return Date.UTC(year, month - 1, day, 0, 0, 0) - offsetMinutes * 60 * 1000;
-    };
-
     const calcCountdown = () => {
-      const now = Date.now();
-      const pacificToday = pacificDateFormatter.format(new Date(now)); // YYYY-MM-DD
-      const [year, month, day] = pacificToday.split('-').map(Number);
+      const parts = pacificClockFormatter.formatToParts(new Date());
+      const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+      const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
+      const second = Number(parts.find((p) => p.type === 'second')?.value ?? '0');
 
-      const nextPacificDate = new Date(Date.UTC(year, month - 1, day + 1));
-      const nextYear = nextPacificDate.getUTCFullYear();
-      const nextMonth = nextPacificDate.getUTCMonth() + 1;
-      const nextDay = nextPacificDate.getUTCDate();
-
-      const nextMidnightUtc = getPacificMidnightUtc(nextYear, nextMonth, nextDay);
-      const diff = Math.max(0, nextMidnightUtc - now);
+      // Time left until 24:00:00 in Pacific Time
+      const totalSecondsLeft = ((23 - hour) * 60 * 60) + ((59 - minute) * 60) + (60 - second);
+      const diff = Math.max(0, totalSecondsLeft * 1000);
 
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
