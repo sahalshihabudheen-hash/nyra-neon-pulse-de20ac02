@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Volume2, VolumeX } from 'lucide-react';
+import { Settings, Volume2, VolumeX, LogOut } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
