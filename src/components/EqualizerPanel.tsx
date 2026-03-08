@@ -1,36 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { SlidersHorizontal, X, Wifi, WifiOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { SlidersHorizontal, X } from 'lucide-react';
 import jarvisAvatar from '@/assets/jarvis-avatar.gif';
-
-interface EqualizerBand {
-  frequency: number;
-  label: string;
-  gain: number;
-}
-
-interface Preset {
-  name: string;
-  icon: string;
-  bands: number[];
-}
-
-const PRESETS: Preset[] = [
-  { name: 'Flat', icon: '⊝', bands: [0, 0, 0, 0, 0] },
-  { name: 'Bass Boost', icon: '🔊', bands: [6, 4, 0, -1, -1] },
-  { name: 'Treble', icon: '🔔', bands: [-1, 0, 1, 4, 6] },
-  { name: 'Pop', icon: '🎤', bands: [-1, 2, 4, 2, -1] },
-  { name: 'Rock', icon: '🎸', bands: [4, 2, -1, 2, 4] },
-  { name: 'Jazz', icon: '🎷', bands: [3, 1, -2, 1, 3] },
-];
-
-const DEFAULT_BANDS: EqualizerBand[] = [
-  { frequency: 60, label: '60', gain: 0 },
-  { frequency: 250, label: '250', gain: 0 },
-  { frequency: 1000, label: '1K', gain: 0 },
-  { frequency: 4000, label: '4K', gain: 0 },
-  { frequency: 12000, label: '12K', gain: 0 },
-];
 
 interface EqualizerPanelProps {
   audioRef: React.MutableRefObject<HTMLAudioElement | null>;
@@ -38,153 +7,16 @@ interface EqualizerPanelProps {
   onClose: () => void;
 }
 
-const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
-  const [bands, setBands] = useState<EqualizerBand[]>(DEFAULT_BANDS);
-  const [activePreset, setActivePreset] = useState('Flat');
-  const [isConnected, setIsConnected] = useState(false);
-  const filtersRef = useRef<BiquadFilterNode[]>([]);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const connectedAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  const initAudioContext = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) { setIsConnected(false); return; }
-
-    // Check if audio element actually has a valid source playing
-    if (!audio.src || audio.src === '' || audio.src === window.location.href) {
-      setIsConnected(false);
-      return;
-    }
-
-    // Don't reconnect if same audio element
-    if (connectedAudioRef.current === audio && audioContextRef.current) {
-      if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-      setIsConnected(!audio.paused && audio.currentTime > 0);
-      return;
-    }
-
-    try {
-      // Clean up previous
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        try { audioContextRef.current.close(); } catch {}
-      }
-
-      const ctx = new AudioContext();
-      audioContextRef.current = ctx;
-      const source = ctx.createMediaElementSource(audio);
-      sourceRef.current = source;
-      connectedAudioRef.current = audio;
-
-      // Create 5-band EQ
-      const filters = DEFAULT_BANDS.map((band, i) => {
-        const filter = ctx.createBiquadFilter();
-        filter.type = i === 0 ? 'lowshelf' : i === DEFAULT_BANDS.length - 1 ? 'highshelf' : 'peaking';
-        filter.frequency.value = band.frequency;
-        filter.gain.value = bands[i]?.gain ?? band.gain;
-        if (filter.type === 'peaking') filter.Q.value = 1.4;
-        return filter;
-      });
-
-      // Chain: source -> filter0 -> filter1 -> ... -> destination
-      source.connect(filters[0]);
-      for (let i = 0; i < filters.length - 1; i++) {
-        filters[i].connect(filters[i + 1]);
-      }
-      filters[filters.length - 1].connect(ctx.destination);
-
-      filtersRef.current = filters;
-      setIsConnected(true);
-      console.log('Equalizer connected to audio element');
-    } catch (err) {
-      console.error('Failed to init equalizer:', err);
-      setIsConnected(false);
-    }
-  }, [audioRef, bands]);
-
-  // Watch audio state to update connection status
-  useEffect(() => {
-    if (!isOpen) return;
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const tryInit = () => {
-      if (audio.src && audio.src !== '' && audio.src !== window.location.href) {
-        initAudioContext();
-        if (audioContextRef.current?.state === 'suspended') {
-          audioContextRef.current.resume();
-        }
-      } else {
-        setIsConnected(false);
-      }
-    };
-
-    const updateStatus = () => {
-      setIsConnected(!audio.paused && audio.currentTime > 0 && !!audioContextRef.current);
-    };
-
-    tryInit();
-
-    audio.addEventListener('loadeddata', tryInit);
-    audio.addEventListener('play', () => { tryInit(); updateStatus(); });
-    audio.addEventListener('pause', updateStatus);
-    audio.addEventListener('emptied', () => setIsConnected(false));
-
-    // Poll status periodically
-    const interval = setInterval(updateStatus, 2000);
-
-    return () => {
-      audio.removeEventListener('loadeddata', tryInit);
-      audio.removeEventListener('play', tryInit);
-      audio.removeEventListener('pause', updateStatus);
-      audio.removeEventListener('emptied', () => setIsConnected(false));
-      clearInterval(interval);
-    };
-  }, [isOpen, initAudioContext, audioRef]);
-
-  // Update filter gains when bands change
-  useEffect(() => {
-    filtersRef.current.forEach((filter, i) => {
-      if (bands[i]) {
-        filter.gain.value = bands[i].gain;
-      }
-    });
-  }, [bands]);
-
-  const handleBandChange = (index: number, gain: number) => {
-    setActivePreset('Custom');
-    setBands(prev => prev.map((b, i) => i === index ? { ...b, gain } : b));
-  };
-
-  const applyPreset = (preset: Preset) => {
-    setActivePreset(preset.name);
-    setBands(prev => prev.map((b, i) => ({ ...b, gain: preset.bands[i] })));
-  };
-
+const EqualizerPanel = ({ isOpen, onClose }: EqualizerPanelProps) => {
   if (!isOpen) return null;
 
   return (
     <div className="bg-card/95 backdrop-blur-xl border border-primary/20 rounded-2xl p-4 md:p-5 shadow-2xl shadow-primary/10 animate-scale-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-bold text-foreground">Equalizer</h3>
-          {/* Connection status */}
-          <div className={cn(
-            "flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
-            isConnected
-              ? "bg-green-500/20 text-green-400"
-              : "bg-muted text-muted-foreground"
-          )}>
-            {isConnected ? (
-              <><Wifi className="w-3 h-3" /> Active</>
-            ) : (
-              <><WifiOff className="w-3 h-3" /> Inactive</>
-            )}
-          </div>
         </div>
         <button
           onClick={onClose}
@@ -194,85 +26,14 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
         </button>
       </div>
 
-      {/* Inactive notice */}
-      {!isConnected && (
-        <div className={cn(
-          "mb-3 px-3 py-2 rounded-lg bg-muted/50 text-muted-foreground text-[11px] leading-relaxed"
-        )}>
-          EQ is inactive — audio is playing via YouTube. The equalizer works when direct audio streaming is available.
-        </div>
-      )}
-
-      {/* Presets */}
-      <div className="flex gap-1.5 mb-5 flex-wrap">
-        {PRESETS.map((preset) => (
-          <button
-            key={preset.name}
-            onClick={() => applyPreset(preset)}
-            className={cn(
-              "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
-              activePreset === preset.name
-                ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            )}
-          >
-            {preset.icon} {preset.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Sliders */}
-      <div className={cn(
-        "flex items-end justify-between gap-3 md:gap-5 transition-opacity",
-        !isConnected && "opacity-50"
-      )}>
-        {bands.map((band, i) => (
-          <div key={band.frequency} className="flex flex-col items-center gap-2">
-            <span className="text-[10px] text-muted-foreground font-mono">
-              {band.gain > 0 ? '+' : ''}{band.gain.toFixed(0)}
-            </span>
-            <div className="relative w-6 h-28 md:h-36 flex items-center justify-center">
-              <div className="absolute w-1 h-full rounded-full bg-muted" />
-              <div
-                className="absolute w-1 rounded-full bg-primary transition-all"
-                style={{
-                  height: `${Math.abs(band.gain) / 12 * 50}%`,
-                  bottom: band.gain >= 0 ? '50%' : undefined,
-                  top: band.gain < 0 ? '50%' : undefined,
-                }}
-              />
-              <div className="absolute w-3 h-px bg-muted-foreground/30" />
-              <input
-                type="range"
-                min="-12"
-                max="12"
-                step="0.5"
-                value={band.gain}
-                onChange={(e) => handleBandChange(i, parseFloat(e.target.value))}
-                className="absolute w-28 md:w-36 opacity-0 cursor-pointer"
-                style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
-              />
-              <div
-                className="absolute w-4 h-4 rounded-full bg-primary border-2 border-primary-foreground shadow-lg pointer-events-none transition-all"
-                style={{
-                  bottom: `${((band.gain + 12) / 24) * 100}%`,
-                  transform: 'translateY(50%)',
-                }}
-              />
-            </div>
-            <span className="text-[10px] text-muted-foreground font-medium">{band.label}</span>
-          </div>
-        ))}
-      </div>
-
       {/* Jarvis Coming Soon Message */}
-      <div className="mt-4 flex items-center gap-3 bg-muted/40 rounded-xl px-3 py-2.5 border border-primary/10">
+      <div className="flex items-center gap-3 bg-muted/40 rounded-xl px-3 py-3 border border-primary/10">
         <img
           src={jarvisAvatar}
           alt="Jarvis"
-          className="w-9 h-9 rounded-full border-2 border-primary/30 flex-shrink-0"
+          className="w-10 h-10 rounded-full border-2 border-primary/30 flex-shrink-0"
         />
-        <p className="text-[11px] text-muted-foreground leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           <span className="text-primary font-semibold">JARVIS:</span>{' '}
           I'm adding full equalizer support soon — stay tuned for real-time audio effects! 🎧
         </p>
