@@ -49,6 +49,14 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     onTabChange(item.id);
     navigate(item.path);
     setMobileOpen(false);
+
+    // If Search clicked, focus the search input after navigation
+    if (item.id === 'search') {
+      setTimeout(() => {
+        const input = document.querySelector('header input') as HTMLInputElement;
+        if (input) input.focus();
+      }, 100);
+    }
   };
 
   const isItemActive = (item: typeof menuItems[0]) => {
