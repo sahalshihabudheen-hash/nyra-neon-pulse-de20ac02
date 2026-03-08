@@ -479,6 +479,31 @@ const Admin = () => {
 
   const onlineCount = users.filter(isUserOnline).length;
 
+  const filteredUsers = users.filter((u) => {
+    // Search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = 
+        u.email?.toLowerCase().includes(q) ||
+        u.display_name?.toLowerCase().includes(q) ||
+        u.location?.city?.toLowerCase().includes(q) ||
+        u.location?.state?.toLowerCase().includes(q) ||
+        u.location?.country?.toLowerCase().includes(q) ||
+        u.location?.isp?.toLowerCase().includes(q) ||
+        u.location?.device_info?.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+    }
+    // Status
+    if (statusFilter === 'online' && !isUserOnline(u)) return false;
+    if (statusFilter === 'offline' && isUserOnline(u)) return false;
+    // Device
+    if (deviceFilter !== 'all' && u.location?.device_type !== deviceFilter) return false;
+    // VPN
+    if (vpnFilter === 'vpn' && !isLikelyVpn(u)) return false;
+    if (vpnFilter === 'no-vpn' && isLikelyVpn(u)) return false;
+    return true;
+  });
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
