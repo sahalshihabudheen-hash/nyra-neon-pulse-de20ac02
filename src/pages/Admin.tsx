@@ -155,6 +155,29 @@ const Admin = () => {
   const [allowedEmailInput, setAllowedEmailInput] = useState('');
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
 
+  // Quota reset countdown timer
+  const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
+
+  useEffect(() => {
+    const calcCountdown = () => {
+      const now = new Date();
+      // Midnight Pacific Time (PST = UTC-8, PDT = UTC-7)
+      // Use America/Los_Angeles to auto-handle DST
+      const pacificNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+      const midnight = new Date(pacificNow);
+      midnight.setDate(midnight.getDate() + 1);
+      midnight.setHours(0, 0, 0, 0);
+      const diff = midnight.getTime() - pacificNow.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setQuotaResetCountdown(`${hours}h ${minutes}m ${seconds}s`);
+    };
+    calcCountdown();
+    const interval = setInterval(calcCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
@@ -1460,6 +1483,7 @@ const Admin = () => {
                         const isQuota = keyInfo.status === 'quota_exceeded';
                         const isDisabled = keyInfo.status === 'disabled';
                         const isEnabled = keyInfo.enabled !== false;
+                        const isStandby = isActive && !keyInfo.isCurrentlyUsed;
 
                         return (
                           <div
@@ -1467,6 +1491,8 @@ const Admin = () => {
                             className={`p-4 rounded-lg border ${
                               isDisabled
                                 ? 'border-muted/30 bg-muted/5 opacity-60'
+                                : isStandby
+                                ? 'border-cyan-500/30 bg-cyan-500/5'
                                 : isActive
                                 ? 'border-green-500/30 bg-green-500/5'
                                 : isQuota
@@ -1478,6 +1504,8 @@ const Admin = () => {
                               <div className="flex items-center gap-2">
                                 {isDisabled ? (
                                   <Circle className="w-5 h-5 text-muted-foreground" />
+                                ) : isStandby ? (
+                                  <CheckCircle className="w-5 h-5 text-cyan-500" />
                                 ) : isActive ? (
                                   <CheckCircle className="w-5 h-5 text-green-500" />
                                 ) : isQuota ? (
@@ -1491,18 +1519,25 @@ const Admin = () => {
                                     ● CURRENTLY IN USE
                                   </span>
                                 )}
+                                {isStandby && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 font-medium">
+                                    Standby
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                   isDisabled
                                     ? 'bg-muted/20 text-muted-foreground'
+                                    : isStandby
+                                    ? 'bg-cyan-500/20 text-cyan-400'
                                     : isActive
                                     ? 'bg-green-500/20 text-green-500'
                                     : isQuota
                                     ? 'bg-yellow-500/20 text-yellow-500'
                                     : 'bg-destructive/20 text-destructive'
                                 }`}>
-                                  {keyInfo.message}
+                                  {isStandby ? 'Online' : keyInfo.message}
                                 </span>
                                 <Switch
                                   checked={isEnabled}
@@ -1519,9 +1554,12 @@ const Admin = () => {
                               </div>
                             </div>
                             {isQuota && (
-                              <p className="text-xs text-yellow-500/80 mt-2">
-                                Daily quota exhausted • Resets at 12:00 AM Pacific Time
-                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Clock className="w-3.5 h-3.5 text-yellow-500/80" />
+                                <p className="text-xs text-yellow-500/80">
+                                  Quota resets in <span className="font-mono font-semibold text-yellow-400">{quotaResetCountdown}</span>
+                                </p>
+                              </div>
                             )}
                           </div>
                         );
