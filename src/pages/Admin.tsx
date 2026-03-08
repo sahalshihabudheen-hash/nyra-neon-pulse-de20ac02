@@ -424,11 +424,17 @@ const Admin = () => {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Email</TableHead>
+                         <TableHead>Email</TableHead>
                           <TableHead>
                             <div className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
                               Location
+                            </div>
+                          </TableHead>
+                          <TableHead>
+                            <div className="flex items-center gap-1">
+                              <Smartphone className="w-3 h-3" />
+                              Device
                             </div>
                           </TableHead>
                           <TableHead>Signed Up</TableHead>
