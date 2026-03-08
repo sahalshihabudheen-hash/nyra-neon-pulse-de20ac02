@@ -106,6 +106,11 @@ const Admin = () => {
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
+  // Delete user state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteTargetUser, setDeleteTargetUser] = useState<AdminUser | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   // Maintenance mode
   const { maintenance, toggleMaintenance, updateAllowedEmails } = useMaintenanceMode();
   const [allowedEmailInput, setAllowedEmailInput] = useState('');
