@@ -105,6 +105,10 @@ const Admin = () => {
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
+  // Maintenance mode
+  const { maintenance, toggleMaintenance, updateAllowedEmails } = useMaintenanceMode();
+  const [allowedEmailInput, setAllowedEmailInput] = useState('');
+
   // Check if current user is admin
   useEffect(() => {
     if (!authLoading) {
