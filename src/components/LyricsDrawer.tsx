@@ -122,7 +122,9 @@ const LyricsDrawer = ({ isOpen, onClose }: LyricsDrawerProps) => {
             {source && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Sparkles className="w-3 h-3" />
-                <span>{source === 'ai' ? 'AI Generated' : 'Official'}</span>
+                <span>
+                  {source === 'ai' ? 'AI Generated' : source === 'unavailable' ? 'Official Not Available' : 'Official'}
+                </span>
               </div>
             )}
           </div>
