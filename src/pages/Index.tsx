@@ -41,7 +41,7 @@ const Index = () => {
     setShowMiniPlayer,
   } = useMusicPlayer();
 
-  const { preferences, showOnboarding, savePreferences } = useUserPreferences();
+  const { preferences, showOnboarding, savePreferences, showTutorial, completeTutorial } = useUserPreferences();
   const { location } = useUserLocation();
 
   // Redirect to auth if not logged in
