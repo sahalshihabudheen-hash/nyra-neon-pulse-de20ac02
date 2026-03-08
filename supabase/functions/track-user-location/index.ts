@@ -251,7 +251,7 @@ serve(async (req) => {
 
     // Parse request body for user agent
     let clientUserAgent = "";
-    let deviceHints: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number } = {};
+    let deviceHints: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number; isWatch?: boolean } = {};
 
     try {
       const body = await req.json();
@@ -261,6 +261,7 @@ serve(async (req) => {
         hasTouchScreen: body.hasTouchScreen,
         screenWidth: body.screenWidth,
         screenHeight: body.screenHeight,
+        isWatch: body.isWatch,
       };
     } catch {
       // No body
