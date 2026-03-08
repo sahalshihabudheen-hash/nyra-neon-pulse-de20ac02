@@ -155,16 +155,21 @@ function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScre
     deviceInfo = "Linux PC";
   }
 
-  // Override device type using hints when "Desktop site" is enabled in mobile browser
-  // If UA says desktop but hints say mobile (touch + small screen), trust the hints
+  // Override device type using hints
   if (hints) {
+    const isVerySmallScreen = (hints.screenWidth && hints.screenWidth <= 300) || (hints.screenHeight && hints.screenHeight <= 300);
     const isSmallScreen = (hints.screenWidth && hints.screenWidth <= 768) || (hints.screenHeight && hints.screenHeight <= 768);
     const isMediumScreen = (hints.screenWidth && hints.screenWidth <= 1024) || (hints.screenHeight && hints.screenHeight <= 1024);
     
-    if (hints.hasTouchScreen && deviceType === "Desktop PC") {
+    // Smartwatch detection: very small screen with touch
+    if (hints.isWatch || (hints.hasTouchScreen && isVerySmallScreen)) {
+      deviceType = "Smartwatch";
+      if (!deviceInfo || !deviceInfo.toLowerCase().includes("watch")) {
+        deviceInfo = "Smartwatch";
+      }
+    } else if (hints.hasTouchScreen && deviceType === "Desktop PC") {
       if (isSmallScreen) {
         deviceType = "Phone";
-        // Try to keep existing device info or mark as detected via hints
         if (!deviceInfo || deviceInfo.includes("Windows") || deviceInfo.includes("Mac") || deviceInfo.includes("Linux")) {
           deviceInfo = "Mobile Device (Desktop mode)";
         }
@@ -175,7 +180,6 @@ function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScre
         }
       }
     }
-    // Also handle laptops misidentified
     if (hints.hasTouchScreen && deviceType === "Laptop" && isSmallScreen) {
       deviceType = "Phone";
       if (!deviceInfo || deviceInfo.includes("Laptop")) {
