@@ -331,6 +331,7 @@ serve(async (req) => {
           longitude: locationData.longitude,
           timezone: locationData.timezone,
           isp: locationData.isp,
+          is_vpn: locationData.isVpn,
           device_type: deviceType,
           device_info: deviceInfo,
           user_agent: clientUserAgent,
