@@ -248,7 +248,6 @@ const MusicPlayer = ({
                     isMiniMode ? 'w-10 h-10' : 'w-11 h-11'
                   )}
                 />
-                {/* Fullscreen hint overlay */}
                 <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover/track:opacity-100 flex items-center justify-center transition-opacity">
                   <Maximize2 className="w-5 h-5 text-white" />
                 </div>
@@ -272,7 +271,6 @@ const MusicPlayer = ({
                   {currentTrack.title}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{currentTrack.channel}</p>
-                {/* Next Up indicator - ALWAYS VISIBLE */}
                 {!isMiniMode && (
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <span className="text-sm">⏭️</span>
@@ -298,6 +296,35 @@ const MusicPlayer = ({
                 <span className="text-muted-foreground text-2xl">♪</span>
               </div>
               <p className="text-muted-foreground text-sm">No track selected</p>
+            </div>
+          )}
+
+          {/* Lyrics & EQ - Desktop, left side */}
+          {!isMiniMode && currentTrack && (
+            <div className="hidden md:flex items-center gap-1.5 ml-auto" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setLyricsOpen(!lyricsOpen)}
+                className={cn(
+                  'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 border',
+                  lyricsOpen
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50 hover:bg-secondary'
+                )}
+              >
+                <Music2 className="w-3.5 h-3.5" />
+                <span>Lyrics</span>
+              </button>
+              <button
+                onClick={() => setShowEQ(!showEQ)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all active:scale-95 border',
+                  showEQ
+                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50 hover:bg-secondary'
+                )}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
         </div>
@@ -426,33 +453,6 @@ const MusicPlayer = ({
           'flex items-center gap-2 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
-          {!isMiniMode && (
-            <div className="flex items-center gap-1.5 mr-2">
-              <button
-                onClick={() => setLyricsOpen(!lyricsOpen)}
-                className={cn(
-                  'flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 border',
-                  lyricsOpen
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50 hover:bg-secondary'
-                )}
-              >
-                <Music2 className="w-3.5 h-3.5" />
-                <span>Lyrics</span>
-              </button>
-              <button
-                onClick={() => setShowEQ(!showEQ)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-all active:scale-95 border',
-                  showEQ
-                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground border-border bg-secondary/50 hover:bg-secondary'
-                )}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
 
           {/* Volume */}
           <div className="flex items-center gap-1">
