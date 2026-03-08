@@ -130,14 +130,91 @@ interface JarvisTutorialProps {
   onComplete: () => void;
 }
 
+// Web Audio API helpers
+const createAudioContext = () => {
+  return new (window.AudioContext || (window as any).webkitAudioContext)();
+};
+
+const playClickSound = () => {
+  try {
+    const ctx = createAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  } catch {}
+};
+
 const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [typedText, setTypedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [highlightRects, setHighlightRects] = useState<{ rect: DOMRect; label: string }[]>([]);
+  const bgAudioRef = useRef<{ ctx: AudioContext; nodes: AudioNode[] } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Start ambient background music
+  useEffect(() => {
+    let ctx: AudioContext;
+    try {
+      ctx = createAudioContext();
+      const nodes: AudioNode[] = [];
+
+      // Soft pad chord — C major (C4, E4, G4) with gentle detuning
+      const frequencies = [261.63, 329.63, 392.0, 523.25];
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0, ctx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 2);
+      masterGain.connect(ctx.destination);
+      nodes.push(masterGain);
+
+      frequencies.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const oscGain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        // Gentle LFO for shimmer
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        oscGain.gain.setValueAtTime(0.25, ctx.currentTime);
+        osc.connect(oscGain);
+        oscGain.connect(masterGain);
+        osc.start(ctx.currentTime + i * 0.3);
+        nodes.push(osc, oscGain);
+      });
+
+      // Slow LFO on master gain for breathing effect
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(0.15, ctx.currentTime);
+      lfoGain.gain.setValueAtTime(0.02, ctx.currentTime);
+      lfo.connect(lfoGain);
+      lfoGain.connect(masterGain.gain);
+      lfo.start(ctx.currentTime);
+      nodes.push(lfo, lfoGain);
+
+      bgAudioRef.current = { ctx, nodes };
+    } catch {}
+
+    return () => {
+      if (bgAudioRef.current) {
+        try {
+          const { ctx } = bgAudioRef.current;
+          ctx.close();
+        } catch {}
+        bgAudioRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setTimeout(() => setIsVisible(true), 300);
@@ -233,6 +310,7 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   }, [currentStep]);
 
   const handleNext = () => {
+    playClickSound();
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -241,11 +319,18 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   };
 
   const handlePrev = () => {
+    playClickSound();
     if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
   const handleClose = useCallback(() => {
+    playClickSound();
     setIsVisible(false);
+    // Stop background music
+    if (bgAudioRef.current) {
+      try { bgAudioRef.current.ctx.close(); } catch {}
+      bgAudioRef.current = null;
+    }
     document.querySelectorAll('[data-tutorial-glow]').forEach(el => {
       (el as HTMLElement).style.removeProperty('box-shadow');
       (el as HTMLElement).style.removeProperty('z-index');
