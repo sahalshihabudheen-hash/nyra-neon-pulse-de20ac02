@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -17,7 +16,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Get the authorization header from the request
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -26,12 +24,10 @@ serve(async (req) => {
       );
     }
 
-    // Create client with user's token to verify they're authenticated
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the current user
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
     if (userError || !user) {
       return new Response(
@@ -40,10 +36,7 @@ serve(async (req) => {
       );
     }
 
-    // Check if user is admin (by email for simplicity, or check user_roles table)
     const isAdminByEmail = user.email === "admin@gmail.com";
-    
-    // Also check the user_roles table
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
@@ -61,14 +54,12 @@ serve(async (req) => {
       );
     }
 
-    // If admin by email but no role entry, create one
     if (isAdminByEmail && !roleData) {
       await supabaseAdmin
         .from("user_roles")
         .upsert({ user_id: user.id, role: "admin" }, { onConflict: "user_id,role" });
     }
 
-    // Fetch all users from auth.users using admin client
     const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
     if (listError) {
@@ -78,10 +69,10 @@ serve(async (req) => {
       );
     }
 
-    // Fetch all user locations
+    // Fetch all user locations with device info
     const { data: locations } = await supabaseAdmin
       .from("user_locations")
-      .select("user_id, country, state, city, timezone, isp, last_updated");
+      .select("user_id, country, state, city, timezone, isp, last_updated, device_type, device_info");
 
     const locationMap = new Map();
     if (locations) {
@@ -90,7 +81,6 @@ serve(async (req) => {
       });
     }
 
-    // Return user info with location data
     const safeUsers = users.map((u) => {
       const loc = locationMap.get(u.id);
       return {
@@ -106,6 +96,8 @@ serve(async (req) => {
           timezone: loc.timezone,
           isp: loc.isp,
           last_updated: loc.last_updated,
+          device_type: loc.device_type,
+          device_info: loc.device_info,
         } : null,
       };
     });
