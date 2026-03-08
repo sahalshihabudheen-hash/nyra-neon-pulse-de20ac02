@@ -678,6 +678,44 @@ const Admin = () => {
                                 )}
                               </TableCell>
                               <TableCell>
+                                {u.roles.includes('admin') ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-primary/15 text-primary font-semibold">
+                                      <Shield className="w-3 h-3" />
+                                      Admin
+                                    </span>
+                                    {u.email !== user?.email && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleToggleAdminRole(u)}
+                                        disabled={roleLoading === u.id}
+                                        className="text-xs text-destructive hover:text-destructive h-7 px-2"
+                                      >
+                                        {roleLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleToggleAdminRole(u)}
+                                    disabled={roleLoading === u.id}
+                                    className="text-xs h-7 gap-1.5"
+                                  >
+                                    {roleLoading === u.id ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <>
+                                        <Shield className="w-3 h-3" />
+                                        Make Admin
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </TableCell>
+                              <TableCell>
                                 <Button
                                   variant="ghost"
                                   size="sm"
