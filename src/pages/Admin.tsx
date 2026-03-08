@@ -120,7 +120,7 @@ const Admin = () => {
   const [gameSessions, setGameSessions] = useState<GameSession[]>([]);
   const [activeGamersCount, setActiveGamersCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean}[]>([]);
+  const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean; deletable?: boolean}[]>([]);
   const [backupKeys, setBackupKeys] = useState<{key: string; status: string; message: string}[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
