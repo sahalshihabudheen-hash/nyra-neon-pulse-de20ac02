@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SplashScreen from '@/components/SplashScreen';
-import JarvisTutorial from '@/components/JarvisTutorial';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import TrackGrid from '@/components/TrackGrid';
