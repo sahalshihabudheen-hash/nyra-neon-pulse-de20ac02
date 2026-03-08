@@ -1295,15 +1295,25 @@ const Admin = () => {
                       <CardDescription>Monitor quota status of all configured API keys</CardDescription>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchYoutubeKeyStatus}
-                    disabled={keysLoading}
-                  >
-                    {keysLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    <span className="ml-2 hidden sm:inline">Refresh</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAddKeyDialogOpen(true)}
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="ml-1 hidden sm:inline">Add Key</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchYoutubeKeyStatus}
+                      disabled={keysLoading}
+                    >
+                      {keysLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                      <span className="ml-2 hidden sm:inline">Refresh</span>
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
