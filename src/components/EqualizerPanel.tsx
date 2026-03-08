@@ -90,11 +90,31 @@ const EqualizerPanel = ({ audioRef, isOpen, onClose }: EqualizerPanelProps) => {
     }
   }, [audioRef]);
 
-  // Connect when panel opens and audio is available
+  // Connect when panel opens and audio is available, also watch for src changes
   useEffect(() => {
-    if (isOpen && audioRef.current?.src) {
-      initAudioContext();
-    }
+    if (!isOpen) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const tryInit = () => {
+      if (audio.src && audio.src !== '') {
+        initAudioContext();
+        // Resume suspended AudioContext (browser autoplay policy)
+        if (audioContextRef.current?.state === 'suspended') {
+          audioContextRef.current.resume();
+        }
+      }
+    };
+
+    tryInit();
+
+    // Also listen for when a new source is loaded
+    audio.addEventListener('loadeddata', tryInit);
+    audio.addEventListener('play', tryInit);
+    return () => {
+      audio.removeEventListener('loadeddata', tryInit);
+      audio.removeEventListener('play', tryInit);
+    };
   }, [isOpen, initAudioContext, audioRef]);
 
   // Update filter gains when bands change
