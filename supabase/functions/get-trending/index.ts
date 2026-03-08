@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 async function fetchTrendingTracks() {
-  const keys = getYouTubeApiKeys();
+  const keys = await getYouTubeApiKeys();
 
   const now = new Date();
   const month = now.toLocaleString('en-US', { month: 'long' });

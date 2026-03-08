@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const keys = getYouTubeApiKeys();
+    const keys = await getYouTubeApiKeys();
 
     const now = new Date();
     const dateString = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;

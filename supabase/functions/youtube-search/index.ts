@@ -22,7 +22,7 @@ serve(async (req) => {
       );
     }
 
-    const keys = getYouTubeApiKeys();
+    const keys = await getYouTubeApiKeys();
     console.log(`Searching YouTube for: ${query} using ${keys.length} API keys`);
 
     const result = await fetchYouTubeWithFailover(
