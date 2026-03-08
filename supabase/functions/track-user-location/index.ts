@@ -6,10 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function parseUserAgent(ua: string): { deviceType: string; deviceInfo: string } {
+function parseUserAgent(ua: string, hints?: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number }): { deviceType: string; deviceInfo: string } {
   if (!ua) return { deviceType: "Unknown", deviceInfo: "Unknown" };
 
-  let deviceType = "Desktop";
+  let deviceType = "Desktop PC";
   let deviceInfo = "";
 
   const isMobile = /Mobile|Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(ua);
@@ -122,15 +122,31 @@ function parseUserAgent(ua: string): { deviceType: string; deviceInfo: string } 
       deviceInfo = model || "Android Device";
     }
   } else if (macMatch) {
-    deviceInfo = "Mac";
+    // Use battery hint to distinguish laptop vs desktop
+    if (hints?.hasBattery) {
+      deviceType = "Laptop";
+      deviceInfo = "MacBook";
+    } else {
+      deviceType = "Desktop PC";
+      deviceInfo = "Mac (iMac/Mac Mini/Studio)";
+    }
   } else if (windowsMatch) {
     const versions: Record<string, string> = {
       "10.0": "Windows 10/11", "6.3": "Windows 8.1", "6.2": "Windows 8", "6.1": "Windows 7"
     };
-    deviceInfo = versions[windowsMatch[1]] || `Windows NT ${windowsMatch[1]}`;
+    const winVersion = versions[windowsMatch[1]] || `Windows NT ${windowsMatch[1]}`;
+    if (hints?.hasBattery) {
+      deviceType = "Laptop";
+      deviceInfo = `${winVersion} Laptop`;
+    } else {
+      deviceType = "Desktop PC";
+      deviceInfo = `${winVersion} Desktop`;
+    }
   } else if (chromeOsMatch) {
+    deviceType = hints?.hasBattery ? "Laptop" : "Desktop PC";
     deviceInfo = "Chromebook";
   } else if (linuxMatch) {
+    deviceType = hints?.hasBattery ? "Laptop" : "Desktop PC";
     deviceInfo = "Linux PC";
   }
 
@@ -197,10 +213,17 @@ serve(async (req) => {
 
     // Parse request body for user agent
     let clientUserAgent = "";
+    let deviceHints: { hasBattery?: boolean; hasTouchScreen?: boolean; screenWidth?: number; screenHeight?: number } = {};
 
     try {
       const body = await req.json();
       clientUserAgent = body.userAgent || "";
+      deviceHints = {
+        hasBattery: body.hasBattery,
+        hasTouchScreen: body.hasTouchScreen,
+        screenWidth: body.screenWidth,
+        screenHeight: body.screenHeight,
+      };
     } catch {
       // No body
     }
@@ -209,7 +232,7 @@ serve(async (req) => {
       clientUserAgent = req.headers.get("user-agent") || "";
     }
 
-    const { deviceType, deviceInfo } = parseUserAgent(clientUserAgent);
+    const { deviceType, deviceInfo } = parseUserAgent(clientUserAgent, deviceHints);
     console.log(`Device: ${deviceType} - ${deviceInfo}`);
 
     // Get IP

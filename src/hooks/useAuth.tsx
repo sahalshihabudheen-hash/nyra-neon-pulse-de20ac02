@@ -10,6 +10,22 @@ export function useAuth() {
 
   const trackUserLocation = async (accessToken: string) => {
     try {
+      // Detect battery (laptops have it, desktops usually don't)
+      let hasBattery = false;
+      try {
+        const battery = await (navigator as any).getBattery?.();
+        if (battery) {
+          hasBattery = battery.charging !== undefined && battery.level !== undefined && battery.level < 1;
+          // If level is exactly 1 and charging, could be desktop or fully charged laptop
+          if (battery.level === 1 && battery.charging) hasBattery = false;
+          else hasBattery = true;
+        }
+      } catch { /* Battery API not available */ }
+
+      const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const screenWidth = window.screen.width;
+      const screenHeight = window.screen.height;
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-user-location`,
         {
@@ -20,6 +36,10 @@ export function useAuth() {
           },
           body: JSON.stringify({
             userAgent: navigator.userAgent,
+            hasBattery,
+            hasTouchScreen,
+            screenWidth,
+            screenHeight,
           }),
         }
       );
