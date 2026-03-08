@@ -30,12 +30,11 @@ const COUNTRY_TO_CODE: Record<string, string> = {
   'United Kingdom': 'UK', 'United States': 'US', 'Vietnam': 'VN',
 };
 
-const getCountryFlag = (country: string | undefined): string | null => {
+const getCountryFlagUrl = (country: string | undefined): string | null => {
   if (!country) return null;
-  const code = COUNTRY_TO_CODE[country];
+  const code = COUNTRY_TO_CODE[country]?.toLowerCase();
   if (!code) return null;
-  // Convert country code to flag emoji using regional indicator symbols
-  return [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
+  return `https://flagcdn.com/w160/${code}.png`;
 };
 
 const VPN_KEYWORDS = ['vpn', 'proxy', 'hosting', 'datacenter', 'data center', 'cloud', 'server', 'colocation', 'colo', 'digital ocean', 'digitalocean', 'amazon', 'aws', 'google cloud', 'azure', 'linode', 'vultr', 'ovh', 'hetzner', 'contabo'];
