@@ -67,11 +67,24 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
   const [isTyping, setIsTyping] = useState(true);
   const [adminAvatar, setAdminAvatar] = useState<string | null>(null);
 
-  // Fetch admin avatar
+  // Fetch admin/JARVIS avatar from app_settings or fallback to first admin profile
   useEffect(() => {
-    const fetchAdminAvatar = async () => {
+    const fetchJarvisAvatar = async () => {
       try {
-        // Get admin user's profile by checking user_roles for admin
+        // First try app_settings for a custom JARVIS avatar
+        const { data: setting } = await supabase
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'jarvis_avatar')
+          .maybeSingle();
+
+        if (setting?.value && typeof setting.value === 'string') {
+          setAdminAvatar(setting.value);
+          return;
+        }
+
+        // Fallback: try to find an admin profile avatar
+        // Query user_roles (will only work for admin users, silently fail for others)
         const { data: adminRoles } = await supabase
           .from('user_roles')
           .select('user_id')
@@ -90,10 +103,10 @@ const JarvisTutorial = ({ onComplete }: JarvisTutorialProps) => {
           }
         }
       } catch (err) {
-        console.warn('Could not fetch admin avatar:', err);
+        console.warn('Could not fetch JARVIS avatar:', err);
       }
     };
-    fetchAdminAvatar();
+    fetchJarvisAvatar();
   }, []);
 
   useEffect(() => {
