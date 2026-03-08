@@ -5,6 +5,7 @@ import { useQueue } from '@/hooks/useQueue';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTabTitle } from '@/hooks/useTabTitle';
 
 export interface Track {
   id: string;
@@ -400,6 +401,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
     };
   }, [handleNext, handlePrevious]);
+
+  // Animate browser tab with track info + soundwave
+  useTabTitle(currentTrack?.title || null, isPlaying);
 
   return (
     <MusicPlayerContext.Provider value={{
