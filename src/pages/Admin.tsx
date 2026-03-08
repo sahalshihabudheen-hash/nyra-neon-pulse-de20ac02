@@ -122,6 +122,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [youtubeKeys, setYoutubeKeys] = useState<{key: string; status: string; message: string; enabled?: boolean; isCurrentlyUsed?: boolean}[]>([]);
   const [keysLoading, setKeysLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [addKeyDialogOpen, setAddKeyDialogOpen] = useState(false);
   const [newKeyValue, setNewKeyValue] = useState('');
   const [newKeyName, setNewKeyName] = useState('');
