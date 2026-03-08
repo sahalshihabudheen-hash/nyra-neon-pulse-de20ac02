@@ -18,6 +18,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const location = useLocation();
   const { gradient } = useTheme();
   const { user } = useAuth();
+  const { maintenance } = useMaintenanceMode();
 
   const isAdmin = user?.email === 'admin@gmail.com';
 
