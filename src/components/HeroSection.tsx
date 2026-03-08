@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Play, Sparkles, TrendingUp, Disc3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import { famousSongs } from '@/data/famousSongs';
 
 interface Track {
   id: string;
@@ -48,6 +49,9 @@ const HeroSection = ({ onPlayTrack, featuredTrack: propFeaturedTrack }: HeroSect
       }
     } catch (error) {
       console.error('Failed to fetch featured:', error);
+      // Use a random famous song as fallback
+      const randomSong = famousSongs[Math.floor(Math.random() * famousSongs.length)];
+      setFeaturedTrack(randomSong);
     } finally {
       setLoading(false);
     }
