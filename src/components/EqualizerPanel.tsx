@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SlidersHorizontal, X, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import jarvisAvatar from '@/assets/jarvis-avatar.gif';
 
 interface EqualizerBand {
   frequency: number;
