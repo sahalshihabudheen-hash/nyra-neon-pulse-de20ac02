@@ -740,6 +740,21 @@ const Admin = () => {
                       <ShieldAlert className="w-3 h-3 mr-1" />
                       VPN ({users.filter(u => isLikelyVpn(u)).length})
                     </Button>
+                    {/* Country filter */}
+                    {sortedCountries.length > 1 && (
+                      <select
+                        value={countryFilter}
+                        onChange={(e) => setCountryFilter(e.target.value)}
+                        className="h-8 text-xs rounded-md border border-input bg-background px-2 text-foreground"
+                      >
+                        <option value="all">🌍 All Countries</option>
+                        {sortedCountries.map(([country, count]) => (
+                          <option key={country} value={country}>
+                            {country} ({count})
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
