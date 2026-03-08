@@ -148,8 +148,6 @@ export async function fetchYouTubeWithFailover(
   let lastStatus = 403;
 
   for (const [index, apiKey] of keys.entries()) {
-
-  for (const [index, apiKey] of keys.entries()) {
     try {
       const response = await fetch(buildUrl(apiKey));
       const data = await response.json().catch(() => ({}));
