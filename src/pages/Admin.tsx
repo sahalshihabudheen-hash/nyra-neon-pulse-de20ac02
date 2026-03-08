@@ -120,6 +120,12 @@ const Admin = () => {
   const [allowedEmailInput, setAllowedEmailInput] = useState('');
   const [roleLoading, setRoleLoading] = useState<string | null>(null);
 
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all');
+  const [deviceFilter, setDeviceFilter] = useState<'all' | 'Phone' | 'Desktop PC' | 'Laptop' | 'Tablet' | 'Smartwatch'>('all');
+  const [vpnFilter, setVpnFilter] = useState<'all' | 'vpn' | 'no-vpn'>('all');
+
   const handleToggleAdminRole = async (targetUser: AdminUser) => {
     const isCurrentlyAdmin = targetUser.roles.includes('admin');
     const action = isCurrentlyAdmin ? 'revoke' : 'grant';
