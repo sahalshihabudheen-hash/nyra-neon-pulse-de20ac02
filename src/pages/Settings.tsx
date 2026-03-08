@@ -167,6 +167,98 @@ const Settings = () => {
             <SettingsSoundwave className="h-8" />
           </div>
 
+          {/* Account Section */}
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <User className="w-6 h-6 text-primary" />
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground">Account</h2>
+            </div>
+
+            <div className="bg-card rounded-xl p-4 md:p-6 border border-border space-y-6">
+              {/* Avatar Upload */}
+              <div className="flex items-center gap-5">
+                <div className="relative group">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border-2 border-primary/50 overflow-hidden bg-muted flex items-center justify-center">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-8 h-8 text-muted-foreground" />
+                    )}
+                    {avatarLoading && (
+                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center rounded-full">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".png,.gif"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground text-sm md:text-base">{user?.email}</p>
+                  <p className="text-xs text-muted-foreground">PNG or GIF, max 5MB</p>
+                </div>
+              </div>
+
+              {/* Change Password */}
+              <div className="border-t border-border pt-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-foreground text-sm md:text-base">Change Password</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Update your account password</p>
+                  </div>
+                  {!showPasswordInput && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowPasswordInput(true)}
+                      className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
+                    >
+                      <KeyRound className="w-4 h-4" />
+                      Change Password
+                    </Button>
+                  )}
+                </div>
+                {showPasswordInput && (
+                  <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password (min 6 chars)"
+                      className="flex-1 px-4 py-2 rounded-lg bg-background border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleChangePassword}
+                        disabled={passwordLoading}
+                        className="active:scale-95 touch-manipulation"
+                      >
+                        {passwordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { setShowPasswordInput(false); setNewPassword(''); }}
+                        className="active:scale-95 touch-manipulation"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* Theme Selection */}
           <section className="mb-10">
             <div className="flex items-center gap-3 mb-6 flex-wrap">
