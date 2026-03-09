@@ -58,7 +58,7 @@ const AdminAppSettings = () => {
       const { data, error } = await supabase
         .from('app_settings')
         .select('key, value')
-        .in('key', ['app_name', 'app_tagline', 'footer_text', 'footer_powered_by', 'featured_mode', 'featured_manual_track', 'app_logo_url']);
+        .in('key', ['app_name', 'app_tagline', 'footer_text', 'footer_powered_by', 'featured_mode', 'featured_manual_track', 'app_logo_url', 'hidden_tabs']);
 
       if (error) throw error;
 
