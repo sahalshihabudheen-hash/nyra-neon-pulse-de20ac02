@@ -29,6 +29,7 @@ const SIDEBAR_TABS = [
   { id: 'playlists', label: 'Playlists', icon: ListMusic },
   { id: 'favorites', label: 'Favorites', icon: Heart },
   { id: 'ai-dj', label: 'AI DJ', icon: Sparkles },
+  { id: 'games', label: 'Games', icon: Gamepad2 },
 ];
 
 const AdminAppSettings = () => {
