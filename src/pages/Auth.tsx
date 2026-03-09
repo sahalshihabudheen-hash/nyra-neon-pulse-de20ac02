@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import nyraLogo from '@/assets/nyra-logo.png';
+import { useAppSettings } from '@/hooks/useAppSettings';
 
 const Auth = () => {
+  const { settings: appSettings } = useAppSettings();
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
