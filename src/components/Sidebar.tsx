@@ -100,12 +100,12 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
       >
         {/* Logo */}
         <div className="p-6 flex items-center gap-3">
-          <img src={nyraLogo} alt="NYRA Logo" className="w-10 h-10 rounded-xl object-cover" />
+          <img src={appSettings.app_logo_url || nyraLogo} alt={`${appSettings.app_name} Logo`} className="w-10 h-10 rounded-xl object-cover" />
           <div>
             <span className="text-2xl font-bold text-primary theme-gradient-text">
-              NYRA
+              {appSettings.app_name}
             </span>
-            <p className="text-[10px] text-muted-foreground tracking-widest">FEEL THE PULSE</p>
+            <p className="text-[10px] text-muted-foreground tracking-widest">{appSettings.app_tagline}</p>
           </div>
         </div>
 
