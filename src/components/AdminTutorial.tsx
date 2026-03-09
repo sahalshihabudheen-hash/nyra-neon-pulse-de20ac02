@@ -199,6 +199,10 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
           from { opacity: 0; transform: translateY(16px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
+        @keyframes admin-tutorial-card-step {
+          0% { opacity: 0; transform: translateX(40px) scale(0.97); }
+          100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
       `;
       document.head.appendChild(style);
     }
@@ -442,9 +446,10 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
 
       {/* JARVIS Card */}
       <div
+        key={currentStep}
         className={`fixed ${getCardPosition()} w-[92vw] max-w-md z-[102]`}
         style={{
-          animation: isVisible ? 'admin-tutorial-card-enter 0.5s ease-out forwards' : undefined,
+          animation: isVisible ? 'admin-tutorial-card-step 0.4s ease-out forwards' : undefined,
         }}
       >
         <div className="relative bg-card/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl p-5 md:p-6"
