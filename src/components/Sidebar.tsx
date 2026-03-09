@@ -22,6 +22,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const { gradient } = useTheme();
   const { user } = useAuth();
   const { maintenance } = useMaintenanceMode();
+  const { settings: appSettings } = useAppSettings();
 
   useEffect(() => {
     const checkAdmin = async () => {
