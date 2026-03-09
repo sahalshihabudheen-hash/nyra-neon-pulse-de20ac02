@@ -280,6 +280,7 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
         'games': 'Games',
         'api-keys': 'Keys',
         'maintenance': 'Maint',
+        'app-settings': 'App',
       };
       const targetText = tabMap[step.tabToActivate!] || step.tabToActivate;
       tabTriggers.forEach((trigger) => {
