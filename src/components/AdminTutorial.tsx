@@ -68,7 +68,7 @@ const steps: TutorialStep[] = [
   {
     title: "🔑 API Keys — YouTube Failover",
     message: "This is critical! Manage your YouTube API keys here. Each key gets 10K daily quota. Add keys from different Google Cloud projects for true failover. Toggle keys on/off, see which one is currently active, and monitor their status in real-time.",
-    cardPosition: 'top-right',
+    cardPosition: 'bottom-left',
     tabToActivate: 'api-keys',
     glowActiveTab: true,
     highlightLabels: ['🔑 API Keys Tab'],
