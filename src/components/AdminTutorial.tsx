@@ -10,6 +10,7 @@ interface TutorialStep {
   highlightLabels?: string[];
   cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center' | 'top-right';
   tabToActivate?: string;
+  glowActiveTab?: boolean;
 }
 
 const steps: TutorialStep[] = [
@@ -23,9 +24,7 @@ const steps: TutorialStep[] = [
     message: "This is the Users tab — your main hub! You can see all registered users with their online status (green dot = online), email verification, location, device info, and VPN detection. Each user card shows everything at a glance.",
     cardPosition: 'bottom-right',
     tabToActivate: 'users',
-    highlightSelectors: [
-      '[role="tab"][data-state="active"]',
-    ],
+    glowActiveTab: true,
     highlightLabels: ['👥 Users Tab'],
   },
   {
@@ -33,9 +32,7 @@ const steps: TutorialStep[] = [
     message: "Power up your search! Type any name, email, location, or ISP to instantly find users. Then use the filter chips below — filter by Online/Offline status, device type (Phone, Tablet, Laptop, Desktop), VPN usage, and even by country!",
     cardPosition: 'bottom-right',
     tabToActivate: 'users',
-    highlightSelectors: [
-      'input[placeholder*="Search"]',
-    ],
+    highlightSelectors: ['input[placeholder*="Search"]'],
     highlightLabels: ['🔍 Search users here'],
   },
   {
@@ -49,59 +46,48 @@ const steps: TutorialStep[] = [
     message: "This is the Activity tab — see what everyone's been listening to! Track thumbnails, song names, channels, and which user played what — all in real-time. Great for spotting trends!",
     cardPosition: 'top-right',
     tabToActivate: 'activity',
-    highlightSelectors: [
-      '[role="tabpanel"] [class*="CardTitle"]',
-    ],
-    highlightLabels: ['🎵 Listening history'],
+    glowActiveTab: true,
+    highlightLabels: ['🎵 Activity Tab'],
   },
   {
     title: "📋 Playlists Tab — User Collections",
     message: "Browse every playlist created by your users! See the playlist name, creator, track count, and even preview the first few tracks. You can copy any playlist to your own account with one click!",
     cardPosition: 'top-right',
     tabToActivate: 'playlists',
-    highlightSelectors: [
-      '[role="tabpanel"] [class*="CardTitle"]',
-    ],
-    highlightLabels: ['📋 User playlists'],
+    glowActiveTab: true,
+    highlightLabels: ['📋 Playlists Tab'],
   },
   {
     title: "🎮 Games Tab — Live Sessions",
     message: "Monitor who's gaming right now! See active game sessions with scores, gems collected, play duration, and what music they're vibing to while playing. The badge shows how many gamers are active.",
     cardPosition: 'top-right',
     tabToActivate: 'games',
-    highlightSelectors: [
-      '[role="tabpanel"] [class*="CardTitle"]',
-    ],
-    highlightLabels: ['🎮 Game sessions'],
+    glowActiveTab: true,
+    highlightLabels: ['🎮 Games Tab'],
   },
   {
     title: "🔑 API Keys — YouTube Failover",
     message: "This is critical! Manage your YouTube API keys here. Each key gets 10K daily quota. Add keys from different Google Cloud projects for true failover. Toggle keys on/off, see which one is currently active, and monitor their status in real-time.",
     cardPosition: 'top-right',
     tabToActivate: 'api-keys',
-    highlightSelectors: [
-      '[role="tabpanel"] [class*="CardTitle"]',
-    ],
-    highlightLabels: ['🔑 API key management'],
+    glowActiveTab: true,
+    highlightLabels: ['🔑 API Keys Tab'],
   },
   {
     title: "🔧 Maintenance Mode",
     message: "Need to do updates? Toggle Maintenance Mode to lock out all regular users instantly. Add specific emails to the whitelist so they can still access the app. Admins always bypass maintenance automatically!",
     cardPosition: 'top-right',
     tabToActivate: 'maintenance',
-    highlightSelectors: [
-      'button[role="switch"]',
-    ],
-    highlightLabels: ['🔧 Toggle maintenance'],
+    glowActiveTab: true,
+    highlightSelectors: ['button[role="switch"]'],
+    highlightLabels: ['🔧 Maintenance Tab', '🔧 Toggle here'],
   },
   {
     title: "🎓 Replay Anytime!",
     message: "See the graduation cap icon (🎓) in the header? You can replay this tutorial anytime by clicking it. Also check Settings for the replay option. Now go manage your platform like a boss! 🚀",
     cardPosition: 'center',
     tabToActivate: 'users',
-    highlightSelectors: [
-      'button:has(.lucide-graduation-cap)',
-    ],
+    highlightSelectors: ['button:has(.lucide-graduation-cap)'],
     highlightLabels: ['🔄 Replay tutorial'],
   },
 ];
@@ -305,29 +291,49 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
     setHighlightRects([]);
 
     const step = steps[currentStep];
-    if (!step.highlightSelectors?.length) return;
+    if (!step.highlightSelectors?.length && !step.glowActiveTab) return;
 
     // Wait for tab content to render
     const timer = setTimeout(() => {
       const rects: { rect: DOMRect; label: string }[] = [];
-      step.highlightSelectors!.forEach((selector, i) => {
-        // Try each comma-separated selector
-        const selectors = selector.split(',').map(s => s.trim());
-        let el: HTMLElement | null = null;
-        for (const s of selectors) {
-          el = document.querySelector(s) as HTMLElement;
-          if (el) break;
-        }
-        if (el) {
-          const rect = el.getBoundingClientRect();
+      let labelIdx = 0;
+
+      // Glow the active tab button if requested
+      if (step.glowActiveTab) {
+        const activeTab = document.querySelector('[role="tab"][data-state="active"]') as HTMLElement;
+        if (activeTab) {
+          const rect = activeTab.getBoundingClientRect();
           if (rect.width > 0 && rect.height > 0) {
-            rects.push({ rect, label: step.highlightLabels?.[i] || '' });
-            el.setAttribute('data-admin-tutorial-glow', 'true');
-            el.style.position = 'relative';
-            el.style.zIndex = '101';
+            rects.push({ rect, label: step.highlightLabels?.[labelIdx] || '' });
+            activeTab.setAttribute('data-admin-tutorial-glow', 'true');
+            activeTab.style.position = 'relative';
+            activeTab.style.zIndex = '101';
+            labelIdx++;
           }
         }
-      });
+      }
+
+      // Additional highlight selectors
+      if (step.highlightSelectors?.length) {
+        step.highlightSelectors.forEach((selector, i) => {
+          const selectors = selector.split(',').map(s => s.trim());
+          let el: HTMLElement | null = null;
+          for (const s of selectors) {
+            el = document.querySelector(s) as HTMLElement;
+            if (el) break;
+          }
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              rects.push({ rect, label: step.highlightLabels?.[labelIdx + i] || '' });
+              el.setAttribute('data-admin-tutorial-glow', 'true');
+              el.style.position = 'relative';
+              el.style.zIndex = '101';
+            }
+          }
+        });
+      }
+
       setHighlightRects(rects);
     }, 500);
 
