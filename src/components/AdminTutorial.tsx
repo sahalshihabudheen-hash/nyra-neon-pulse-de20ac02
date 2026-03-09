@@ -24,10 +24,9 @@ const steps: TutorialStep[] = [
     cardPosition: 'bottom-right',
     tabToActivate: 'users',
     highlightSelectors: [
-      'button[value="users"]',
-      '[data-testid="users-card"], [value="users"] ~ div .space-y-3 > div:first-child, main .space-y-3 > div:first-child',
+      '[role="tab"][data-state="active"]',
     ],
-    highlightLabels: ['Users Tab', 'User cards appear here'],
+    highlightLabels: ['👥 Users Tab'],
   },
   {
     title: "🔍 Search & Smart Filters",
@@ -36,30 +35,24 @@ const steps: TutorialStep[] = [
     tabToActivate: 'users',
     highlightSelectors: [
       'input[placeholder*="Search"]',
-      '.flex.items-center.gap-1 button:first-child, .flex.flex-wrap.items-center.gap-2 > .flex.items-center',
     ],
-    highlightLabels: ['🔍 Search users here', '🏷️ Filter chips'],
+    highlightLabels: ['🔍 Search users here'],
   },
   {
     title: "⚡ Admin Actions",
     message: "For each user, you can grant or revoke admin roles, reset their passwords, or even delete accounts. Look for the action buttons on each user card. Only the primary admin can perform destructive actions like deletion.",
     cardPosition: 'bottom-left',
     tabToActivate: 'users',
-    highlightSelectors: [
-      'button:has(.lucide-shield), .text-destructive:has(.lucide-trash2), button:has(.lucide-key-round)',
-    ],
-    highlightLabels: ['Admin action buttons'],
   },
   {
     title: "🎵 Activity Tab — Listening History",
-    message: "Switch to the Activity tab to see what everyone's been listening to! Track thumbnails, song names, channels, and which user played what — all in real-time. Great for spotting trends!",
+    message: "This is the Activity tab — see what everyone's been listening to! Track thumbnails, song names, channels, and which user played what — all in real-time. Great for spotting trends!",
     cardPosition: 'top-right',
     tabToActivate: 'activity',
     highlightSelectors: [
-      'button[value="activity"]',
-      '[value="activity"][data-state="active"] ~ [value="activity"], [role="tabpanel"] .space-y-3 > div:first-child',
+      '[role="tabpanel"] [class*="CardTitle"]',
     ],
-    highlightLabels: ['Activity Tab', 'Recent plays show here'],
+    highlightLabels: ['🎵 Listening history'],
   },
   {
     title: "📋 Playlists Tab — User Collections",
@@ -67,10 +60,9 @@ const steps: TutorialStep[] = [
     cardPosition: 'top-right',
     tabToActivate: 'playlists',
     highlightSelectors: [
-      'button[value="playlists"]',
-      'button:has(.lucide-copy)',
+      '[role="tabpanel"] [class*="CardTitle"]',
     ],
-    highlightLabels: ['Playlists Tab', '📋 Copy playlist to yours'],
+    highlightLabels: ['📋 User playlists'],
   },
   {
     title: "🎮 Games Tab — Live Sessions",
@@ -78,9 +70,9 @@ const steps: TutorialStep[] = [
     cardPosition: 'top-right',
     tabToActivate: 'games',
     highlightSelectors: [
-      'button[value="games"]',
+      '[role="tabpanel"] [class*="CardTitle"]',
     ],
-    highlightLabels: ['Games Tab'],
+    highlightLabels: ['🎮 Game sessions'],
   },
   {
     title: "🔑 API Keys — YouTube Failover",
@@ -88,10 +80,9 @@ const steps: TutorialStep[] = [
     cardPosition: 'top-right',
     tabToActivate: 'api-keys',
     highlightSelectors: [
-      'button[value="api-keys"]',
-      'button:has(.lucide-plus)',
+      '[role="tabpanel"] [class*="CardTitle"]',
     ],
-    highlightLabels: ['API Keys Tab', '➕ Add new keys here'],
+    highlightLabels: ['🔑 API key management'],
   },
   {
     title: "🔧 Maintenance Mode",
@@ -99,14 +90,13 @@ const steps: TutorialStep[] = [
     cardPosition: 'top-right',
     tabToActivate: 'maintenance',
     highlightSelectors: [
-      'button[value="maintenance"]',
-      'button[role="switch"], .flex:has(button[role="switch"])',
+      'button[role="switch"]',
     ],
-    highlightLabels: ['Maintenance Tab', '🔧 Toggle maintenance here'],
+    highlightLabels: ['🔧 Toggle maintenance'],
   },
   {
     title: "🎓 Replay Anytime!",
-    message: "See the graduation cap icon (🎓) in the header? You can replay this tutorial anytime by clicking it. Now go manage your platform like a boss! 🚀",
+    message: "See the graduation cap icon (🎓) in the header? You can replay this tutorial anytime by clicking it. Also check Settings for the replay option. Now go manage your platform like a boss! 🚀",
     cardPosition: 'center',
     tabToActivate: 'users',
     highlightSelectors: [
@@ -280,14 +270,27 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
   // Activate the correct tab for the current step
   useEffect(() => {
     const step = steps[currentStep];
-    if (step.tabToActivate) {
-      // Small delay to let previous cleanup happen
-      const t = setTimeout(() => {
-        const tabButton = document.querySelector(`button[value="${step.tabToActivate}"]`) as HTMLElement;
-        if (tabButton) tabButton.click();
-      }, 50);
-      return () => clearTimeout(t);
-    }
+    if (!step.tabToActivate) return;
+
+    const t = setTimeout(() => {
+      // Find all tab triggers and click the matching one
+      const tabTriggers = document.querySelectorAll('[role="tab"]');
+      const tabMap: Record<string, string> = {
+        'users': 'Users',
+        'activity': 'Activity',
+        'playlists': 'Playlists',
+        'games': 'Games',
+        'api-keys': 'Keys',
+        'maintenance': 'Maint',
+      };
+      const targetText = tabMap[step.tabToActivate!] || step.tabToActivate;
+      tabTriggers.forEach((trigger) => {
+        if (trigger.textContent?.includes(targetText!)) {
+          (trigger as HTMLElement).click();
+        }
+      });
+    }, 50);
+    return () => clearTimeout(t);
   }, [currentStep]);
 
   // Highlight elements with glow + arrows
@@ -384,8 +387,9 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
       (el as HTMLElement).style.removeProperty('position');
       (el as HTMLElement).removeAttribute('data-admin-tutorial-glow');
     });
-    const usersTab = document.querySelector('button[value="users"]') as HTMLElement;
-    if (usersTab) usersTab.click();
+    // Switch back to users tab
+    const tabs = document.querySelectorAll('[role="tab"]');
+    tabs.forEach((t) => { if (t.textContent?.includes('Users')) (t as HTMLElement).click(); });
     setTimeout(onComplete, 400);
   }, [onComplete]);
 
