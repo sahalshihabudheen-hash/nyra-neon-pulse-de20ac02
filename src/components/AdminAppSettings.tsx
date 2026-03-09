@@ -39,6 +39,7 @@ const AdminAppSettings = () => {
     footer_powered_by: 'Powered by Jarvis',
     featured_mode: 'auto',
     featured_manual_track: {},
+    hidden_tabs: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
