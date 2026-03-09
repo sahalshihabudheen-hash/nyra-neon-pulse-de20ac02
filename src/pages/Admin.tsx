@@ -1966,6 +1966,11 @@ const Admin = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* App Settings Tab */}
+          <TabsContent value="app-settings">
+            <AdminAppSettings />
+          </TabsContent>
         </Tabs>
       </main>
 
