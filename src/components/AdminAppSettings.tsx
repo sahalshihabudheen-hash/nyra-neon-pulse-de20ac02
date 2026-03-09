@@ -90,17 +90,23 @@ const AdminAppSettings = () => {
   const saveSetting = async (key: string, value: any) => {
     setSaving(key);
     try {
+      const payload = {
+        key,
+        value: JSON.parse(JSON.stringify(value)),
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('app_settings')
-        .upsert(
-          { key, value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() },
-          { onConflict: 'key' }
-        );
+        .upsert(payload, { onConflict: 'key' });
 
       if (error) throw error;
+
+      window.dispatchEvent(new CustomEvent('app_settings_updated', { detail: { key, value: payload.value } }));
       toast.success(`${key.replace(/_/g, ' ')} updated!`);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save setting');
+      console.error('Failed to save setting', { key, err });
+      toast.error(err?.message || 'Failed to save setting');
     } finally {
       setSaving(null);
     }
