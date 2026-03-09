@@ -88,23 +88,14 @@ const AdminAppSettings = () => {
   const saveSetting = async (key: string, value: any) => {
     setSaving(key);
     try {
-      // Try update first
-      const { error: updateError, count } = await supabase
+      const { error } = await supabase
         .from('app_settings')
-        .update({ value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() })
-        .eq('key', key)
-        .select();
+        .upsert(
+          { key, value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() },
+          { onConflict: 'key' }
+        );
 
-      // If no row existed, insert
-      if (!count || count === 0) {
-        const { error: insertError } = await supabase
-          .from('app_settings')
-          .insert({ key, value: JSON.parse(JSON.stringify(value)) });
-        if (insertError) throw insertError;
-      } else if (updateError) {
-        throw updateError;
-      }
-
+      if (error) throw error;
       toast.success(`${key.replace(/_/g, ' ')} updated!`);
     } catch (err: any) {
       toast.error(err.message || 'Failed to save setting');
