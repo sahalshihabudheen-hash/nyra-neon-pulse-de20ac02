@@ -387,8 +387,9 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
       (el as HTMLElement).style.removeProperty('position');
       (el as HTMLElement).removeAttribute('data-admin-tutorial-glow');
     });
-    const usersTab = document.querySelector('button[value="users"]') as HTMLElement;
-    if (usersTab) usersTab.click();
+    // Switch back to users tab
+    const tabs = document.querySelectorAll('[role="tab"]');
+    tabs.forEach((t) => { if (t.textContent?.includes('Users')) (t as HTMLElement).click(); });
     setTimeout(onComplete, 400);
   }, [onComplete]);
 
