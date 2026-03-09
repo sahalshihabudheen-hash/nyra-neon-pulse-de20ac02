@@ -199,6 +199,10 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
           from { opacity: 0; transform: translateY(16px) scale(0.96); }
           to { opacity: 1; transform: translateY(0) scale(1); }
         }
+        @keyframes admin-tutorial-card-step {
+          0% { opacity: 0; transform: translateX(40px) scale(0.97); }
+          100% { opacity: 1; transform: translateX(0) scale(1); }
+        }
       `;
       document.head.appendChild(style);
     }
