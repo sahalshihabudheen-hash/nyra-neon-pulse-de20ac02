@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ const AdminAppSettings = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchSettings();
@@ -88,17 +90,23 @@ const AdminAppSettings = () => {
   const saveSetting = async (key: string, value: any) => {
     setSaving(key);
     try {
+      const payload = {
+        key,
+        value: JSON.parse(JSON.stringify(value)),
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('app_settings')
-        .upsert(
-          { key, value: JSON.parse(JSON.stringify(value)), updated_at: new Date().toISOString() },
-          { onConflict: 'key' }
-        );
+        .upsert(payload, { onConflict: 'key' });
 
       if (error) throw error;
+
+      window.dispatchEvent(new CustomEvent('app_settings_updated', { detail: { key, value: payload.value } }));
       toast.success(`${key.replace(/_/g, ' ')} updated!`);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save setting');
+      console.error('Failed to save setting', { key, err });
+      toast.error(err?.message || 'Failed to save setting');
     } finally {
       setSaving(null);
     }
@@ -107,6 +115,10 @@ const AdminAppSettings = () => {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!user) {
+      toast.error('Please sign in to upload a logo');
+      return;
+    }
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
@@ -122,11 +134,11 @@ const AdminAppSettings = () => {
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
-      const filePath = `app-logo.${ext}`;
+      const filePath = `${user.id}/app-logo.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { upsert: true, contentType: file.type, cacheControl: '3600' });
 
       if (uploadError) throw uploadError;
 
@@ -140,7 +152,8 @@ const AdminAppSettings = () => {
       await saveSetting('app_logo_url', url);
       toast.success('Logo uploaded!');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to upload logo');
+      console.error('Logo upload failed', err);
+      toast.error(err?.message || 'Failed to upload logo');
     } finally {
       setUploading(false);
     }
