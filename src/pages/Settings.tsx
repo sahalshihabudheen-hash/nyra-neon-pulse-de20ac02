@@ -345,6 +345,34 @@ const Settings = () => {
                 </div>
               </div>
 
+              {/* Admin Tutorial - only for admins */}
+              {isAdmin && (
+                <div className="border-t border-border pt-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      <div>
+                        <p className="font-medium text-foreground text-sm md:text-base">Admin Dashboard Tutorial</p>
+                        <p className="text-xs md:text-sm text-muted-foreground">Replay the JARVIS guided tour of the Admin Dashboard</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (!user) return;
+                        localStorage.removeItem(`admin_tutorial_done_${user.id}`);
+                        toast.success('Admin tutorial will play when you visit the Admin Dashboard');
+                        navigate('/admin');
+                      }}
+                      className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Replay Admin Tutorial
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               {/* Reset Genre Preferences */}
               <div className="border-t border-border pt-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
