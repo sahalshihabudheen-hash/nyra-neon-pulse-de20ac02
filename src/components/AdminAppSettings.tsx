@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Loader2, Save, Upload, Image, Type, FileText, Music, Search, Star } from 'lucide-react';
+import { Loader2, Save, Upload, Image, Type, FileText, Music, Search, Star, Eye, EyeOff, Home, Heart, ListMusic, Users, Sparkles, Settings, Gamepad2 } from 'lucide-react';
 
 interface AppSettings {
   app_name: string;
@@ -20,7 +20,16 @@ interface AppSettings {
     channel?: string;
   };
   app_logo_url?: string;
+  hidden_tabs: string[];
 }
+
+const SIDEBAR_TABS = [
+  { id: 'search', label: 'Search', icon: Search },
+  { id: 'artists', label: 'Artists', icon: Users },
+  { id: 'playlists', label: 'Playlists', icon: ListMusic },
+  { id: 'favorites', label: 'Favorites', icon: Heart },
+  { id: 'ai-dj', label: 'AI DJ', icon: Sparkles },
+];
 
 const AdminAppSettings = () => {
   const [settings, setSettings] = useState<AppSettings>({
@@ -30,6 +39,7 @@ const AdminAppSettings = () => {
     footer_powered_by: 'Powered by Jarvis',
     featured_mode: 'auto',
     featured_manual_track: {},
+    hidden_tabs: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
@@ -48,7 +58,7 @@ const AdminAppSettings = () => {
       const { data, error } = await supabase
         .from('app_settings')
         .select('key, value')
-        .in('key', ['app_name', 'app_tagline', 'footer_text', 'footer_powered_by', 'featured_mode', 'featured_manual_track', 'app_logo_url']);
+        .in('key', ['app_name', 'app_tagline', 'footer_text', 'footer_powered_by', 'featured_mode', 'featured_manual_track', 'app_logo_url', 'hidden_tabs']);
 
       if (error) throw error;
 
@@ -63,6 +73,7 @@ const AdminAppSettings = () => {
           case 'featured_mode': newSettings.featured_mode = val === 'manual' ? 'manual' : 'auto'; break;
           case 'featured_manual_track': newSettings.featured_manual_track = typeof val === 'object' && val ? val : {}; break;
           case 'app_logo_url': newSettings.app_logo_url = typeof val === 'string' ? val : undefined; break;
+          case 'hidden_tabs': newSettings.hidden_tabs = Array.isArray(val) ? val : []; break;
         }
       });
       setSettings(newSettings);
@@ -421,6 +432,46 @@ const AdminAppSettings = () => {
               )}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Sidebar Tab Visibility */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Eye className="w-5 h-5 text-primary" />
+            <div>
+              <CardTitle>Sidebar Navigation</CardTitle>
+              <CardDescription>Show or hide tabs from the public sidebar. Home, Settings & Admin are always visible.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {SIDEBAR_TABS.map((tab) => {
+            const isHidden = settings.hidden_tabs.includes(tab.id);
+            const Icon = tab.icon;
+            return (
+              <div key={tab.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                <div className="flex items-center gap-3">
+                  <Icon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">{tab.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{isHidden ? 'Hidden' : 'Visible'}</span>
+                  <Switch
+                    checked={!isHidden}
+                    onCheckedChange={async (checked) => {
+                      const newHidden = checked
+                        ? settings.hidden_tabs.filter(t => t !== tab.id)
+                        : [...settings.hidden_tabs, tab.id];
+                      setSettings(prev => ({ ...prev, hidden_tabs: newHidden }));
+                      await saveSetting('hidden_tabs', newHidden);
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
     </div>

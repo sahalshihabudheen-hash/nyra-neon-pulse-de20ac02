@@ -34,19 +34,22 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     checkAdmin();
   }, [user]);
 
-  const menuItems = [
+  const allMenuItems = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
     { id: 'search', label: 'Search', icon: Search, path: '/' },
     { id: 'artists', label: 'Artists', icon: Users, path: '/artists' },
     { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlists' },
     { id: 'favorites', label: 'Favorites', icon: Heart, path: '/favorites' },
     { id: 'ai-dj', label: 'AI DJ', icon: Sparkles, path: '/ai-dj' },
-    
-    // { id: 'games', label: 'Games', icon: Gamepad2, path: '/games' }, // Hidden for now
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
-    // Admin link only visible to admin
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Shield, path: '/admin' }] : []),
   ];
+
+  // Filter out hidden tabs (never hide home, settings, admin)
+  const protectedTabs = ['home', 'settings', 'admin'];
+  const menuItems = allMenuItems.filter(
+    item => protectedTabs.includes(item.id) || !appSettings.hidden_tabs.includes(item.id)
+  );
 
   const handleNavClick = (item: typeof menuItems[0]) => {
     onTabChange(item.id);
