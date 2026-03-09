@@ -161,6 +161,25 @@ const Admin = () => {
   const [quotaResetLocalTime, setQuotaResetLocalTime] = useState('');
   const [pacificCurrentTime, setPacificCurrentTime] = useState('');
 
+  // Admin tutorial
+  const adminTutorialKey = user ? `admin_tutorial_done_${user.id}` : '';
+  const [showAdminTutorial, setShowAdminTutorial] = useState(false);
+
+  useEffect(() => {
+    if (isAdminLoggedIn && adminTutorialKey && !localStorage.getItem(adminTutorialKey)) {
+      setShowAdminTutorial(true);
+    }
+  }, [isAdminLoggedIn, adminTutorialKey]);
+
+  const completeAdminTutorial = () => {
+    if (adminTutorialKey) localStorage.setItem(adminTutorialKey, 'true');
+    setShowAdminTutorial(false);
+  };
+
+  const replayAdminTutorial = () => {
+    setShowAdminTutorial(true);
+  };
+
   useEffect(() => {
     const pacificDateFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Los_Angeles',
