@@ -293,21 +293,34 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
     const step = steps[currentStep];
     if (!step.highlightSelectors?.length && !step.glowActiveTab) return;
 
-    // Wait for tab content to render
+    // Wait for tab content to render after click
     const timer = setTimeout(() => {
       const rects: { rect: DOMRect; label: string }[] = [];
       let labelIdx = 0;
 
-      // Glow the active tab button if requested
-      if (step.glowActiveTab) {
-        const activeTab = document.querySelector('[role="tab"][data-state="active"]') as HTMLElement;
-        if (activeTab) {
-          const rect = activeTab.getBoundingClientRect();
+      // Glow the correct tab button by matching its text
+      if (step.glowActiveTab && step.tabToActivate) {
+        const tabMap: Record<string, string> = {
+          'users': 'Users',
+          'activity': 'Activity',
+          'playlists': 'Playlists',
+          'games': 'Games',
+          'api-keys': 'Keys',
+          'maintenance': 'Maint',
+        };
+        const targetText = tabMap[step.tabToActivate] || step.tabToActivate;
+        const allTabs = document.querySelectorAll('[role="tab"]');
+        let targetTab: HTMLElement | null = null;
+        allTabs.forEach((t) => {
+          if (t.textContent?.includes(targetText)) targetTab = t as HTMLElement;
+        });
+        if (targetTab) {
+          const rect = (targetTab as HTMLElement).getBoundingClientRect();
           if (rect.width > 0 && rect.height > 0) {
             rects.push({ rect, label: step.highlightLabels?.[labelIdx] || '' });
-            activeTab.setAttribute('data-admin-tutorial-glow', 'true');
-            activeTab.style.position = 'relative';
-            activeTab.style.zIndex = '101';
+            (targetTab as HTMLElement).setAttribute('data-admin-tutorial-glow', 'true');
+            (targetTab as HTMLElement).style.position = 'relative';
+            (targetTab as HTMLElement).style.zIndex = '101';
             labelIdx++;
           }
         }
