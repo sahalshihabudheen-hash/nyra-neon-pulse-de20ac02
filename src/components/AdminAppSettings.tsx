@@ -20,7 +20,16 @@ interface AppSettings {
     channel?: string;
   };
   app_logo_url?: string;
+  hidden_tabs: string[];
 }
+
+const SIDEBAR_TABS = [
+  { id: 'search', label: 'Search', icon: Search },
+  { id: 'artists', label: 'Artists', icon: Users },
+  { id: 'playlists', label: 'Playlists', icon: ListMusic },
+  { id: 'favorites', label: 'Favorites', icon: Heart },
+  { id: 'ai-dj', label: 'AI DJ', icon: Sparkles },
+];
 
 const AdminAppSettings = () => {
   const [settings, setSettings] = useState<AppSettings>({
