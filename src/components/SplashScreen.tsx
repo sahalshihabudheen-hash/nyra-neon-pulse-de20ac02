@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAppSettings } from '@/hooks/useAppSettings';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -6,6 +7,7 @@ interface SplashScreenProps {
 
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [isExiting, setIsExiting] = useState(false);
+  const { settings } = useAppSettings();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -32,7 +34,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         className="text-7xl md:text-9xl font-extrabold neon-text animate-fade-in-up tracking-tight"
         style={{ animationDelay: '0.2s' }}
       >
-        NYRA
+        {settings.app_name}
       </h1>
 
       {/* Tagline */}
@@ -40,7 +42,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         className="text-xl md:text-2xl text-muted-foreground mt-4 animate-fade-in-up tracking-widest uppercase"
         style={{ animationDelay: '0.5s' }}
       >
-        Feel the Pulse
+        {settings.app_tagline}
       </p>
 
       {/* Soundwave Animation */}
