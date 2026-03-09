@@ -6,6 +6,7 @@ import nyraLogo from '@/assets/nyra-logo.png';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SidebarProps {
