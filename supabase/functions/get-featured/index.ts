@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fetchYouTubeWithBackupFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
 
 const corsHeaders = {
@@ -12,11 +13,39 @@ serve(async (req) => {
   }
 
   try {
+    // Check if manual mode is set
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, supabaseKey);
+
+    const { data: modeRow } = await sb
+      .from("app_settings")
+      .select("value")
+      .eq("key", "featured_mode")
+      .maybeSingle();
+
+    const mode = modeRow?.value;
+
+    if (mode === "manual") {
+      const { data: trackRow } = await sb
+        .from("app_settings")
+        .select("value")
+        .eq("key", "featured_manual_track")
+        .maybeSingle();
+
+      const track = trackRow?.value as any;
+      if (track && track.id) {
+        return new Response(JSON.stringify(track), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Auto mode — fetch from YouTube
     const keys = await getYouTubeApiKeys();
 
     const now = new Date();
-    const dateString = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
-
     const featuredCategories = [
       "viral music video today",
       "new music release this week",
@@ -31,7 +60,7 @@ serve(async (req) => {
     const categoryIndex = dayOfYear % featuredCategories.length;
     const searchQuery = featuredCategories[categoryIndex];
 
-    console.log(`Fetching featured track with query: ${searchQuery} (date: ${dateString}) using ${keys.length} API keys`);
+    console.log(`Fetching featured track with query: ${searchQuery} using ${keys.length} API keys`);
 
     const result = await fetchYouTubeWithBackupFailover(
       keys,
