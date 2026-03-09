@@ -8,116 +8,168 @@ interface TutorialStep {
   message: string;
   highlightSelectors?: string[];
   highlightLabels?: string[];
-  cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center';
+  cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center' | 'top-right';
   tabToActivate?: string;
 }
 
 const steps: TutorialStep[] = [
   {
     title: "🛡️ Welcome, Admin!",
-    message: "Hey! I'm JARVIS. Congrats on getting admin access! Let me walk you through the Admin Dashboard so you know how to manage everything. This is your command center.",
+    message: "Hey! I'm JARVIS. Congrats on getting admin access! Let me walk you through the Admin Dashboard so you know how to manage everything. This is your command center — let's dive in!",
     cardPosition: 'center',
   },
   {
-    title: "👥 Users Tab",
-    message: "This is the Users tab — your main hub. Here you can see all registered users, their online status, locations, devices, VPN detection, and manage admin roles. Use the search and filters to find specific users quickly.",
+    title: "👥 Users Tab — Overview",
+    message: "This is the Users tab — your main hub! You can see all registered users with their online status (green dot = online), email verification, location, device info, and VPN detection. Each user card shows everything at a glance.",
     cardPosition: 'bottom-right',
     tabToActivate: 'users',
-    highlightSelectors: ['[data-state="active"][value="users"], button[value="users"]'],
-    highlightLabels: ['Users management'],
+    highlightSelectors: [
+      'button[value="users"]',
+      '[data-testid="users-card"], [value="users"] ~ div .space-y-3 > div:first-child, main .space-y-3 > div:first-child',
+    ],
+    highlightLabels: ['Users Tab', 'User cards appear here'],
   },
   {
-    title: "🔍 Search & Filters",
-    message: "Use the search bar to find users by name, email, location, or ISP. You can also filter by online status, device type (Phone, Tablet, Laptop, Desktop), VPN usage, and country.",
+    title: "🔍 Search & Smart Filters",
+    message: "Power up your search! Type any name, email, location, or ISP to instantly find users. Then use the filter chips below — filter by Online/Offline status, device type (Phone, Tablet, Laptop, Desktop), VPN usage, and even by country!",
     cardPosition: 'bottom-right',
     tabToActivate: 'users',
-    highlightSelectors: ['input[placeholder*="Search"]'],
-    highlightLabels: ['Search users here'],
+    highlightSelectors: [
+      'input[placeholder*="Search"]',
+      '.flex.items-center.gap-1 button:first-child, .flex.flex-wrap.items-center.gap-2 > .flex.items-center',
+    ],
+    highlightLabels: ['🔍 Search users here', '🏷️ Filter chips'],
   },
   {
-    title: "🎵 Activity Tab",
-    message: "The Activity tab shows the listening history of all users — what songs they played and when. Great for understanding what's trending on your platform!",
-    cardPosition: 'bottom-right',
+    title: "⚡ Admin Actions",
+    message: "For each user, you can grant or revoke admin roles, reset their passwords, or even delete accounts. Look for the action buttons on each user card. Only the primary admin can perform destructive actions like deletion.",
+    cardPosition: 'bottom-left',
+    tabToActivate: 'users',
+    highlightSelectors: [
+      'button:has(.lucide-shield), .text-destructive:has(.lucide-trash2), button:has(.lucide-key-round)',
+    ],
+    highlightLabels: ['Admin action buttons'],
+  },
+  {
+    title: "🎵 Activity Tab — Listening History",
+    message: "Switch to the Activity tab to see what everyone's been listening to! Track thumbnails, song names, channels, and which user played what — all in real-time. Great for spotting trends!",
+    cardPosition: 'top-right',
     tabToActivate: 'activity',
-    highlightSelectors: ['[data-state="active"][value="activity"], button[value="activity"]'],
-    highlightLabels: ['Listening activity'],
+    highlightSelectors: [
+      'button[value="activity"]',
+      '[value="activity"][data-state="active"] ~ [value="activity"], [role="tabpanel"] .space-y-3 > div:first-child',
+    ],
+    highlightLabels: ['Activity Tab', 'Recent plays show here'],
   },
   {
-    title: "📋 Playlists Tab",
-    message: "Here you can browse all user-created playlists and see what tracks they've added. Useful for content moderation and understanding user preferences.",
-    cardPosition: 'bottom-right',
+    title: "📋 Playlists Tab — User Collections",
+    message: "Browse every playlist created by your users! See the playlist name, creator, track count, and even preview the first few tracks. You can copy any playlist to your own account with one click!",
+    cardPosition: 'top-right',
     tabToActivate: 'playlists',
-    highlightSelectors: ['[data-state="active"][value="playlists"], button[value="playlists"]'],
-    highlightLabels: ['User playlists'],
+    highlightSelectors: [
+      'button[value="playlists"]',
+      'button:has(.lucide-copy)',
+    ],
+    highlightLabels: ['Playlists Tab', '📋 Copy playlist to yours'],
   },
   {
-    title: "🎮 Games Tab",
-    message: "Monitor active game sessions! See who's playing, their scores, gems collected, and what music they're listening to while gaming. The green badge shows active gamers.",
-    cardPosition: 'bottom-right',
+    title: "🎮 Games Tab — Live Sessions",
+    message: "Monitor who's gaming right now! See active game sessions with scores, gems collected, play duration, and what music they're vibing to while playing. The badge shows how many gamers are active.",
+    cardPosition: 'top-right',
     tabToActivate: 'games',
-    highlightSelectors: ['[data-state="active"][value="games"], button[value="games"]'],
-    highlightLabels: ['Game sessions'],
+    highlightSelectors: [
+      'button[value="games"]',
+    ],
+    highlightLabels: ['Games Tab'],
   },
   {
-    title: "🔑 API Keys Tab",
-    message: "Manage your YouTube API keys here. You can add, enable/disable, and monitor key status. The failover system automatically switches to the next key when quota is exhausted.",
-    cardPosition: 'bottom-right',
+    title: "🔑 API Keys — YouTube Failover",
+    message: "This is critical! Manage your YouTube API keys here. Each key gets 10K daily quota. Add keys from different Google Cloud projects for true failover. Toggle keys on/off, see which one is currently active, and monitor their status in real-time.",
+    cardPosition: 'top-right',
     tabToActivate: 'api-keys',
-    highlightSelectors: ['[data-state="active"][value="api-keys"], button[value="api-keys"]'],
-    highlightLabels: ['API key management'],
+    highlightSelectors: [
+      'button[value="api-keys"]',
+      'button:has(.lucide-plus)',
+    ],
+    highlightLabels: ['API Keys Tab', '➕ Add new keys here'],
   },
   {
-    title: "🔧 Maintenance Tab",
-    message: "Toggle Maintenance Mode to lock out regular users during updates. You can add specific email addresses to a whitelist so they can still access the app during maintenance.",
-    cardPosition: 'bottom-right',
+    title: "🔧 Maintenance Mode",
+    message: "Need to do updates? Toggle Maintenance Mode to lock out all regular users instantly. Add specific emails to the whitelist so they can still access the app. Admins always bypass maintenance automatically!",
+    cardPosition: 'top-right',
     tabToActivate: 'maintenance',
-    highlightSelectors: ['[data-state="active"][value="maintenance"], button[value="maintenance"]'],
-    highlightLabels: ['Maintenance controls'],
+    highlightSelectors: [
+      'button[value="maintenance"]',
+      'button[role="switch"], .flex:has(button[role="switch"])',
+    ],
+    highlightLabels: ['Maintenance Tab', '🔧 Toggle maintenance here'],
   },
   {
-    title: "🚀 You're Ready!",
-    message: "That's everything! You now have full control over the platform. Remember — with great power comes great responsibility. Keep the vibes going! 🎶",
+    title: "🎓 Replay Anytime!",
+    message: "See the graduation cap icon (🎓) in the header? You can replay this tutorial anytime by clicking it. Now go manage your platform like a boss! 🚀",
     cardPosition: 'center',
     tabToActivate: 'users',
+    highlightSelectors: [
+      'button:has(.lucide-graduation-cap)',
+    ],
+    highlightLabels: ['🔄 Replay tutorial'],
   },
 ];
 
+// Pulsing glow ring component that wraps around an element
+const GlowRing = ({ targetRect }: { targetRect: DOMRect }) => (
+  <div
+    className="fixed z-[101] pointer-events-none rounded-lg"
+    style={{
+      top: targetRect.top - 4,
+      left: targetRect.left - 4,
+      width: targetRect.width + 8,
+      height: targetRect.height + 8,
+      boxShadow: '0 0 0 2px hsl(var(--primary) / 0.7), 0 0 20px 4px hsl(var(--primary) / 0.35), inset 0 0 15px hsl(var(--primary) / 0.1)',
+      animation: 'admin-tutorial-glow-pulse 2s ease-in-out infinite',
+    }}
+  />
+);
+
 const HighlightArrow = ({ targetRect, label, index }: { targetRect: DOMRect; label: string; index: number }) => {
   const arrowLeft = targetRect.left + targetRect.width / 2;
-  const clampedLeft = Math.min(Math.max(arrowLeft, 120), window.innerWidth - 120);
-  const showAbove = targetRect.top > 160;
+  const clampedLeft = Math.min(Math.max(arrowLeft, 100), window.innerWidth - 100);
+  const showAbove = targetRect.top > 140;
 
   return (
-    <div
-      className="fixed z-[103] flex flex-col items-center pointer-events-none animate-bounce"
-      style={{
-        top: showAbove ? targetRect.top - 65 : targetRect.bottom + 8,
-        left: clampedLeft,
-        transform: 'translateX(-50%)',
-        animationDelay: `${index * 200}ms`,
-        maxWidth: '80vw',
-      }}
-    >
-      {showAbove ? (
-        <>
-          <span className="text-[11px] font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 text-center mb-1 max-w-[200px] truncate">
-            {label}
-          </span>
-          <svg width="20" height="16" viewBox="0 0 20 16" className="text-primary drop-shadow-lg">
-            <path d="M10 16L2 4h16L10 16z" fill="currentColor" />
-          </svg>
-        </>
-      ) : (
-        <>
-          <svg width="20" height="16" viewBox="0 0 20 16" className="text-primary drop-shadow-lg">
-            <path d="M10 0L18 12H2L10 0z" fill="currentColor" />
-          </svg>
-          <span className="text-[11px] font-bold text-primary bg-card/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-primary/40 shadow-lg shadow-primary/20 text-center mt-1 max-w-[200px] truncate">
-            {label}
-          </span>
-        </>
-      )}
-    </div>
+    <>
+      <GlowRing targetRect={targetRect} />
+      <div
+        className="fixed z-[103] flex flex-col items-center pointer-events-none"
+        style={{
+          top: showAbove ? targetRect.top - 58 : targetRect.bottom + 6,
+          left: clampedLeft,
+          transform: 'translateX(-50%)',
+          maxWidth: '85vw',
+          animation: `admin-tutorial-float 2s ease-in-out infinite ${index * 200}ms`,
+        }}
+      >
+        {showAbove ? (
+          <>
+            <span className="text-[11px] font-bold text-primary bg-card/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/50 shadow-lg shadow-primary/30 text-center mb-1 whitespace-nowrap">
+              {label}
+            </span>
+            <svg width="18" height="14" viewBox="0 0 18 14" className="text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]">
+              <path d="M9 14L1 3h16L9 14z" fill="currentColor" />
+            </svg>
+          </>
+        ) : (
+          <>
+            <svg width="18" height="14" viewBox="0 0 18 14" className="text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]">
+              <path d="M9 0L17 11H1L9 0z" fill="currentColor" />
+            </svg>
+            <span className="text-[11px] font-bold text-primary bg-card/95 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/50 shadow-lg shadow-primary/30 text-center mt-1 whitespace-nowrap">
+              {label}
+            </span>
+          </>
+        )}
+      </div>
+    </>
   );
 };
 
@@ -151,6 +203,34 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
   const [isTyping, setIsTyping] = useState(true);
   const [highlightRects, setHighlightRects] = useState<{ rect: DOMRect; label: string }[]>([]);
   const bgAudioRef = useRef<{ ctx: AudioContext } | null>(null);
+
+  // Inject keyframes for glow animation
+  useEffect(() => {
+    const styleId = 'admin-tutorial-animations';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes admin-tutorial-glow-pulse {
+          0%, 100% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.7), 0 0 20px 4px hsl(var(--primary) / 0.35), inset 0 0 15px hsl(var(--primary) / 0.1); }
+          50% { box-shadow: 0 0 0 3px hsl(var(--primary) / 0.9), 0 0 35px 8px hsl(var(--primary) / 0.5), inset 0 0 20px hsl(var(--primary) / 0.15); }
+        }
+        @keyframes admin-tutorial-float {
+          0%, 100% { transform: translateX(-50%) translateY(0); }
+          50% { transform: translateX(-50%) translateY(-6px); }
+        }
+        @keyframes admin-tutorial-card-enter {
+          from { opacity: 0; transform: translateY(16px) scale(0.96); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    return () => {
+      const el = document.getElementById(styleId);
+      if (el) el.remove();
+    };
+  }, []);
 
   // Ambient background music
   useEffect(() => {
@@ -201,15 +281,18 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
   useEffect(() => {
     const step = steps[currentStep];
     if (step.tabToActivate) {
-      const tabButton = document.querySelector(`button[value="${step.tabToActivate}"]`) as HTMLElement;
-      if (tabButton) {
-        tabButton.click();
-      }
+      // Small delay to let previous cleanup happen
+      const t = setTimeout(() => {
+        const tabButton = document.querySelector(`button[value="${step.tabToActivate}"]`) as HTMLElement;
+        if (tabButton) tabButton.click();
+      }, 50);
+      return () => clearTimeout(t);
     }
   }, [currentStep]);
 
-  // Highlight elements
+  // Highlight elements with glow + arrows
   useEffect(() => {
+    // Clean up previous
     document.querySelectorAll('[data-admin-tutorial-glow]').forEach(el => {
       (el as HTMLElement).style.removeProperty('box-shadow');
       (el as HTMLElement).style.removeProperty('z-index');
@@ -221,21 +304,29 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
     const step = steps[currentStep];
     if (!step.highlightSelectors?.length) return;
 
+    // Wait for tab content to render
     const timer = setTimeout(() => {
       const rects: { rect: DOMRect; label: string }[] = [];
       step.highlightSelectors!.forEach((selector, i) => {
-        const el = document.querySelector(selector) as HTMLElement;
+        // Try each comma-separated selector
+        const selectors = selector.split(',').map(s => s.trim());
+        let el: HTMLElement | null = null;
+        for (const s of selectors) {
+          el = document.querySelector(s) as HTMLElement;
+          if (el) break;
+        }
         if (el) {
           const rect = el.getBoundingClientRect();
-          rects.push({ rect, label: step.highlightLabels?.[i] || '' });
-          el.setAttribute('data-admin-tutorial-glow', 'true');
-          el.style.position = 'relative';
-          el.style.zIndex = '101';
-          el.style.boxShadow = '0 0 0 3px hsl(var(--primary) / 0.6), 0 0 25px hsl(var(--primary) / 0.3)';
+          if (rect.width > 0 && rect.height > 0) {
+            rects.push({ rect, label: step.highlightLabels?.[i] || '' });
+            el.setAttribute('data-admin-tutorial-glow', 'true');
+            el.style.position = 'relative';
+            el.style.zIndex = '101';
+          }
         }
       });
       setHighlightRects(rects);
-    }, 400);
+    }, 500);
 
     return () => {
       clearTimeout(timer);
@@ -262,7 +353,7 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
         setIsTyping(false);
         clearInterval(interval);
       }
-    }, 18);
+    }, 16);
     return () => clearInterval(interval);
   }, [currentStep]);
 
@@ -293,7 +384,6 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
       (el as HTMLElement).style.removeProperty('position');
       (el as HTMLElement).removeAttribute('data-admin-tutorial-glow');
     });
-    // Switch back to users tab
     const usersTab = document.querySelector('button[value="users"]') as HTMLElement;
     if (usersTab) usersTab.click();
     setTimeout(onComplete, 400);
@@ -303,68 +393,113 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
 
   const getCardPosition = () => {
     switch (step.cardPosition) {
-      case 'bottom-right': return 'bottom-8 right-4 md:right-8';
-      case 'bottom-left': return 'bottom-8 left-4 md:left-8';
-      case 'top-center': return 'top-24 left-1/2 -translate-x-1/2';
+      case 'bottom-right': return 'bottom-6 right-3 sm:bottom-8 sm:right-8';
+      case 'bottom-left': return 'bottom-6 left-3 sm:bottom-8 sm:left-8';
+      case 'top-center': return 'top-20 left-1/2 -translate-x-1/2';
+      case 'top-right': return 'top-20 right-3 sm:right-8';
       default: return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2';
     }
   };
 
   return (
-    <div className={`fixed inset-0 z-[100] transition-all duration-400 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
+    <div className={`fixed inset-0 z-[100] transition-opacity duration-400 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      {/* Backdrop with subtle vignette */}
+      <div
+        className="absolute inset-0"
+        onClick={handleClose}
+        style={{
+          background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.55) 100%)',
+        }}
+      />
 
+      {/* Highlight arrows + glow rings */}
       {highlightRects.map((hr, i) => (
-        <HighlightArrow key={i} targetRect={hr.rect} label={hr.label} index={i} />
+        <HighlightArrow key={`${currentStep}-${i}`} targetRect={hr.rect} label={hr.label} index={i} />
       ))}
 
-      <div className={`fixed ${getCardPosition()} w-[90vw] max-w-md bg-card/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl shadow-primary/20 p-5 md:p-6 transition-all duration-500 z-[102] ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-        <button onClick={handleClose} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors">
-          <X className="w-4 h-4" />
-        </button>
+      {/* JARVIS Card */}
+      <div
+        className={`fixed ${getCardPosition()} w-[92vw] max-w-md z-[102]`}
+        style={{
+          animation: isVisible ? 'admin-tutorial-card-enter 0.5s ease-out forwards' : undefined,
+        }}
+      >
+        <div className="relative bg-card/95 backdrop-blur-xl border border-primary/30 rounded-2xl shadow-2xl p-5 md:p-6"
+          style={{
+            boxShadow: '0 0 40px -10px hsl(var(--primary) / 0.25), 0 20px 60px -20px rgba(0,0,0,0.5)',
+          }}
+        >
+          {/* Subtle top glow accent */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative">
-            <img src={jarvisAvatar} alt="JARVIS" className="w-10 h-10 rounded-full object-cover ring-2 ring-primary/50" />
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-card" />
+          {/* Close */}
+          <button onClick={handleClose} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10">
+            <X className="w-4 h-4" />
+          </button>
+
+          {/* JARVIS Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full animate-pulse" style={{ boxShadow: '0 0 12px 2px hsl(var(--primary) / 0.4)' }} />
+              <img src={jarvisAvatar} alt="JARVIS" className="w-11 h-11 rounded-full object-cover ring-2 ring-primary/60 relative" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-card" />
+            </div>
+            <div>
+              <span className="text-sm font-bold text-primary">JARVIS</span>
+              <p className="text-[10px] text-muted-foreground">Admin Guide</p>
+            </div>
+            <span className="text-[10px] text-muted-foreground ml-auto bg-secondary/80 px-2.5 py-1 rounded-full font-medium">
+              {currentStep + 1}/{steps.length}
+            </span>
           </div>
-          <div>
-            <span className="text-sm font-bold text-primary">JARVIS</span>
-            <p className="text-[10px] text-muted-foreground">Admin Guide</p>
+
+          {/* Title */}
+          <h2 className="text-base sm:text-lg font-bold text-foreground mb-2">{step.title}</h2>
+
+          {/* Typed Message */}
+          <p className="text-muted-foreground text-[13px] sm:text-sm leading-relaxed min-h-[3rem]">
+            {typedText}
+            {isTyping && <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-pulse" />}
+          </p>
+
+          {/* Progress dots */}
+          <div className="flex items-center justify-center gap-1.5 my-4">
+            {steps.map((_, i) => (
+              <div
+                key={i}
+                className={`rounded-full transition-all duration-300 ${
+                  i === currentStep
+                    ? 'w-6 h-2 bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]'
+                    : i < currentStep
+                    ? 'w-2 h-2 bg-primary/50'
+                    : 'w-2 h-2 bg-muted'
+                }`}
+              />
+            ))}
           </div>
-          <span className="text-[10px] text-muted-foreground ml-auto bg-secondary px-2 py-0.5 rounded-full">
-            {currentStep + 1}/{steps.length}
-          </span>
-        </div>
 
-        <h2 className="text-lg font-bold text-foreground mb-2">{step.title}</h2>
-
-        <p className="text-muted-foreground text-sm leading-relaxed min-h-[3.5rem]">
-          {typedText}
-          {isTyping && <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-pulse" />}
-        </p>
-
-        <div className="flex items-center justify-center gap-1.5 my-4">
-          {steps.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === currentStep ? 'w-5 bg-primary' : i < currentStep ? 'w-1.5 bg-primary/50' : 'w-1.5 bg-muted'
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" onClick={handlePrev} disabled={currentStep === 0} className="text-muted-foreground text-xs">
-            <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Back
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleClose} className="text-muted-foreground text-xs">
-            Skip Tour
-          </Button>
-          <Button size="sm" onClick={handleNext} className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs">
-            {currentStep === steps.length - 1 ? "Let's Go! 🛡️" : 'Next'} <ChevronRight className="w-3.5 h-3.5 ml-1" />
-          </Button>
+          {/* Navigation */}
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePrev}
+              disabled={currentStep === 0}
+              className="text-muted-foreground text-xs hover:text-foreground"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 mr-1" /> Back
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleClose} className="text-muted-foreground text-xs hover:text-foreground">
+              Skip Tour
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleNext}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs shadow-lg shadow-primary/25"
+            >
+              {currentStep === steps.length - 1 ? "Let's Go! 🛡️" : 'Next'} <ChevronRight className="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
