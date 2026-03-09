@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2, RotateCcw, Sliders } from 'lucide-react';
+import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2, RotateCcw, Sliders, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName, ProgressBarStyle } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
@@ -55,6 +55,21 @@ const Settings = () => {
   const [displayName, setDisplayName] = useState('');
   const [displayNameSaving, setDisplayNameSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    if (!user) return;
+    const checkAdmin = async () => {
+      if (user.email === 'admin@gmail.com') {
+        setIsAdmin(true);
+        return;
+      }
+      const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      setIsAdmin(!!data);
+    };
+    checkAdmin();
+  }, [user]);
 
   // Load avatar and display name
   useEffect(() => {
@@ -329,6 +344,34 @@ const Settings = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Admin Tutorial - only for admins */}
+              {isAdmin && (
+                <div className="border-t border-border pt-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      <div>
+                        <p className="font-medium text-foreground text-sm md:text-base">Admin Dashboard Tutorial</p>
+                        <p className="text-xs md:text-sm text-muted-foreground">Replay the JARVIS guided tour of the Admin Dashboard</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (!user) return;
+                        localStorage.removeItem(`admin_tutorial_done_${user.id}`);
+                        toast.success('Admin tutorial will play when you visit the Admin Dashboard');
+                        navigate('/admin');
+                      }}
+                      className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Replay Admin Tutorial
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Reset Genre Preferences */}
               <div className="border-t border-border pt-4">
