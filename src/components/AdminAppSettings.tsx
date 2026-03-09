@@ -73,6 +73,7 @@ const AdminAppSettings = () => {
           case 'featured_mode': newSettings.featured_mode = val === 'manual' ? 'manual' : 'auto'; break;
           case 'featured_manual_track': newSettings.featured_manual_track = typeof val === 'object' && val ? val : {}; break;
           case 'app_logo_url': newSettings.app_logo_url = typeof val === 'string' ? val : undefined; break;
+          case 'hidden_tabs': newSettings.hidden_tabs = Array.isArray(val) ? val : []; break;
         }
       });
       setSettings(newSettings);
