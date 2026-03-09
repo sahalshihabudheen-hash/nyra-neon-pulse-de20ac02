@@ -11,9 +11,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle, GraduationCap } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
+import AdminTutorial from '@/components/AdminTutorial';
 
 const COUNTRY_TO_CODE: Record<string, string> = {
   'Afghanistan': 'AF', 'Albania': 'AL', 'Algeria': 'DZ', 'Argentina': 'AR', 'Australia': 'AU',
@@ -159,6 +160,25 @@ const Admin = () => {
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
   const [quotaResetLocalTime, setQuotaResetLocalTime] = useState('');
   const [pacificCurrentTime, setPacificCurrentTime] = useState('');
+
+  // Admin tutorial
+  const adminTutorialKey = user ? `admin_tutorial_done_${user.id}` : '';
+  const [showAdminTutorial, setShowAdminTutorial] = useState(false);
+
+  useEffect(() => {
+    if (isAdminLoggedIn && adminTutorialKey && !localStorage.getItem(adminTutorialKey)) {
+      setShowAdminTutorial(true);
+    }
+  }, [isAdminLoggedIn, adminTutorialKey]);
+
+  const completeAdminTutorial = () => {
+    if (adminTutorialKey) localStorage.setItem(adminTutorialKey, 'true');
+    setShowAdminTutorial(false);
+  };
+
+  const replayAdminTutorial = () => {
+    setShowAdminTutorial(true);
+  };
 
   useEffect(() => {
     const pacificDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -920,6 +940,10 @@ const Admin = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={replayAdminTutorial} className="h-8 px-2 sm:px-3" title="Tutorial">
+              <GraduationCap className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Tutorial</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/')} className="h-8 px-2 sm:px-3">
               <ArrowLeft className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Back to App</span>
@@ -2063,6 +2087,8 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showAdminTutorial && <AdminTutorial onComplete={completeAdminTutorial} />}
     </div>
   );
 };
