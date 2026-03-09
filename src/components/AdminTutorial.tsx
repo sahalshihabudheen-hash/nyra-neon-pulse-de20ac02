@@ -83,6 +83,14 @@ const steps: TutorialStep[] = [
     highlightLabels: ['🔧 Maintenance Tab', '🔧 Toggle here'],
   },
   {
+    title: "⚙️ App Settings — Full Control",
+    message: "This is your App Settings tab! Change the app logo, name, tagline, and footer text. You can also control the Featured Today track — switch between auto-rotation or manually pick a specific song to showcase on the home page!",
+    cardPosition: 'bottom-left',
+    tabToActivate: 'app-settings',
+    glowActiveTab: true,
+    highlightLabels: ['⚙️ App Settings Tab'],
+  },
+  {
     title: "🎓 Replay Anytime!",
     message: "See the graduation cap icon (🎓) in the header? You can replay this tutorial anytime by clicking it. Also check Settings for the replay option. Now go manage your platform like a boss! 🚀",
     cardPosition: 'center',
