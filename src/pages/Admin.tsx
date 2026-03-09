@@ -1172,7 +1172,7 @@ const Admin = () => {
                                     <div className="min-w-0">
                                       <p className="text-sm">{u.location.device_type}</p>
                                       {u.location.device_info && (
-                                        <p className="text-[11px] text-muted-foreground truncate">{u.location.device_info}</p>
+                                        <p className="text-[11px] text-muted-foreground break-words">{u.location.device_info}</p>
                                       )}
                                     </div>
                                   </>
