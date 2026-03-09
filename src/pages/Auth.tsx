@@ -54,9 +54,9 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md p-8 bg-card border-border">
         <div className="flex flex-col items-center mb-8">
-          <img src={nyraLogo} alt="NYRA" className="w-16 h-16 rounded-xl mb-4" />
-          <h1 className="text-3xl font-bold neon-text">NYRA</h1>
-          <p className="text-muted-foreground mt-2">Feel the Pulse</p>
+          <img src={appSettings.app_logo_url || nyraLogo} alt={appSettings.app_name} className="w-16 h-16 rounded-xl mb-4" />
+          <h1 className="text-3xl font-bold neon-text">{appSettings.app_name}</h1>
+          <p className="text-muted-foreground mt-2">{appSettings.app_tagline}</p>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-4">
