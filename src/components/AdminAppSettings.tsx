@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Loader2, Save, Upload, Image, Type, FileText, Music, Search, Star } from 'lucide-react';
+import { Loader2, Save, Upload, Image, Type, FileText, Music, Search, Star, Eye, EyeOff, Home, Heart, ListMusic, Users, Sparkles, Settings, Gamepad2 } from 'lucide-react';
 
 interface AppSettings {
   app_name: string;
