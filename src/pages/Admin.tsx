@@ -2087,6 +2087,8 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showAdminTutorial && <AdminTutorial onComplete={completeAdminTutorial} />}
     </div>
   );
 };
