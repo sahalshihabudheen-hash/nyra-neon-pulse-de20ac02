@@ -76,7 +76,7 @@ const steps: TutorialStep[] = [
   {
     title: "🔧 Maintenance Mode",
     message: "Need to do updates? Toggle Maintenance Mode to lock out all regular users instantly. Add specific emails to the whitelist so they can still access the app. Admins always bypass maintenance automatically!",
-    cardPosition: 'top-right',
+    cardPosition: 'bottom-left',
     tabToActivate: 'maintenance',
     glowActiveTab: true,
     highlightSelectors: ['button[role="switch"]'],
