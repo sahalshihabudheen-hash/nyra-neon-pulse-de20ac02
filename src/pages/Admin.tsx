@@ -11,10 +11,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle, GraduationCap } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle, GraduationCap, Settings2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import AdminTutorial from '@/components/AdminTutorial';
+import AdminAppSettings from '@/components/AdminAppSettings';
 
 const COUNTRY_TO_CODE: Record<string, string> = {
   'Afghanistan': 'AF', 'Albania': 'AL', 'Algeria': 'DZ', 'Argentina': 'AR', 'Australia': 'AU',
@@ -992,6 +993,10 @@ const Admin = () => {
                 <span className="ml-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
               )}
             </TabsTrigger>
+            <TabsTrigger value="app-settings" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Settings2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">App</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Users Tab */}
@@ -1960,6 +1965,11 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* App Settings Tab */}
+          <TabsContent value="app-settings">
+            <AdminAppSettings />
           </TabsContent>
         </Tabs>
       </main>

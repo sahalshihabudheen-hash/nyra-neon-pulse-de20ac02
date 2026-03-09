@@ -6,6 +6,7 @@ import nyraLogo from '@/assets/nyra-logo.png';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const { gradient } = useTheme();
   const { user } = useAuth();
   const { maintenance } = useMaintenanceMode();
+  const { settings: appSettings } = useAppSettings();
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -98,12 +100,12 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
       >
         {/* Logo */}
         <div className="p-6 flex items-center gap-3">
-          <img src={nyraLogo} alt="NYRA Logo" className="w-10 h-10 rounded-xl object-cover" />
+          <img src={appSettings.app_logo_url || nyraLogo} alt={`${appSettings.app_name} Logo`} className="w-10 h-10 rounded-xl object-cover" />
           <div>
             <span className="text-2xl font-bold text-primary theme-gradient-text">
-              NYRA
+              {appSettings.app_name}
             </span>
-            <p className="text-[10px] text-muted-foreground tracking-widest">FEEL THE PULSE</p>
+            <p className="text-[10px] text-muted-foreground tracking-widest">{appSettings.app_tagline}</p>
           </div>
         </div>
 
@@ -155,8 +157,8 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         {/* Bottom Section */}
         <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground text-center">
-            <p>© 2026 NYRA</p>
-            <p className="mt-1">Powered by Jarvis</p>
+            <p>{appSettings.footer_text}</p>
+            <p className="mt-1">{appSettings.footer_powered_by}</p>
           </div>
         </div>
       </aside>
