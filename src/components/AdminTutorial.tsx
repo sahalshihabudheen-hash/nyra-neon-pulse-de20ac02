@@ -10,6 +10,7 @@ interface TutorialStep {
   highlightLabels?: string[];
   cardPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-center' | 'top-right';
   tabToActivate?: string;
+  glowActiveTab?: boolean;
 }
 
 const steps: TutorialStep[] = [
