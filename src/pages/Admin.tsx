@@ -940,6 +940,10 @@ const Admin = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={replayAdminTutorial} className="h-8 px-2 sm:px-3" title="Tutorial">
+              <GraduationCap className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Tutorial</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/')} className="h-8 px-2 sm:px-3">
               <ArrowLeft className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Back to App</span>
