@@ -270,14 +270,27 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
   // Activate the correct tab for the current step
   useEffect(() => {
     const step = steps[currentStep];
-    if (step.tabToActivate) {
-      // Small delay to let previous cleanup happen
-      const t = setTimeout(() => {
-        const tabButton = document.querySelector(`button[value="${step.tabToActivate}"]`) as HTMLElement;
-        if (tabButton) tabButton.click();
-      }, 50);
-      return () => clearTimeout(t);
-    }
+    if (!step.tabToActivate) return;
+
+    const t = setTimeout(() => {
+      // Find all tab triggers and click the matching one
+      const tabTriggers = document.querySelectorAll('[role="tab"]');
+      const tabMap: Record<string, string> = {
+        'users': 'Users',
+        'activity': 'Activity',
+        'playlists': 'Playlists',
+        'games': 'Games',
+        'api-keys': 'Keys',
+        'maintenance': 'Maint',
+      };
+      const targetText = tabMap[step.tabToActivate!] || step.tabToActivate;
+      tabTriggers.forEach((trigger) => {
+        if (trigger.textContent?.includes(targetText!)) {
+          (trigger as HTMLElement).click();
+        }
+      });
+    }, 50);
+    return () => clearTimeout(t);
   }, [currentStep]);
 
   // Highlight elements with glow + arrows
