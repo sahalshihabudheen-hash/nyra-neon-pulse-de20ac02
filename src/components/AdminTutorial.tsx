@@ -291,29 +291,49 @@ const AdminTutorial = ({ onComplete }: AdminTutorialProps) => {
     setHighlightRects([]);
 
     const step = steps[currentStep];
-    if (!step.highlightSelectors?.length) return;
+    if (!step.highlightSelectors?.length && !step.glowActiveTab) return;
 
     // Wait for tab content to render
     const timer = setTimeout(() => {
       const rects: { rect: DOMRect; label: string }[] = [];
-      step.highlightSelectors!.forEach((selector, i) => {
-        // Try each comma-separated selector
-        const selectors = selector.split(',').map(s => s.trim());
-        let el: HTMLElement | null = null;
-        for (const s of selectors) {
-          el = document.querySelector(s) as HTMLElement;
-          if (el) break;
-        }
-        if (el) {
-          const rect = el.getBoundingClientRect();
+      let labelIdx = 0;
+
+      // Glow the active tab button if requested
+      if (step.glowActiveTab) {
+        const activeTab = document.querySelector('[role="tab"][data-state="active"]') as HTMLElement;
+        if (activeTab) {
+          const rect = activeTab.getBoundingClientRect();
           if (rect.width > 0 && rect.height > 0) {
-            rects.push({ rect, label: step.highlightLabels?.[i] || '' });
-            el.setAttribute('data-admin-tutorial-glow', 'true');
-            el.style.position = 'relative';
-            el.style.zIndex = '101';
+            rects.push({ rect, label: step.highlightLabels?.[labelIdx] || '' });
+            activeTab.setAttribute('data-admin-tutorial-glow', 'true');
+            activeTab.style.position = 'relative';
+            activeTab.style.zIndex = '101';
+            labelIdx++;
           }
         }
-      });
+      }
+
+      // Additional highlight selectors
+      if (step.highlightSelectors?.length) {
+        step.highlightSelectors.forEach((selector, i) => {
+          const selectors = selector.split(',').map(s => s.trim());
+          let el: HTMLElement | null = null;
+          for (const s of selectors) {
+            el = document.querySelector(s) as HTMLElement;
+            if (el) break;
+          }
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+              rects.push({ rect, label: step.highlightLabels?.[labelIdx + i] || '' });
+              el.setAttribute('data-admin-tutorial-glow', 'true');
+              el.style.position = 'relative';
+              el.style.zIndex = '101';
+            }
+          }
+        });
+      }
+
       setHighlightRects(rects);
     }, 500);
 
