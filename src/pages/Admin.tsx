@@ -1157,7 +1157,7 @@ const Admin = () => {
                               </div>
 
                               {/* Device */}
-                              <div className="flex items-center gap-2 sm:w-[160px] min-w-0">
+                              <div className="flex items-center gap-2 sm:min-w-[180px] sm:max-w-[260px]">
                                 {u.location?.device_type ? (
                                   <>
                                     {u.location.device_type === 'Phone' ? (
