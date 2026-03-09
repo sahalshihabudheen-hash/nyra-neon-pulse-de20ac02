@@ -157,8 +157,8 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
         {/* Bottom Section */}
         <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground text-center">
-            <p>© 2026 NYRA</p>
-            <p className="mt-1">Powered by Jarvis</p>
+            <p>{appSettings.footer_text}</p>
+            <p className="mt-1">{appSettings.footer_powered_by}</p>
           </div>
         </div>
       </aside>
