@@ -55,6 +55,21 @@ const Settings = () => {
   const [displayName, setDisplayName] = useState('');
   const [displayNameSaving, setDisplayNameSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    if (!user) return;
+    const checkAdmin = async () => {
+      if (user.email === 'admin@gmail.com') {
+        setIsAdmin(true);
+        return;
+      }
+      const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+      setIsAdmin(!!data);
+    };
+    checkAdmin();
+  }, [user]);
 
   // Load avatar and display name
   useEffect(() => {
