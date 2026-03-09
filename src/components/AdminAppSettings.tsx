@@ -434,6 +434,46 @@ const AdminAppSettings = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Sidebar Tab Visibility */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Eye className="w-5 h-5 text-primary" />
+            <div>
+              <CardTitle>Sidebar Navigation</CardTitle>
+              <CardDescription>Show or hide tabs from the public sidebar. Home, Settings & Admin are always visible.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {SIDEBAR_TABS.map((tab) => {
+            const isHidden = settings.hidden_tabs.includes(tab.id);
+            const Icon = tab.icon;
+            return (
+              <div key={tab.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                <div className="flex items-center gap-3">
+                  <Icon className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">{tab.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{isHidden ? 'Hidden' : 'Visible'}</span>
+                  <Switch
+                    checked={!isHidden}
+                    onCheckedChange={async (checked) => {
+                      const newHidden = checked
+                        ? settings.hidden_tabs.filter(t => t !== tab.id)
+                        : [...settings.hidden_tabs, tab.id];
+                      setSettings(prev => ({ ...prev, hidden_tabs: newHidden }));
+                      await saveSetting('hidden_tabs', newHidden);
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
     </div>
   );
 };
