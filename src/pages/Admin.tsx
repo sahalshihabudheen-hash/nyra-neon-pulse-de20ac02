@@ -1972,6 +1972,22 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
+          {/* Admin Chat Tab */}
+          <TabsContent value="chat">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5" />
+                  Admin Chat
+                </CardTitle>
+                <CardDescription>Private chat room for admins — send text, images, stickers & voice messages</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <AdminChat />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* App Settings Tab */}
           <TabsContent value="app-settings">
             <AdminAppSettings />
