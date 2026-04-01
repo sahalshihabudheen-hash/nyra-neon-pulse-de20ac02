@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Send, Image, Mic, MicOff, Smile, Trash2, Loader2, X } from 'lucide-react';
+import { Send, Image, Mic, MicOff, Smile, Trash2, Loader2, X, SmilePlus } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -20,20 +19,33 @@ interface ChatMessage {
   created_at: string;
 }
 
+interface Reaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+}
+
+// Grouped reaction for display
+interface ReactionGroup {
+  emoji: string;
+  count: number;
+  userIds: string[];
+  reactionIds: string[];
+}
+
 const STICKERS = ['😀','😂','🤣','😍','🥳','🎉','🔥','💯','👏','🎵','🎶','🎸','🎤','🎧','💿','🎹','🥁','🎺','🪗','🎻'];
-const GIFS_SEARCH_URL = 'https://tenor.googleapis.com/v2/search';
+const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🔥','🎉','👎'];
 
 const AdminChat = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
-  const [showGifSearch, setShowGifSearch] = useState(false);
-  const [gifQuery, setGifQuery] = useState('');
-  const [gifResults, setGifResults] = useState<string[]>([]);
-  const [gifLoading, setGifLoading] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -45,9 +57,10 @@ const AdminChat = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Fetch messages
+  // Fetch messages & reactions
   useEffect(() => {
     fetchMessages();
+    fetchReactions();
 
     const channel = supabase
       .channel('admin-chat')
@@ -56,6 +69,12 @@ const AdminChat = () => {
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'admin_chat_messages' }, (payload) => {
         setMessages(prev => prev.filter(m => m.id !== (payload.old as any).id));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'admin_chat_reactions' }, (payload) => {
+        setReactions(prev => [...prev, payload.new as Reaction]);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'admin_chat_reactions' }, (payload) => {
+        setReactions(prev => prev.filter(r => r.id !== (payload.old as any).id));
       })
       .subscribe();
 
@@ -76,12 +95,16 @@ const AdminChat = () => {
       .select('*')
       .order('created_at', { ascending: true })
       .limit(200);
-    if (error) {
-      toast.error('Failed to load messages');
-    } else {
-      setMessages(data || []);
-    }
+    if (error) toast.error('Failed to load messages');
+    else setMessages(data || []);
     setLoading(false);
+  };
+
+  const fetchReactions = async () => {
+    const { data } = await supabase
+      .from('admin_chat_reactions')
+      .select('*');
+    if (data) setReactions(data);
   };
 
   const getProfile = async () => {
@@ -109,7 +132,7 @@ const AdminChat = () => {
         media_url: mediaUrl || null,
       });
       if (error) throw error;
-    } catch (err: any) {
+    } catch {
       toast.error('Failed to send message');
     } finally {
       setSending(false);
@@ -130,14 +153,10 @@ const AdminChat = () => {
     }
   };
 
-  // Image upload
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be under 5MB');
-      return;
-    }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   };
@@ -154,35 +173,48 @@ const AdminChat = () => {
       await sendMessage('image', null, urlData.publicUrl);
       setImageFile(null);
       setImagePreview(null);
-    } catch (err: any) {
+    } catch {
       toast.error('Failed to upload image');
     } finally {
       setSending(false);
     }
   };
 
-  // GIF search (using Tenor via simple fetch - no API key needed for limited use)
-  const searchGifs = async (query: string) => {
-    if (!query.trim()) { setGifResults([]); return; }
-    setGifLoading(true);
-    try {
-      // Use simple giphy-style placeholder GIFs from a free source
-      const gifs = [
-        `https://media.tenor.com/images/search/${encodeURIComponent(query)}`,
-      ];
-      // Fallback: generate emoji-style results
-      const emojiGifs = ['🎵','🎶','🎸','🥁','🎤','💃','🕺','🎉','🔥','❤️','😂','👍','👋','🙌','💪'];
-      setGifResults(emojiGifs.map(e => e));
-    } catch {
-      setGifResults([]);
-    } finally {
-      setGifLoading(false);
-    }
-  };
-
   const handleSendSticker = async (sticker: string) => {
     setShowStickers(false);
     await sendMessage('sticker', sticker);
+  };
+
+  // Reactions
+  const getReactionsForMessage = useCallback((messageId: string): ReactionGroup[] => {
+    const msgReactions = reactions.filter(r => r.message_id === messageId);
+    const groups: Record<string, ReactionGroup> = {};
+    msgReactions.forEach(r => {
+      if (!groups[r.emoji]) {
+        groups[r.emoji] = { emoji: r.emoji, count: 0, userIds: [], reactionIds: [] };
+      }
+      groups[r.emoji].count++;
+      groups[r.emoji].userIds.push(r.user_id);
+      groups[r.emoji].reactionIds.push(r.id);
+    });
+    return Object.values(groups);
+  }, [reactions]);
+
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    if (!user) return;
+    setShowReactionPicker(null);
+    const existing = reactions.find(r => r.message_id === messageId && r.user_id === user.id && r.emoji === emoji);
+    if (existing) {
+      // Remove reaction
+      await supabase.from('admin_chat_reactions').delete().eq('id', existing.id);
+    } else {
+      // Add reaction
+      await supabase.from('admin_chat_reactions').insert({
+        message_id: messageId,
+        user_id: user.id,
+        emoji,
+      });
+    }
   };
 
   // Voice recording
@@ -193,37 +225,25 @@ const AdminChat = () => {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       setRecordingTime(0);
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (blob.size < 1000) { toast.error('Recording too short'); return; }
         await uploadVoice(blob);
       };
-
       mediaRecorder.start();
       setIsRecording(true);
-      recordingIntervalRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
+      recordingIntervalRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch {
       toast.error('Microphone access denied');
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop();
     setIsRecording(false);
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-      recordingIntervalRef.current = null;
-    }
+    if (recordingIntervalRef.current) { clearInterval(recordingIntervalRef.current); recordingIntervalRef.current = null; }
   };
 
   const uploadVoice = async (blob: Blob) => {
@@ -235,7 +255,7 @@ const AdminChat = () => {
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from('admin-chat').getPublicUrl(path);
       await sendMessage('voice', `${recordingTime}s`, urlData.publicUrl);
-    } catch (err: any) {
+    } catch {
       toast.error('Failed to upload voice message');
     } finally {
       setSending(false);
@@ -248,31 +268,17 @@ const AdminChat = () => {
     if (error) toast.error('Failed to delete');
   };
 
-  const formatTime = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  };
-
-  const getInitials = (email: string, name?: string | null) => {
-    if (name) return name.charAt(0).toUpperCase();
-    return email.charAt(0).toUpperCase();
-  };
+  const formatTime = (dateStr: string) => new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const getInitials = (email: string, name?: string | null) => (name ? name.charAt(0) : email.charAt(0)).toUpperCase();
 
   // Group messages by date
   const groupedMessages: { date: string; msgs: ChatMessage[] }[] = [];
   messages.forEach(msg => {
     const date = formatDate(msg.created_at);
     const last = groupedMessages[groupedMessages.length - 1];
-    if (last && last.date === date) {
-      last.msgs.push(msg);
-    } else {
-      groupedMessages.push({ date, msgs: [msg] });
-    }
+    if (last && last.date === date) last.msgs.push(msg);
+    else groupedMessages.push({ date, msgs: [msg] });
   });
 
   return (
@@ -295,8 +301,9 @@ const AdminChat = () => {
               </div>
               {group.msgs.map((msg) => {
                 const isMe = msg.user_id === user?.id;
+                const msgReactions = getReactionsForMessage(msg.id);
                 return (
-                  <div key={msg.id} className={`flex gap-2 mb-2 ${isMe ? 'flex-row-reverse' : ''} group`}>
+                  <div key={msg.id} className={`flex gap-2 mb-2 ${isMe ? 'flex-row-reverse' : ''} group/msg`}>
                     {!isMe && (
                       <Avatar className="w-7 h-7 mt-1 shrink-0">
                         <AvatarImage src={msg.avatar_url || ''} />
@@ -309,37 +316,89 @@ const AdminChat = () => {
                           {msg.display_name || msg.user_email.split('@')[0]}
                         </span>
                       )}
-                      <div className={`relative rounded-2xl px-3 py-2 ${
-                        isMe 
-                          ? 'bg-primary text-primary-foreground rounded-br-md' 
-                          : 'bg-muted rounded-bl-md'
-                      }`}>
-                        {msg.message_type === 'text' && (
-                          <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                        )}
-                        {msg.message_type === 'image' && msg.media_url && (
-                          <img src={msg.media_url} alt="shared" className="max-w-[250px] rounded-lg cursor-pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
-                        )}
-                        {msg.message_type === 'sticker' && (
-                          <span className="text-4xl">{msg.content}</span>
-                        )}
-                        {msg.message_type === 'gif' && (
-                          <span className="text-4xl">{msg.content}</span>
-                        )}
-                        {msg.message_type === 'voice' && msg.media_url && (
-                          <div className="flex items-center gap-2">
-                            <audio controls src={msg.media_url} className="h-8 max-w-[200px]" />
-                            <span className="text-[10px] opacity-70">{msg.content}</span>
+                      <div className="relative">
+                        <div className={`rounded-2xl px-3 py-2 ${
+                          isMe 
+                            ? 'bg-primary text-primary-foreground rounded-br-md' 
+                            : 'bg-muted rounded-bl-md'
+                        }`}>
+                          {msg.message_type === 'text' && (
+                            <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                          )}
+                          {msg.message_type === 'image' && msg.media_url && (
+                            <img src={msg.media_url} alt="shared" className="max-w-[250px] rounded-lg cursor-pointer" onClick={() => window.open(msg.media_url!, '_blank')} />
+                          )}
+                          {msg.message_type === 'sticker' && (
+                            <span className="text-4xl">{msg.content}</span>
+                          )}
+                          {msg.message_type === 'gif' && (
+                            <span className="text-4xl">{msg.content}</span>
+                          )}
+                          {msg.message_type === 'voice' && msg.media_url && (
+                            <div className="flex items-center gap-2">
+                              <audio controls src={msg.media_url} className="h-8 max-w-[200px]" />
+                              <span className="text-[10px] opacity-70">{msg.content}</span>
+                            </div>
+                          )}
+                          <span className={`text-[9px] mt-0.5 block ${isMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                            {formatTime(msg.created_at)}
+                          </span>
+                        </div>
+
+                        {/* Reaction picker trigger */}
+                        <button
+                          onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
+                          className={`absolute -bottom-1 ${isMe ? '-left-6' : '-right-6'} opacity-0 group-hover/msg:opacity-100 transition-opacity bg-background border border-border rounded-full p-0.5 shadow-sm hover:bg-muted`}
+                        >
+                          <SmilePlus className="w-3.5 h-3.5 text-muted-foreground" />
+                        </button>
+
+                        {/* Reaction picker popup */}
+                        {showReactionPicker === msg.id && (
+                          <div className={`absolute -bottom-9 ${isMe ? 'right-0' : 'left-0'} z-50 flex gap-0.5 bg-background border border-border rounded-full px-1.5 py-1 shadow-lg`}>
+                            {REACTION_EMOJIS.map(emoji => {
+                              const myReaction = reactions.find(r => r.message_id === msg.id && r.user_id === user?.id && r.emoji === emoji);
+                              return (
+                                <button
+                                  key={emoji}
+                                  onClick={() => toggleReaction(msg.id, emoji)}
+                                  className={`text-base hover:scale-125 transition-transform px-0.5 rounded ${myReaction ? 'bg-primary/20' : ''}`}
+                                >
+                                  {emoji}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
-                        <span className={`text-[9px] mt-0.5 block ${isMe ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
-                          {formatTime(msg.created_at)}
-                        </span>
                       </div>
+
+                      {/* Reaction display */}
+                      {msgReactions.length > 0 && (
+                        <div className={`flex flex-wrap gap-1 mt-0.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                          {msgReactions.map(rg => {
+                            const iReacted = user ? rg.userIds.includes(user.id) : false;
+                            return (
+                              <button
+                                key={rg.emoji}
+                                onClick={() => toggleReaction(msg.id, rg.emoji)}
+                                className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-full border transition-colors ${
+                                  iReacted 
+                                    ? 'bg-primary/15 border-primary/30 text-foreground' 
+                                    : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted'
+                                }`}
+                              >
+                                <span>{rg.emoji}</span>
+                                <span className="text-[10px] font-medium">{rg.count}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {isMe && (
                         <button
                           onClick={() => handleDeleteMessage(msg.id)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 text-muted-foreground hover:text-destructive"
+                          className="opacity-0 group-hover/msg:opacity-100 transition-opacity mt-0.5 text-muted-foreground hover:text-destructive"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -358,12 +417,8 @@ const AdminChat = () => {
         <div className="px-4 py-2 border-t border-border bg-muted/30 flex items-center gap-3">
           <img src={imagePreview} alt="preview" className="w-16 h-16 rounded-lg object-cover" />
           <div className="flex-1 text-sm text-muted-foreground">Ready to send image</div>
-          <Button size="sm" variant="ghost" onClick={() => { setImagePreview(null); setImageFile(null); }}>
-            <X className="w-4 h-4" />
-          </Button>
-          <Button size="sm" onClick={handleSendImage} disabled={sending}>
-            <Send className="w-4 h-4" />
-          </Button>
+          <Button size="sm" variant="ghost" onClick={() => { setImagePreview(null); setImageFile(null); }}><X className="w-4 h-4" /></Button>
+          <Button size="sm" onClick={handleSendImage} disabled={sending}><Send className="w-4 h-4" /></Button>
         </div>
       )}
 
@@ -372,9 +427,7 @@ const AdminChat = () => {
         <div className="px-4 py-3 border-t border-border bg-muted/30">
           <div className="flex flex-wrap gap-2">
             {STICKERS.map(s => (
-              <button key={s} onClick={() => handleSendSticker(s)} className="text-2xl hover:scale-125 transition-transform">
-                {s}
-              </button>
+              <button key={s} onClick={() => handleSendSticker(s)} className="text-2xl hover:scale-125 transition-transform">{s}</button>
             ))}
           </div>
         </div>
@@ -386,34 +439,20 @@ const AdminChat = () => {
           <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
           <span className="text-sm font-medium text-destructive">Recording... {recordingTime}s</span>
           <div className="flex-1" />
-          <Button size="sm" variant="destructive" onClick={stopRecording}>
-            <MicOff className="w-4 h-4 mr-1" /> Stop
-          </Button>
+          <Button size="sm" variant="destructive" onClick={stopRecording}><MicOff className="w-4 h-4 mr-1" /> Stop</Button>
         </div>
       )}
 
       {/* Input bar */}
       <div className="p-3 border-t border-border bg-background flex items-center gap-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleImageSelect}
-        />
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
         <Button variant="ghost" size="icon" className="shrink-0" onClick={() => fileInputRef.current?.click()} title="Send image">
           <Image className="w-4 h-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => { setShowStickers(!showStickers); }} title="Stickers">
+        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => setShowStickers(!showStickers)} title="Stickers">
           <Smile className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={`shrink-0 ${isRecording ? 'text-destructive' : ''}`}
-          onClick={isRecording ? stopRecording : startRecording}
-          title="Voice message"
-        >
+        <Button variant="ghost" size="icon" className={`shrink-0 ${isRecording ? 'text-destructive' : ''}`} onClick={isRecording ? stopRecording : startRecording} title="Voice message">
           {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
         </Button>
         <Input
