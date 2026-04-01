@@ -21,7 +21,7 @@ const SnakeGame = () => {
   });
   
   const directionRef = useRef(direction);
-  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
+  const gameLoopRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const generateFood = useCallback((currentSnake: Position[]): Position => {
     let newFood: Position;
