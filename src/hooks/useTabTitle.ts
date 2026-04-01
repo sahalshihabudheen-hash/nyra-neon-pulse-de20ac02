@@ -12,7 +12,7 @@ const SOUNDWAVE_FRAMES = [
 
 export function useTabTitle(trackTitle: string | null, isPlaying: boolean) {
   const frameRef = useRef(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { settings } = useAppSettings();
 
   useEffect(() => {

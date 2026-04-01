@@ -74,7 +74,7 @@ const MusicPlayer = ({
   const [lyricsOpen, setLyricsOpen] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const progressRef = useRef<HTMLInputElement>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const formatTime = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00';
