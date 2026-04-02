@@ -767,6 +767,7 @@ const Admin = () => {
       if (!response.ok) throw new Error(data.error);
 
       toast.success(`Password updated for ${resetTargetUser.email}`);
+      await logAdminAction('password_reset', `Reset password for ${resetTargetUser.email}`, resetTargetUser.id, resetTargetUser.email);
       setResetDialogOpen(false);
       setNewPassword('');
       setResetTargetUser(null);
