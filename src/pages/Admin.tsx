@@ -11,12 +11,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle, GraduationCap, Settings2, MessageCircle } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle, GraduationCap, Settings2, MessageCircle, ScrollText } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import AdminTutorial from '@/components/AdminTutorial';
 import AdminAppSettings from '@/components/AdminAppSettings';
 import AdminChat from '@/components/AdminChat';
+import AdminActivityLogs from '@/components/AdminActivityLogs';
 
 const COUNTRY_TO_CODE: Record<string, string> = {
   'Afghanistan': 'AF', 'Albania': 'AL', 'Algeria': 'DZ', 'Argentina': 'AR', 'Australia': 'AU',
@@ -325,6 +326,7 @@ const Admin = () => {
       if (!response.ok) throw new Error(data.error);
 
       toast.success(data.message);
+      await logAdminAction('role_change', `${action === 'grant' ? 'Granted' : 'Revoked'} admin role for ${targetUser.email}`, targetUser.id, targetUser.email);
       // Update local state
       setUsers(prev => prev.map(u => {
         if (u.id === targetUser.id) {
@@ -665,6 +667,7 @@ const Admin = () => {
       } else if (data.user) {
         setIsAdminLoggedIn(true);
         toast.success('Logged in as admin');
+        logAdminAction('login', 'Admin logged in to dashboard');
       }
     } catch (err: any) {
       setError(err.message);
@@ -722,6 +725,24 @@ const Admin = () => {
     }
   };
 
+  // Admin activity logger
+  const logAdminAction = async (actionType: string, actionDetails: string, targetUserId?: string, targetEmail?: string) => {
+    if (!user) return;
+    try {
+      await supabase.from('admin_activity_logs').insert({
+        admin_id: user.id,
+        admin_email: user.email || '',
+        action_type: actionType,
+        action_details: actionDetails,
+        target_user_id: targetUserId || null,
+        target_email: targetEmail || null,
+      });
+    } catch (err) {
+      console.warn('Failed to log admin action:', err);
+    }
+  };
+
+
   const handleResetPassword = async () => {
     if (!resetTargetUser || !newPassword) return;
     setResetLoading(true);
@@ -748,6 +769,7 @@ const Admin = () => {
       if (!response.ok) throw new Error(data.error);
 
       toast.success(`Password updated for ${resetTargetUser.email}`);
+      await logAdminAction('password_reset', `Reset password for ${resetTargetUser.email}`, resetTargetUser.id, resetTargetUser.email);
       setResetDialogOpen(false);
       setNewPassword('');
       setResetTargetUser(null);
@@ -781,6 +803,7 @@ const Admin = () => {
       if (!response.ok) throw new Error(data.error);
 
       toast.success(`User ${deleteTargetUser.email} deleted`);
+      await logAdminAction('user_delete', `Deleted user ${deleteTargetUser.email}`, deleteTargetUser.id, deleteTargetUser.email);
       setUsers(prev => prev.filter(u => u.id !== deleteTargetUser.id));
       setDeleteDialogOpen(false);
       setDeleteTargetUser(null);
@@ -1002,6 +1025,12 @@ const Admin = () => {
               <Settings2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">App</span>
             </TabsTrigger>
+            {user?.email === 'admin@gmail.com' && (
+              <TabsTrigger value="logs" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Logs</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Users Tab */}
@@ -1992,6 +2021,13 @@ const Admin = () => {
           <TabsContent value="app-settings">
             <AdminAppSettings />
           </TabsContent>
+
+          {/* Admin Activity Logs Tab - Main admin only */}
+          {user?.email === 'admin@gmail.com' && (
+            <TabsContent value="logs">
+              <AdminActivityLogs />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 

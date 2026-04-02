@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_logs: {
+        Row: {
+          action_details: string | null
+          action_type: string
+          admin_email: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_email: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_details?: string | null
+          action_type: string
+          admin_email: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_email?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_details?: string | null
+          action_type?: string
+          admin_email?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_email?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_chat_messages: {
         Row: {
           avatar_url: string | null
@@ -24,6 +60,7 @@ export type Database = {
           media_url: string | null
           message_type: string
           nameplate: string | null
+          reply_to: string | null
           user_email: string
           user_id: string
         }
@@ -36,6 +73,7 @@ export type Database = {
           media_url?: string | null
           message_type?: string
           nameplate?: string | null
+          reply_to?: string | null
           user_email: string
           user_id: string
         }
@@ -48,10 +86,19 @@ export type Database = {
           media_url?: string | null
           message_type?: string
           nameplate?: string | null
+          reply_to?: string | null
           user_email?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admin_chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "admin_chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_chat_reactions: {
         Row: {

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Send, Image, Mic, MicOff, Smile, Trash2, Loader2, X, SmilePlus, Crown, Sparkles } from 'lucide-react';
+import { Send, Image, Mic, MicOff, Smile, Trash2, Loader2, X, SmilePlus, Crown, Sparkles, Reply, XCircle } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -18,6 +18,7 @@ interface ChatMessage {
   media_url: string | null;
   created_at: string;
   nameplate: string | null;
+  reply_to: string | null;
 }
 
 interface Reaction {
@@ -68,18 +69,57 @@ const AdminChat = () => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [typingUsers, setTypingUsers] = useState<{ email: string; name: string }[]>([]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Load saved nameplate preference
   useEffect(() => {
     const saved = localStorage.getItem('admin_nameplate');
     if (saved && NAMEPLATES[saved]) setSelectedNameplate(saved);
   }, []);
+
+  // Typing indicator channel
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase.channel('admin-chat-typing');
+    typingChannelRef.current = channel;
+
+    channel.on('broadcast', { event: 'typing' }, (payload) => {
+      const { userId, email, name } = payload.payload as { userId: string; email: string; name: string };
+      if (userId === user.id) return;
+
+      setTypingUsers(prev => {
+        const exists = prev.find(t => t.email === email);
+        if (!exists) return [...prev, { email, name }];
+        return prev;
+      });
+
+      // Auto-remove after 3s
+      setTimeout(() => {
+        setTypingUsers(prev => prev.filter(t => t.email !== email));
+      }, 3000);
+    }).subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  const broadcastTyping = () => {
+    if (!user || !typingChannelRef.current) return;
+    typingChannelRef.current.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { userId: user.id, email: user.email, name: user.email?.split('@')[0] || 'Admin' },
+    });
+  };
 
   // Fetch messages & reactions
   useEffect(() => {
@@ -155,8 +195,10 @@ const AdminChat = () => {
         content: content || null,
         media_url: mediaUrl || null,
         nameplate: selectedNameplate !== 'none' ? selectedNameplate : null,
+        reply_to: replyTo?.id || null,
       });
       if (error) throw error;
+      setReplyTo(null);
     } catch {
       toast.error('Failed to send message');
     } finally {
@@ -176,6 +218,14 @@ const AdminChat = () => {
       e.preventDefault();
       handleSendText();
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    // Broadcast typing
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    broadcastTyping();
+    typingTimeoutRef.current = setTimeout(() => {}, 2000);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,6 +352,12 @@ const AdminChat = () => {
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
   const getInitials = (email: string, name?: string | null) => (name ? name.charAt(0) : email.charAt(0)).toUpperCase();
 
+  // Get reply parent message
+  const getReplyParent = (replyToId: string | null): ChatMessage | undefined => {
+    if (!replyToId) return undefined;
+    return messages.find(m => m.id === replyToId);
+  };
+
   // Render nameplate badge
   const renderNameplate = (nameplateKey: string | null, displayName: string | null, email: string) => {
     const name = displayName || email.split('@')[0];
@@ -315,6 +371,14 @@ const AdminChat = () => {
         {name}
       </span>
     );
+  };
+
+  const getReplyPreview = (msg: ChatMessage) => {
+    if (msg.message_type === 'text') return msg.content?.slice(0, 50) || '';
+    if (msg.message_type === 'sticker') return msg.content || '🎭';
+    if (msg.message_type === 'image') return '📷 Image';
+    if (msg.message_type === 'voice') return '🎙️ Voice';
+    return msg.content || '';
   };
 
   // Group messages by date
@@ -391,6 +455,7 @@ const AdminChat = () => {
                 const msgReactions = getReactionsForMessage(msg.id);
                 const plateConfig = msg.nameplate && NAMEPLATES[msg.nameplate] ? NAMEPLATES[msg.nameplate] : null;
                 const bubbleBorder = plateConfig?.border || '';
+                const replyParent = getReplyParent(msg.reply_to);
                 return (
                   <div key={msg.id} className={`flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''} group/msg`}>
                     {/* Avatar */}
@@ -404,6 +469,15 @@ const AdminChat = () => {
                       <div className="mb-0.5 px-1">
                         {renderNameplate(msg.nameplate, msg.display_name, msg.user_email)}
                       </div>
+
+                      {/* Reply preview */}
+                      {replyParent && (
+                        <div className={`text-[10px] px-2 py-1 mb-0.5 rounded-t-lg border-l-2 border-primary/50 bg-muted/60 text-muted-foreground max-w-full truncate ${isMe ? 'self-end' : 'self-start'}`}>
+                          <span className="font-semibold">{replyParent.display_name || replyParent.user_email.split('@')[0]}</span>
+                          {': '}
+                          {getReplyPreview(replyParent)}
+                        </div>
+                      )}
 
                       <div className="relative">
                         <div className={`rounded-2xl px-3 py-2 ${
@@ -434,13 +508,22 @@ const AdminChat = () => {
                           </span>
                         </div>
 
-                        {/* Reaction picker trigger */}
-                        <button
-                          onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
-                          className={`absolute -bottom-1 ${isMe ? '-left-6' : '-right-6'} opacity-0 group-hover/msg:opacity-100 transition-opacity bg-background border border-border rounded-full p-0.5 shadow-sm hover:bg-muted`}
-                        >
-                          <SmilePlus className="w-3.5 h-3.5 text-muted-foreground" />
-                        </button>
+                        {/* Action buttons (reply + react) */}
+                        <div className={`absolute -bottom-1 ${isMe ? '-left-12' : '-right-12'} opacity-0 group-hover/msg:opacity-100 transition-opacity flex gap-0.5`}>
+                          <button
+                            onClick={() => setReplyTo(msg)}
+                            className="bg-background border border-border rounded-full p-0.5 shadow-sm hover:bg-muted"
+                            title="Reply"
+                          >
+                            <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                          <button
+                            onClick={() => setShowReactionPicker(showReactionPicker === msg.id ? null : msg.id)}
+                            className="bg-background border border-border rounded-full p-0.5 shadow-sm hover:bg-muted"
+                          >
+                            <SmilePlus className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                        </div>
 
                         {/* Reaction picker popup */}
                         {showReactionPicker === msg.id && (
@@ -499,7 +582,35 @@ const AdminChat = () => {
             </div>
           ))
         )}
+
+        {/* Typing indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-center gap-2 px-2 py-1">
+            <div className="flex gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+            <span className="text-[11px] text-muted-foreground italic">
+              {typingUsers.map(t => t.name).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+            </span>
+          </div>
+        )}
       </div>
+
+      {/* Reply preview bar */}
+      {replyTo && (
+        <div className="px-4 py-2 border-t border-border bg-primary/5 flex items-center gap-3">
+          <Reply className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold text-primary">{replyTo.display_name || replyTo.user_email.split('@')[0]}</p>
+            <p className="text-xs text-muted-foreground truncate">{getReplyPreview(replyTo)}</p>
+          </div>
+          <button onClick={() => setReplyTo(null)} className="shrink-0 hover:text-destructive text-muted-foreground">
+            <XCircle className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Image preview */}
       {imagePreview && (
@@ -546,9 +657,9 @@ const AdminChat = () => {
         </Button>
         <Input
           value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={replyTo ? `Reply to ${replyTo.display_name || replyTo.user_email.split('@')[0]}...` : "Type a message..."}
           className="flex-1 rounded-full bg-muted border-0"
           disabled={isRecording}
         />
