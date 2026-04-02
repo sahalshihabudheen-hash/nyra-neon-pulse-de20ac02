@@ -667,6 +667,7 @@ const Admin = () => {
       } else if (data.user) {
         setIsAdminLoggedIn(true);
         toast.success('Logged in as admin');
+        logAdminAction('login', 'Admin logged in to dashboard');
       }
     } catch (err: any) {
       setError(err.message);
