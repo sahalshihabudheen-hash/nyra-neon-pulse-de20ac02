@@ -1003,6 +1003,12 @@ const Admin = () => {
               <Settings2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">App</span>
             </TabsTrigger>
+            {user?.email === 'admin@gmail.com' && (
+              <TabsTrigger value="logs" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Logs</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Users Tab */}
