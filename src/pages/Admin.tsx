@@ -326,6 +326,7 @@ const Admin = () => {
       if (!response.ok) throw new Error(data.error);
 
       toast.success(data.message);
+      await logAdminAction('role_change', `${action === 'grant' ? 'Granted' : 'Revoked'} admin role for ${targetUser.email}`, targetUser.id, targetUser.email);
       // Update local state
       setUsers(prev => prev.map(u => {
         if (u.id === targetUser.id) {
