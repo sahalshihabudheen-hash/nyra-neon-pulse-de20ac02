@@ -1999,6 +1999,13 @@ const Admin = () => {
           <TabsContent value="app-settings">
             <AdminAppSettings />
           </TabsContent>
+
+          {/* Admin Activity Logs Tab - Main admin only */}
+          {user?.email === 'admin@gmail.com' && (
+            <TabsContent value="logs">
+              <AdminActivityLogs />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
