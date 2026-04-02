@@ -23,6 +23,7 @@ export type Database = {
           id: string
           media_url: string | null
           message_type: string
+          nameplate: string | null
           user_email: string
           user_id: string
         }
@@ -34,6 +35,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           message_type?: string
+          nameplate?: string | null
           user_email: string
           user_id: string
         }
@@ -45,6 +47,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           message_type?: string
+          nameplate?: string | null
           user_email?: string
           user_id?: string
         }
