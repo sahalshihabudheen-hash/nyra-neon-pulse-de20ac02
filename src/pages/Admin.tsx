@@ -723,6 +723,24 @@ const Admin = () => {
     }
   };
 
+  // Admin activity logger
+  const logAdminAction = async (actionType: string, actionDetails: string, targetUserId?: string, targetEmail?: string) => {
+    if (!user) return;
+    try {
+      await supabase.from('admin_activity_logs').insert({
+        admin_id: user.id,
+        admin_email: user.email || '',
+        action_type: actionType,
+        action_details: actionDetails,
+        target_user_id: targetUserId || null,
+        target_email: targetEmail || null,
+      });
+    } catch (err) {
+      console.warn('Failed to log admin action:', err);
+    }
+  };
+
+
   const handleResetPassword = async () => {
     if (!resetTargetUser || !newPassword) return;
     setResetLoading(true);
