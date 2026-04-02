@@ -801,6 +801,7 @@ const Admin = () => {
       if (!response.ok) throw new Error(data.error);
 
       toast.success(`User ${deleteTargetUser.email} deleted`);
+      await logAdminAction('user_delete', `Deleted user ${deleteTargetUser.email}`, deleteTargetUser.id, deleteTargetUser.email);
       setUsers(prev => prev.filter(u => u.id !== deleteTargetUser.id));
       setDeleteDialogOpen(false);
       setDeleteTargetUser(null);
