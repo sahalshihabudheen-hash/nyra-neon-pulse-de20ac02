@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Send, Image, Mic, MicOff, Smile, Trash2, Loader2, X, SmilePlus } from 'lucide-react';
+import { Send, Image, Mic, MicOff, Smile, Trash2, Loader2, X, SmilePlus, Crown, Sparkles } from 'lucide-react';
 
 interface ChatMessage {
   id: string;
@@ -17,6 +17,7 @@ interface ChatMessage {
   content: string | null;
   media_url: string | null;
   created_at: string;
+  nameplate: string | null;
 }
 
 interface Reaction {
@@ -26,13 +27,28 @@ interface Reaction {
   emoji: string;
 }
 
-// Grouped reaction for display
 interface ReactionGroup {
   emoji: string;
   count: number;
   userIds: string[];
   reactionIds: string[];
 }
+
+// Discord-style nameplates
+const NAMEPLATES: Record<string, { label: string; gradient: string; textClass: string; icon?: string; border?: string }> = {
+  none: { label: 'None', gradient: '', textClass: 'text-foreground' },
+  fire: { label: '🔥 Fire', gradient: 'bg-gradient-to-r from-orange-500 to-red-500', textClass: 'text-white', border: 'border-orange-500/50' },
+  ocean: { label: '🌊 Ocean', gradient: 'bg-gradient-to-r from-cyan-500 to-blue-600', textClass: 'text-white', border: 'border-cyan-500/50' },
+  aurora: { label: '🌌 Aurora', gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500', textClass: 'text-white', border: 'border-purple-500/50' },
+  gold: { label: '👑 Gold', gradient: 'bg-gradient-to-r from-yellow-400 to-amber-500', textClass: 'text-black', icon: '👑', border: 'border-yellow-500/50' },
+  emerald: { label: '💎 Emerald', gradient: 'bg-gradient-to-r from-emerald-400 to-teal-600', textClass: 'text-white', border: 'border-emerald-500/50' },
+  neon: { label: '⚡ Neon', gradient: 'bg-gradient-to-r from-lime-400 via-green-500 to-cyan-400', textClass: 'text-black', border: 'border-lime-400/50' },
+  midnight: { label: '🌙 Midnight', gradient: 'bg-gradient-to-r from-slate-800 to-indigo-900', textClass: 'text-blue-200', border: 'border-indigo-500/50' },
+  rose: { label: '🌸 Rose', gradient: 'bg-gradient-to-r from-rose-400 to-pink-500', textClass: 'text-white', border: 'border-rose-400/50' },
+  storm: { label: '⛈️ Storm', gradient: 'bg-gradient-to-r from-gray-600 via-blue-700 to-gray-800', textClass: 'text-blue-100', border: 'border-blue-600/50' },
+  sunset: { label: '🌅 Sunset', gradient: 'bg-gradient-to-r from-orange-400 via-red-400 to-purple-500', textClass: 'text-white', border: 'border-orange-400/50' },
+  galaxy: { label: '✨ Galaxy', gradient: 'bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-400', textClass: 'text-white', border: 'border-violet-500/50' },
+};
 
 const STICKERS = ['😀','😂','🤣','😍','🥳','🎉','🔥','💯','👏','🎵','🎶','🎸','🎤','🎧','💿','🎹','🥁','🎺','🪗','🎻'];
 const REACTION_EMOJIS = ['👍','❤️','😂','😮','😢','🔥','🎉','👎'];
@@ -46,6 +62,8 @@ const AdminChat = () => {
   const [sending, setSending] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
+  const [showNameplatePicker, setShowNameplatePicker] = useState(false);
+  const [selectedNameplate, setSelectedNameplate] = useState<string>('none');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -56,6 +74,12 @@ const AdminChat = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Load saved nameplate preference
+  useEffect(() => {
+    const saved = localStorage.getItem('admin_nameplate');
+    if (saved && NAMEPLATES[saved]) setSelectedNameplate(saved);
+  }, []);
 
   // Fetch messages & reactions
   useEffect(() => {
@@ -130,6 +154,7 @@ const AdminChat = () => {
         message_type: type,
         content: content || null,
         media_url: mediaUrl || null,
+        nameplate: selectedNameplate !== 'none' ? selectedNameplate : null,
       });
       if (error) throw error;
     } catch {
@@ -185,6 +210,13 @@ const AdminChat = () => {
     await sendMessage('sticker', sticker);
   };
 
+  const handleSelectNameplate = (key: string) => {
+    setSelectedNameplate(key);
+    localStorage.setItem('admin_nameplate', key);
+    setShowNameplatePicker(false);
+    toast.success(`Nameplate set to ${NAMEPLATES[key].label}`);
+  };
+
   // Reactions
   const getReactionsForMessage = useCallback((messageId: string): ReactionGroup[] => {
     const msgReactions = reactions.filter(r => r.message_id === messageId);
@@ -205,10 +237,8 @@ const AdminChat = () => {
     setShowReactionPicker(null);
     const existing = reactions.find(r => r.message_id === messageId && r.user_id === user.id && r.emoji === emoji);
     if (existing) {
-      // Remove reaction
       await supabase.from('admin_chat_reactions').delete().eq('id', existing.id);
     } else {
-      // Add reaction
       await supabase.from('admin_chat_reactions').insert({
         message_id: messageId,
         user_id: user.id,
@@ -272,6 +302,21 @@ const AdminChat = () => {
   const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString([], { month: 'short', day: 'numeric' });
   const getInitials = (email: string, name?: string | null) => (name ? name.charAt(0) : email.charAt(0)).toUpperCase();
 
+  // Render nameplate badge
+  const renderNameplate = (nameplateKey: string | null, displayName: string | null, email: string) => {
+    const name = displayName || email.split('@')[0];
+    if (!nameplateKey || nameplateKey === 'none' || !NAMEPLATES[nameplateKey]) {
+      return <span className="text-[10px] text-muted-foreground">{name}</span>;
+    }
+    const plate = NAMEPLATES[nameplateKey];
+    return (
+      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${plate.gradient} ${plate.textClass} inline-flex items-center gap-0.5`}>
+        {plate.icon && <span className="text-[9px]">{plate.icon}</span>}
+        {name}
+      </span>
+    );
+  };
+
   // Group messages by date
   const groupedMessages: { date: string; msgs: ChatMessage[] }[] = [];
   messages.forEach(msg => {
@@ -283,6 +328,48 @@ const AdminChat = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-280px)] min-h-[400px]">
+      {/* Nameplate selector header */}
+      <div className="px-4 py-2 border-b border-border flex items-center justify-between bg-muted/30">
+        <div className="flex items-center gap-2 text-sm">
+          <Crown className="w-4 h-4 text-yellow-500" />
+          <span className="text-muted-foreground">Your nameplate:</span>
+          {renderNameplate(selectedNameplate, user?.email?.split('@')[0] || 'You', user?.email || '')}
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setShowNameplatePicker(!showNameplatePicker)} className="text-xs gap-1">
+          <Sparkles className="w-3 h-3" />
+          Change
+        </Button>
+      </div>
+
+      {/* Nameplate picker */}
+      {showNameplatePicker && (
+        <div className="px-4 py-3 border-b border-border bg-muted/50 space-y-2">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Choose a nameplate (Discord-style):</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {Object.entries(NAMEPLATES).map(([key, plate]) => (
+              <button
+                key={key}
+                onClick={() => handleSelectNameplate(key)}
+                className={`rounded-lg p-2 text-left border transition-all hover:scale-[1.02] ${
+                  selectedNameplate === key 
+                    ? 'ring-2 ring-primary border-primary' 
+                    : 'border-border hover:border-muted-foreground/30'
+                }`}
+              >
+                {key === 'none' ? (
+                  <span className="text-xs text-muted-foreground">No nameplate</span>
+                ) : (
+                  <span className={`text-xs font-bold px-2 py-1 rounded-md ${plate.gradient} ${plate.textClass} inline-flex items-center gap-1`}>
+                    {plate.icon && <span>{plate.icon}</span>}
+                    {plate.label}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-1">
         {loading ? (
@@ -302,26 +389,28 @@ const AdminChat = () => {
               {group.msgs.map((msg) => {
                 const isMe = msg.user_id === user?.id;
                 const msgReactions = getReactionsForMessage(msg.id);
+                const plateConfig = msg.nameplate && NAMEPLATES[msg.nameplate] ? NAMEPLATES[msg.nameplate] : null;
+                const bubbleBorder = plateConfig?.border || '';
                 return (
-                  <div key={msg.id} className={`flex gap-2 mb-2 ${isMe ? 'flex-row-reverse' : ''} group/msg`}>
-                    {!isMe && (
-                      <Avatar className="w-7 h-7 mt-1 shrink-0">
-                        <AvatarImage src={msg.avatar_url || ''} />
-                        <AvatarFallback className="text-[10px] bg-primary/20">{getInitials(msg.user_email, msg.display_name)}</AvatarFallback>
-                      </Avatar>
-                    )}
+                  <div key={msg.id} className={`flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''} group/msg`}>
+                    {/* Avatar */}
+                    <Avatar className={`w-8 h-8 mt-1 shrink-0 ${bubbleBorder ? `border-2 ${bubbleBorder}` : ''}`}>
+                      <AvatarImage src={msg.avatar_url || ''} />
+                      <AvatarFallback className="text-[10px] bg-primary/20">{getInitials(msg.user_email, msg.display_name)}</AvatarFallback>
+                    </Avatar>
+
                     <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
-                      {!isMe && (
-                        <span className="text-[10px] text-muted-foreground mb-0.5 px-1">
-                          {msg.display_name || msg.user_email.split('@')[0]}
-                        </span>
-                      )}
+                      {/* Name with nameplate */}
+                      <div className="mb-0.5 px-1">
+                        {renderNameplate(msg.nameplate, msg.display_name, msg.user_email)}
+                      </div>
+
                       <div className="relative">
                         <div className={`rounded-2xl px-3 py-2 ${
                           isMe 
                             ? 'bg-primary text-primary-foreground rounded-br-md' 
                             : 'bg-muted rounded-bl-md'
-                        }`}>
+                        } ${bubbleBorder ? `border ${bubbleBorder}` : ''}`}>
                           {msg.message_type === 'text' && (
                             <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                           )}
