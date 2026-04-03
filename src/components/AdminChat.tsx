@@ -466,7 +466,7 @@ const AdminChat = () => {
     return messages.find(m => m.id === replyToId);
   };
 
-  // Render nameplate badge
+  // Render nameplate badge - animated Discord style
   const renderNameplate = (nameplateKey: string | null, displayName: string | null, email: string) => {
     const name = displayName || email.split('@')[0];
     if (!nameplateKey || nameplateKey === 'none' || !NAMEPLATES[nameplateKey]) {
@@ -474,7 +474,7 @@ const AdminChat = () => {
     }
     const plate = NAMEPLATES[nameplateKey];
     return (
-      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${plate.gradient} ${plate.textClass} inline-flex items-center gap-0.5`}>
+      <span className={`nameplate-badge text-[10px] font-bold px-2 py-0.5 rounded-md ${plate.gradient} ${plate.textClass} ${plate.animation || ''} ${plate.glow || ''} ${plate.bgSize || ''} inline-flex items-center gap-1`}>
         {plate.icon && <span className="text-[9px]">{plate.icon}</span>}
         {name}
       </span>
