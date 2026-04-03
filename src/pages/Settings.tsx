@@ -72,6 +72,21 @@ const Settings = () => {
     checkAdmin();
   }, [user]);
 
+  // Load APK files
+  useEffect(() => {
+    const loadApks = async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'apk_files')
+        .maybeSingle();
+      if (data?.value) {
+        setApkFiles((data.value as any).files || []);
+      }
+    };
+    loadApks();
+  }, []);
+
   // Load avatar and display name
   useEffect(() => {
     if (!user) return;
