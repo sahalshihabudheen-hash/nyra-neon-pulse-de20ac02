@@ -588,11 +588,11 @@ const AdminChat = () => {
                       )}
 
                       <div className="relative">
-                        <div className={`rounded-2xl px-3 py-2 ${
+                        <div className={`rounded-2xl px-3 py-2 transition-shadow ${
                           isMe 
                             ? 'bg-primary text-primary-foreground rounded-br-md' 
                             : 'bg-muted rounded-bl-md'
-                        } ${bubbleBorder ? `border ${bubbleBorder}` : ''}`}>
+                        } ${bubbleBorder ? `border ${bubbleBorder}` : ''} ${plateConfig?.glow || ''}`}>
                           {msg.message_type === 'text' && (
                             <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                           )}
