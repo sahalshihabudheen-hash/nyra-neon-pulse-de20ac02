@@ -56,6 +56,7 @@ const Settings = () => {
   const [displayNameSaving, setDisplayNameSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [apkFiles, setApkFiles] = useState<{ name: string; url: string; size: number; uploaded_at: string }[]>([]);
 
   // Check admin status
   useEffect(() => {
