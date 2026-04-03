@@ -516,22 +516,22 @@ const AdminChat = () => {
       {/* Nameplate picker */}
       {showNameplatePicker && (
         <div className="px-4 py-3 border-b border-border bg-muted/50 space-y-2">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Choose a nameplate (Discord-style):</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Choose your nameplate:</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             {Object.entries(NAMEPLATES).map(([key, plate]) => (
               <button
                 key={key}
                 onClick={() => handleSelectNameplate(key)}
-                className={`rounded-lg p-2 text-left border transition-all hover:scale-[1.02] ${
+                className={`rounded-lg p-2.5 text-left border transition-all hover:scale-[1.03] ${
                   selectedNameplate === key 
-                    ? 'ring-2 ring-primary border-primary' 
+                    ? 'ring-2 ring-primary border-primary bg-primary/5' 
                     : 'border-border hover:border-muted-foreground/30'
                 }`}
               >
                 {key === 'none' ? (
                   <span className="text-xs text-muted-foreground">No nameplate</span>
                 ) : (
-                  <span className={`text-xs font-bold px-2 py-1 rounded-md ${plate.gradient} ${plate.textClass} inline-flex items-center gap-1`}>
+                  <span className={`nameplate-badge text-xs font-bold px-2 py-1 rounded-md ${plate.gradient} ${plate.textClass} ${plate.animation || ''} ${plate.glow || ''} ${plate.bgSize || ''} inline-flex items-center gap-1`}>
                     {plate.icon && <span>{plate.icon}</span>}
                     {plate.label}
                   </span>
