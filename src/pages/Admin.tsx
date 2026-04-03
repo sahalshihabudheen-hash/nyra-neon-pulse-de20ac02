@@ -161,6 +161,14 @@ const Admin = () => {
 
   // Quota reset countdown timer
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
+  
+  // Auto-maintenance
+  const [autoMaintenanceEnabled, setAutoMaintenanceEnabled] = useState(false);
+  
+  // APK management
+  const [apkUploading, setApkUploading] = useState(false);
+  const [apkFiles, setApkFiles] = useState<{ name: string; url: string; size: number; uploaded_at: string; version: string }[]>([]);
+  const apkInputRef = useRef<HTMLInputElement>(null);
   const [quotaResetLocalTime, setQuotaResetLocalTime] = useState('');
   const [pacificCurrentTime, setPacificCurrentTime] = useState('');
 
