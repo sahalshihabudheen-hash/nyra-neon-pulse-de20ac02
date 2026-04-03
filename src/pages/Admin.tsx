@@ -2180,6 +2180,79 @@ const Admin = () => {
             <AdminAppSettings />
           </TabsContent>
 
+          {/* APK Tab */}
+          <TabsContent value="apk">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Download className="w-5 h-5 text-primary" />
+                    <div>
+                      <CardTitle>APK Manager</CardTitle>
+                      <CardDescription>Upload APK files for users to download</CardDescription>
+                    </div>
+                  </div>
+                  <div>
+                    <input
+                      ref={apkInputRef}
+                      type="file"
+                      accept=".apk"
+                      className="hidden"
+                      onChange={handleApkUpload}
+                    />
+                    <Button onClick={() => apkInputRef.current?.click()} disabled={apkUploading}>
+                      {apkUploading ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
+                      ) : (
+                        <><Upload className="w-4 h-4 mr-2" /> Upload APK</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {apkFiles.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Download className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No APK files uploaded yet</p>
+                    <p className="text-xs mt-1">Upload an APK and users can download it from the app</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {apkFiles.map((apk, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Download className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{apk.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(apk.size / (1024 * 1024)).toFixed(1)} MB · {new Date(apk.uploaded_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => window.open(apk.url, '_blank')}>
+                            <Download className="w-3.5 h-3.5 mr-1" /> Download
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => deleteApkFile(idx)} className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-xs text-muted-foreground">
+                    💡 Uploaded APKs will be available for all users to download from the Settings page.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Admin Activity Logs Tab - Main admin only */}
           {user?.email === 'admin@gmail.com' && (
             <TabsContent value="logs">
