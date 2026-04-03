@@ -567,7 +567,7 @@ const AdminChat = () => {
                 return (
                   <div key={msg.id} className={`flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''} group/msg`}>
                     {/* Avatar */}
-                    <Avatar className={`w-8 h-8 mt-1 shrink-0 ${bubbleBorder ? `border-2 ${bubbleBorder}` : ''}`}>
+                    <Avatar className={`w-8 h-8 mt-1 shrink-0 transition-shadow ${bubbleBorder ? `border-2 ${bubbleBorder} ${plateConfig?.glow || ''}` : ''}`}>
                       <AvatarImage src={msg.avatar_url || ''} />
                       <AvatarFallback className="text-[10px] bg-primary/20">{getInitials(msg.user_email, msg.display_name)}</AvatarFallback>
                     </Avatar>
