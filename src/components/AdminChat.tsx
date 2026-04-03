@@ -35,20 +35,128 @@ interface ReactionGroup {
   reactionIds: string[];
 }
 
-// Discord-style nameplates
-const NAMEPLATES: Record<string, { label: string; gradient: string; textClass: string; icon?: string; border?: string }> = {
+// Discord-style animated nameplates
+interface NameplateConfig {
+  label: string;
+  gradient: string;
+  textClass: string;
+  icon?: string;
+  border?: string;
+  animation?: string;
+  glow?: string;
+  bgSize?: string;
+}
+
+const NAMEPLATES: Record<string, NameplateConfig> = {
   none: { label: 'None', gradient: '', textClass: 'text-foreground' },
-  fire: { label: '🔥 Fire', gradient: 'bg-gradient-to-r from-orange-500 to-red-500', textClass: 'text-white', border: 'border-orange-500/50' },
-  ocean: { label: '🌊 Ocean', gradient: 'bg-gradient-to-r from-cyan-500 to-blue-600', textClass: 'text-white', border: 'border-cyan-500/50' },
-  aurora: { label: '🌌 Aurora', gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500', textClass: 'text-white', border: 'border-purple-500/50' },
-  gold: { label: '👑 Gold', gradient: 'bg-gradient-to-r from-yellow-400 to-amber-500', textClass: 'text-black', icon: '👑', border: 'border-yellow-500/50' },
-  emerald: { label: '💎 Emerald', gradient: 'bg-gradient-to-r from-emerald-400 to-teal-600', textClass: 'text-white', border: 'border-emerald-500/50' },
-  neon: { label: '⚡ Neon', gradient: 'bg-gradient-to-r from-lime-400 via-green-500 to-cyan-400', textClass: 'text-black', border: 'border-lime-400/50' },
-  midnight: { label: '🌙 Midnight', gradient: 'bg-gradient-to-r from-slate-800 to-indigo-900', textClass: 'text-blue-200', border: 'border-indigo-500/50' },
-  rose: { label: '🌸 Rose', gradient: 'bg-gradient-to-r from-rose-400 to-pink-500', textClass: 'text-white', border: 'border-rose-400/50' },
-  storm: { label: '⛈️ Storm', gradient: 'bg-gradient-to-r from-gray-600 via-blue-700 to-gray-800', textClass: 'text-blue-100', border: 'border-blue-600/50' },
-  sunset: { label: '🌅 Sunset', gradient: 'bg-gradient-to-r from-orange-400 via-red-400 to-purple-500', textClass: 'text-white', border: 'border-orange-400/50' },
-  galaxy: { label: '✨ Galaxy', gradient: 'bg-gradient-to-r from-violet-600 via-fuchsia-500 to-pink-400', textClass: 'text-white', border: 'border-violet-500/50' },
+  fire: {
+    label: '🔥 Inferno',
+    gradient: 'bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500',
+    textClass: 'text-white', icon: '🔥',
+    border: 'border-orange-500',
+    animation: 'animate-nameplate-fire',
+    glow: 'shadow-[0_0_12px_rgba(249,115,22,0.6)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  ocean: {
+    label: '🌊 Tidal',
+    gradient: 'bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-400',
+    textClass: 'text-white', icon: '🌊',
+    border: 'border-cyan-400',
+    animation: 'animate-nameplate-shimmer',
+    glow: 'shadow-[0_0_12px_rgba(34,211,238,0.5)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  aurora: {
+    label: '🌌 Aurora',
+    gradient: 'bg-gradient-to-r from-purple-500 via-pink-500 via-indigo-400 to-purple-500',
+    textClass: 'text-white', icon: '✦',
+    border: 'border-purple-400',
+    animation: 'animate-nameplate-shimmer',
+    glow: 'shadow-[0_0_14px_rgba(168,85,247,0.5)]',
+    bgSize: 'bg-[length:300%_100%]',
+  },
+  gold: {
+    label: '👑 Royalty',
+    gradient: 'bg-gradient-to-r from-yellow-300 via-amber-400 via-yellow-500 to-yellow-300',
+    textClass: 'text-black font-extrabold', icon: '👑',
+    border: 'border-yellow-400',
+    animation: 'animate-nameplate-shimmer',
+    glow: 'shadow-[0_0_16px_rgba(251,191,36,0.6)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  emerald: {
+    label: '💎 Crystal',
+    gradient: 'bg-gradient-to-r from-emerald-300 via-teal-400 to-emerald-300',
+    textClass: 'text-white', icon: '💎',
+    border: 'border-emerald-400',
+    animation: 'animate-nameplate-pulse-glow',
+    glow: 'shadow-[0_0_12px_rgba(52,211,153,0.5)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  neon: {
+    label: '⚡ Voltage',
+    gradient: 'bg-gradient-to-r from-lime-300 via-green-400 via-cyan-400 to-lime-300',
+    textClass: 'text-black font-bold', icon: '⚡',
+    border: 'border-lime-400',
+    animation: 'animate-nameplate-neon',
+    glow: 'shadow-[0_0_18px_rgba(163,230,53,0.7)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  midnight: {
+    label: '🌙 Void',
+    gradient: 'bg-gradient-to-r from-slate-900 via-indigo-800 to-slate-900',
+    textClass: 'text-blue-200', icon: '🌙',
+    border: 'border-indigo-500',
+    animation: 'animate-nameplate-shimmer',
+    glow: 'shadow-[0_0_10px_rgba(99,102,241,0.4)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  rose: {
+    label: '🌸 Sakura',
+    gradient: 'bg-gradient-to-r from-rose-300 via-pink-400 to-rose-300',
+    textClass: 'text-white', icon: '🌸',
+    border: 'border-rose-400',
+    animation: 'animate-nameplate-pulse-glow',
+    glow: 'shadow-[0_0_12px_rgba(251,113,133,0.5)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  storm: {
+    label: '⛈️ Tempest',
+    gradient: 'bg-gradient-to-r from-gray-700 via-blue-600 via-purple-600 to-gray-700',
+    textClass: 'text-blue-100', icon: '⛈️',
+    border: 'border-blue-500',
+    animation: 'animate-nameplate-fire',
+    glow: 'shadow-[0_0_14px_rgba(59,130,246,0.5)]',
+    bgSize: 'bg-[length:200%_100%]',
+  },
+  sunset: {
+    label: '🌅 Dusk',
+    gradient: 'bg-gradient-to-r from-orange-400 via-red-400 via-purple-500 to-orange-400',
+    textClass: 'text-white', icon: '🌅',
+    border: 'border-orange-400',
+    animation: 'animate-nameplate-shimmer',
+    glow: 'shadow-[0_0_12px_rgba(251,146,60,0.5)]',
+    bgSize: 'bg-[length:300%_100%]',
+  },
+  galaxy: {
+    label: '✨ Cosmos',
+    gradient: 'bg-gradient-to-r from-violet-500 via-fuchsia-400 via-pink-400 to-violet-500',
+    textClass: 'text-white', icon: '✨',
+    border: 'border-violet-400',
+    animation: 'animate-nameplate-shimmer',
+    glow: 'shadow-[0_0_16px_rgba(139,92,246,0.6)]',
+    bgSize: 'bg-[length:300%_100%]',
+  },
+  rainbow: {
+    label: '🌈 Prismatic',
+    gradient: 'bg-gradient-to-r from-red-400 via-yellow-400 via-green-400 via-blue-400 via-purple-400 to-red-400',
+    textClass: 'text-white font-bold', icon: '🌈',
+    border: 'border-red-400',
+    animation: 'animate-nameplate-rainbow',
+    glow: 'shadow-[0_0_20px_rgba(251,113,133,0.4)]',
+    bgSize: 'bg-[length:400%_100%]',
+  },
 };
 
 const STICKERS = ['😀','😂','🤣','😍','🥳','🎉','🔥','💯','👏','🎵','🎶','🎸','🎤','🎧','💿','🎹','🥁','🎺','🪗','🎻'];
