@@ -2122,6 +2122,39 @@ const Admin = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Auto-Maintenance - Main admin only */}
+                {user?.email === 'admin@gmail.com' && (
+                  <div className="pt-6 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Zap className="w-5 h-5 text-primary" />
+                        <div>
+                          <h3 className="font-semibold text-sm">Auto-Maintenance</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Automatically enable maintenance mode when high error rates or traffic spikes are detected
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-medium ${autoMaintenanceEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {autoMaintenanceEnabled ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch
+                          checked={autoMaintenanceEnabled}
+                          onCheckedChange={toggleAutoMaintenance}
+                        />
+                      </div>
+                    </div>
+                    {autoMaintenanceEnabled && (
+                      <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        <p className="text-xs text-muted-foreground">
+                          ⚡ The system will automatically activate maintenance mode if it detects &gt;50 errors in 5 minutes or &gt;500 concurrent sessions in 1 minute. Only you can disable it manually.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
