@@ -390,8 +390,121 @@ const Admin = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchUsers(), fetchActivity(), fetchGameSessions(), fetchYoutubeKeyStatus()]);
+    await Promise.all([fetchUsers(), fetchActivity(), fetchGameSessions(), fetchYoutubeKeyStatus(), fetchApkFiles(), fetchAutoMaintenanceSetting()]);
     setLoading(false);
+  };
+
+  const fetchAutoMaintenanceSetting = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'auto_maintenance')
+      .maybeSingle();
+    if (data?.value) {
+      const val = data.value as unknown as { enabled: boolean };
+      setAutoMaintenanceEnabled(val.enabled ?? false);
+    }
+  };
+
+  const toggleAutoMaintenance = async (enabled: boolean) => {
+    try {
+      const { data: existing } = await supabase
+        .from('app_settings')
+        .select('id')
+        .eq('key', 'auto_maintenance')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('app_settings')
+          .update({ value: { enabled } as any, updated_at: new Date().toISOString() })
+          .eq('key', 'auto_maintenance');
+      } else {
+        await supabase
+          .from('app_settings')
+          .insert({ key: 'auto_maintenance', value: { enabled } as any });
+      }
+      setAutoMaintenanceEnabled(enabled);
+      toast.success(enabled ? 'Auto-maintenance enabled' : 'Auto-maintenance disabled');
+    } catch {
+      toast.error('Failed to update auto-maintenance setting');
+    }
+  };
+
+  const fetchApkFiles = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'apk_files')
+      .maybeSingle();
+    if (data?.value) {
+      setApkFiles((data.value as any).files || []);
+    }
+  };
+
+  const handleApkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.apk')) {
+      toast.error('Only .apk files are allowed');
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('File must be under 100MB');
+      return;
+    }
+    setApkUploading(true);
+    try {
+      const path = `apk/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('admin-chat')
+        .upload(path, file, { contentType: 'application/vnd.android.package-archive' });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('admin-chat').getPublicUrl(path);
+      
+      const newFile = {
+        name: file.name,
+        url: urlData.publicUrl,
+        size: file.size,
+        uploaded_at: new Date().toISOString(),
+        version: file.name.replace('.apk', '').replace(/.*v?(\d)/, '$1') || '1.0',
+      };
+      const updated = [...apkFiles, newFile];
+      
+      const { data: existing } = await supabase
+        .from('app_settings')
+        .select('id')
+        .eq('key', 'apk_files')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('app_settings')
+          .update({ value: { files: updated } as any, updated_at: new Date().toISOString() })
+          .eq('key', 'apk_files');
+      } else {
+        await supabase
+          .from('app_settings')
+          .insert({ key: 'apk_files', value: { files: updated } as any });
+      }
+      setApkFiles(updated);
+      toast.success('APK uploaded successfully!');
+    } catch (err) {
+      toast.error('Failed to upload APK');
+    } finally {
+      setApkUploading(false);
+      if (apkInputRef.current) apkInputRef.current.value = '';
+    }
+  };
+
+  const deleteApkFile = async (index: number) => {
+    const updated = apkFiles.filter((_, i) => i !== index);
+    await supabase
+      .from('app_settings')
+      .update({ value: { files: updated } as any, updated_at: new Date().toISOString() })
+      .eq('key', 'apk_files');
+    setApkFiles(updated);
+    toast.success('APK removed');
   };
 
   const fetchYoutubeKeyStatus = async () => {
