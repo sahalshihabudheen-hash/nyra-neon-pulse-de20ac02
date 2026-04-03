@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle, GraduationCap, Settings2, MessageCircle, ScrollText } from 'lucide-react';
+import { Shield, ShieldAlert, Users, LogOut, ArrowLeft, Loader2, Music, ListMusic, Clock, Gamepad2, MapPin, Smartphone, Monitor, Laptop, Tablet, Copy, KeyRound, Wrench, X, Plus, Trash2, Circle, Search, Watch, Wifi, WifiOff, Key, RefreshCw, CheckCircle, XCircle, AlertTriangle, GraduationCap, Settings2, MessageCircle, ScrollText, Download, Upload, Zap } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import AdminTutorial from '@/components/AdminTutorial';
@@ -161,6 +161,14 @@ const Admin = () => {
 
   // Quota reset countdown timer
   const [quotaResetCountdown, setQuotaResetCountdown] = useState('');
+  
+  // Auto-maintenance
+  const [autoMaintenanceEnabled, setAutoMaintenanceEnabled] = useState(false);
+  
+  // APK management
+  const [apkUploading, setApkUploading] = useState(false);
+  const [apkFiles, setApkFiles] = useState<{ name: string; url: string; size: number; uploaded_at: string; version: string }[]>([]);
+  const apkInputRef = useRef<HTMLInputElement>(null);
   const [quotaResetLocalTime, setQuotaResetLocalTime] = useState('');
   const [pacificCurrentTime, setPacificCurrentTime] = useState('');
 
@@ -382,8 +390,121 @@ const Admin = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    await Promise.all([fetchUsers(), fetchActivity(), fetchGameSessions(), fetchYoutubeKeyStatus()]);
+    await Promise.all([fetchUsers(), fetchActivity(), fetchGameSessions(), fetchYoutubeKeyStatus(), fetchApkFiles(), fetchAutoMaintenanceSetting()]);
     setLoading(false);
+  };
+
+  const fetchAutoMaintenanceSetting = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'auto_maintenance')
+      .maybeSingle();
+    if (data?.value) {
+      const val = data.value as unknown as { enabled: boolean };
+      setAutoMaintenanceEnabled(val.enabled ?? false);
+    }
+  };
+
+  const toggleAutoMaintenance = async (enabled: boolean) => {
+    try {
+      const { data: existing } = await supabase
+        .from('app_settings')
+        .select('id')
+        .eq('key', 'auto_maintenance')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('app_settings')
+          .update({ value: { enabled } as any, updated_at: new Date().toISOString() })
+          .eq('key', 'auto_maintenance');
+      } else {
+        await supabase
+          .from('app_settings')
+          .insert({ key: 'auto_maintenance', value: { enabled } as any });
+      }
+      setAutoMaintenanceEnabled(enabled);
+      toast.success(enabled ? 'Auto-maintenance enabled' : 'Auto-maintenance disabled');
+    } catch {
+      toast.error('Failed to update auto-maintenance setting');
+    }
+  };
+
+  const fetchApkFiles = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'apk_files')
+      .maybeSingle();
+    if (data?.value) {
+      setApkFiles((data.value as any).files || []);
+    }
+  };
+
+  const handleApkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.apk')) {
+      toast.error('Only .apk files are allowed');
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('File must be under 100MB');
+      return;
+    }
+    setApkUploading(true);
+    try {
+      const path = `apk/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('admin-chat')
+        .upload(path, file, { contentType: 'application/vnd.android.package-archive' });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('admin-chat').getPublicUrl(path);
+      
+      const newFile = {
+        name: file.name,
+        url: urlData.publicUrl,
+        size: file.size,
+        uploaded_at: new Date().toISOString(),
+        version: file.name.replace('.apk', '').replace(/.*v?(\d)/, '$1') || '1.0',
+      };
+      const updated = [...apkFiles, newFile];
+      
+      const { data: existing } = await supabase
+        .from('app_settings')
+        .select('id')
+        .eq('key', 'apk_files')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('app_settings')
+          .update({ value: { files: updated } as any, updated_at: new Date().toISOString() })
+          .eq('key', 'apk_files');
+      } else {
+        await supabase
+          .from('app_settings')
+          .insert({ key: 'apk_files', value: { files: updated } as any });
+      }
+      setApkFiles(updated);
+      toast.success('APK uploaded successfully!');
+    } catch (err) {
+      toast.error('Failed to upload APK');
+    } finally {
+      setApkUploading(false);
+      if (apkInputRef.current) apkInputRef.current.value = '';
+    }
+  };
+
+  const deleteApkFile = async (index: number) => {
+    const updated = apkFiles.filter((_, i) => i !== index);
+    await supabase
+      .from('app_settings')
+      .update({ value: { files: updated } as any, updated_at: new Date().toISOString() })
+      .eq('key', 'apk_files');
+    setApkFiles(updated);
+    toast.success('APK removed');
   };
 
   const fetchYoutubeKeyStatus = async () => {
@@ -1024,6 +1145,10 @@ const Admin = () => {
             <TabsTrigger value="app-settings" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
               <Settings2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">App</span>
+            </TabsTrigger>
+            <TabsTrigger value="apk" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">APK</span>
             </TabsTrigger>
             {user?.email === 'admin@gmail.com' && (
               <TabsTrigger value="logs" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
@@ -1997,6 +2122,39 @@ const Admin = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Auto-Maintenance - Main admin only */}
+                {user?.email === 'admin@gmail.com' && (
+                  <div className="pt-6 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Zap className="w-5 h-5 text-primary" />
+                        <div>
+                          <h3 className="font-semibold text-sm">Auto-Maintenance</h3>
+                          <p className="text-xs text-muted-foreground">
+                            Automatically enable maintenance mode when high error rates or traffic spikes are detected
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-medium ${autoMaintenanceEnabled ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {autoMaintenanceEnabled ? 'ON' : 'OFF'}
+                        </span>
+                        <Switch
+                          checked={autoMaintenanceEnabled}
+                          onCheckedChange={toggleAutoMaintenance}
+                        />
+                      </div>
+                    </div>
+                    {autoMaintenanceEnabled && (
+                      <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        <p className="text-xs text-muted-foreground">
+                          ⚡ The system will automatically activate maintenance mode if it detects &gt;50 errors in 5 minutes or &gt;500 concurrent sessions in 1 minute. Only you can disable it manually.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -2020,6 +2178,79 @@ const Admin = () => {
           {/* App Settings Tab */}
           <TabsContent value="app-settings">
             <AdminAppSettings />
+          </TabsContent>
+
+          {/* APK Tab */}
+          <TabsContent value="apk">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Download className="w-5 h-5 text-primary" />
+                    <div>
+                      <CardTitle>APK Manager</CardTitle>
+                      <CardDescription>Upload APK files for users to download</CardDescription>
+                    </div>
+                  </div>
+                  <div>
+                    <input
+                      ref={apkInputRef}
+                      type="file"
+                      accept=".apk"
+                      className="hidden"
+                      onChange={handleApkUpload}
+                    />
+                    <Button onClick={() => apkInputRef.current?.click()} disabled={apkUploading}>
+                      {apkUploading ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...</>
+                      ) : (
+                        <><Upload className="w-4 h-4 mr-2" /> Upload APK</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {apkFiles.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Download className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No APK files uploaded yet</p>
+                    <p className="text-xs mt-1">Upload an APK and users can download it from the app</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {apkFiles.map((apk, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-secondary/30 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Download className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{apk.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(apk.size / (1024 * 1024)).toFixed(1)} MB · {new Date(apk.uploaded_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => window.open(apk.url, '_blank')}>
+                            <Download className="w-3.5 h-3.5 mr-1" /> Download
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => deleteApkFile(idx)} className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 p-3 rounded-lg bg-muted/50 border">
+                  <p className="text-xs text-muted-foreground">
+                    💡 Uploaded APKs will be available for all users to download from the Settings page.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Admin Activity Logs Tab - Main admin only */}
