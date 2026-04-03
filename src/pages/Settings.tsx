@@ -704,6 +704,41 @@ const Settings = () => {
             </div>
           </section>
 
+          {/* APK Download Section */}
+          {apkFiles.length > 0 && (
+            <section className="mb-10">
+              <div className="bg-card rounded-xl p-6 md:p-8 border border-border">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">Download App</h3>
+                    <p className="text-xs text-muted-foreground">Get the Android app for the best experience</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {apkFiles.map((apk, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => window.open(apk.url, '_blank')}
+                      className="w-full flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/60 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">📱</span>
+                        <div className="text-left">
+                          <p className="text-sm font-medium text-foreground">{apk.name}</p>
+                          <p className="text-xs text-muted-foreground">{(apk.size / (1024 * 1024)).toFixed(1)} MB</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-primary">Download ↓</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Decorative Soundwave Section */}
           <section className="mb-10">
             <div className="bg-card rounded-xl p-6 md:p-8 border border-border flex flex-col items-center gap-4">
