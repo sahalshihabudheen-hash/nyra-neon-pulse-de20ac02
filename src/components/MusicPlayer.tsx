@@ -450,7 +450,7 @@ const MusicPlayer = ({
         )}>
           {/* Download */}
           {currentTrack && (
-            <DownloadButton trackId={currentTrack.id} title={currentTrack.title} />
+            <DownloadButton track={currentTrack} />
           )}
 
           {/* Volume */}
