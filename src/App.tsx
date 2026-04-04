@@ -35,6 +35,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <MusicPlayerProvider>
+            <DownloadManagerProvider>
             <MaintenanceGuard>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -54,8 +55,10 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <FloatingMiniPlayer />
+              <DownloadQueue />
               <TutorialWrapper />
             </MaintenanceGuard>
+            </DownloadManagerProvider>
           </MusicPlayerProvider>
         </BrowserRouter>
       </TooltipProvider>
