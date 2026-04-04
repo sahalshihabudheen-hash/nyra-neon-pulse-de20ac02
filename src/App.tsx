@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { MusicPlayerProvider } from "@/contexts/MusicPlayerContext";
+import { DownloadManagerProvider } from "@/contexts/DownloadManagerContext";
 import FloatingMiniPlayer from "@/components/FloatingMiniPlayer";
+import DownloadQueue from "@/components/DownloadQueue";
 import MaintenanceGuard from "@/components/MaintenanceGuard";
 import TutorialWrapper from "@/components/TutorialWrapper";
 import Index from "./pages/Index";
@@ -33,6 +35,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <MusicPlayerProvider>
+            <DownloadManagerProvider>
             <MaintenanceGuard>
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -52,8 +55,10 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <FloatingMiniPlayer />
+              <DownloadQueue />
               <TutorialWrapper />
             </MaintenanceGuard>
+            </DownloadManagerProvider>
           </MusicPlayerProvider>
         </BrowserRouter>
       </TooltipProvider>
