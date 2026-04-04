@@ -89,7 +89,7 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
             updateItem(track.id, { progress: pct });
           }
 
-          const blob = new Blob(chunks, { type: 'audio/mpeg' });
+          const blob = new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
