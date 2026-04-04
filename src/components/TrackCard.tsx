@@ -147,6 +147,14 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
               <Heart className="w-4 h-4" fill={isFavorite ? 'currentColor' : 'none'} />
             </button>
           )}
+          {/* Download */}
+          <button
+            className="w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 touch-manipulation shadow-lg"
+            onClick={handleDownload}
+            title="Download"
+          >
+            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          </button>
           {/* Add to Queue */}
           <button
             className="w-9 h-9 rounded-full bg-background/80 backdrop-blur-sm flex items-center justify-center text-foreground hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 touch-manipulation shadow-lg"
