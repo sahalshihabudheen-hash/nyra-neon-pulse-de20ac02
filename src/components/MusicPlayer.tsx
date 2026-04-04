@@ -437,6 +437,10 @@ const MusicPlayer = ({
           'flex items-center gap-2 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
+          {/* Download */}
+          {currentTrack && (
+            <DownloadButton trackId={currentTrack.id} title={currentTrack.title} />
+          )}
 
           {/* Volume */}
           <div className="flex items-center gap-1">
