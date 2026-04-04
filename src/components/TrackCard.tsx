@@ -127,7 +127,7 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
             onClick={handleDownload}
             title="Download"
           >
-            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
           </button>
           {/* Add to Queue */}
           <button
