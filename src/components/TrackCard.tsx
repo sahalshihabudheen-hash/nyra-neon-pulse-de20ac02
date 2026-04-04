@@ -1,4 +1,5 @@
-import { Play, Pause, ListPlus, Heart } from 'lucide-react';
+import { Play, Pause, ListPlus, Heart, Download, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import AddToPlaylistDialog from './AddToPlaylistDialog';
 import { toast } from 'sonner';
