@@ -21,6 +21,39 @@ interface TrackCardProps {
 }
 
 const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false, onToggleFavorite }: TrackCardProps) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDownloading) return;
+    setIsDownloading(true);
+    toast.info('⬇️ Preparing download...');
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}`,
+        { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+      );
+      const data = await response.json();
+      if (!data.audioUrl) {
+        toast.error('Download not available for this track');
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = data.audioUrl;
+      a.download = `${track.title}.mp3`;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success('🎵 Download started!');
+    } catch {
+      toast.error('Failed to download track');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleAddToQueue = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onAddToQueue) {
