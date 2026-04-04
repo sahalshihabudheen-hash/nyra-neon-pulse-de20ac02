@@ -1,8 +1,8 @@
 import { Play, Pause, ListPlus, Heart, Download, Loader2 } from 'lucide-react';
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import AddToPlaylistDialog from './AddToPlaylistDialog';
 import { toast } from 'sonner';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 
 interface Track {
   id: string;
@@ -21,39 +21,13 @@ interface TrackCardProps {
 }
 
 const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false, onToggleFavorite }: TrackCardProps) => {
-  const [isDownloading, setIsDownloading] = useState(false);
+  const { startDownload, isDownloading } = useDownloadManager();
+  const downloading = isDownloading(track.id);
 
-  const handleDownload = async (e: React.MouseEvent) => {
+  const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isDownloading) return;
-    setIsDownloading(true);
-    toast.info('⬇️ Preparing download...');
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}`,
-        { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
-      );
-      const data = await response.json();
-      if (!data.audioUrl) {
-        toast.error('Download not available for this track');
-        return;
-      }
-      const a = document.createElement('a');
-      a.href = data.audioUrl;
-      a.download = `${track.title}.mp3`;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast.success('🎵 Download started!');
-    } catch {
-      toast.error('Failed to download track');
-    } finally {
-      setIsDownloading(false);
-    }
+    startDownload(track);
   };
-
   const handleAddToQueue = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onAddToQueue) {
