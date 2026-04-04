@@ -9,34 +9,13 @@ import FullscreenPlayer from './FullscreenPlayer';
 import LyricsDrawer from './LyricsDrawer';
 import EqualizerPanel from './EqualizerPanel';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 
-const DownloadButton = ({ trackId, title }: { trackId: string; title: string }) => {
-  const [loading, setLoading] = useState(false);
-  const handleDownload = async () => {
-    if (loading) return;
-    setLoading(true);
-    toast.info('⬇️ Preparing download...');
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${trackId}`,
-        { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
-      );
-      const data = await res.json();
-      if (!data.audioUrl) { toast.error('Download not available'); return; }
-      const a = document.createElement('a');
-      a.href = data.audioUrl;
-      a.download = `${title}.mp3`;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast.success('🎵 Download started!');
-    } catch { toast.error('Download failed'); }
-    finally { setLoading(false); }
-  };
+const DownloadButton = ({ track }: { track: { id: string; title: string; thumbnail: string } }) => {
+  const { startDownload, isDownloading } = useDownloadManager();
+  const loading = isDownloading(track.id);
   return (
-    <button onClick={handleDownload} className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-90 touch-manipulation" title="Download">
+    <button onClick={() => startDownload(track)} className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-90 touch-manipulation" title="Download">
       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
     </button>
   );
