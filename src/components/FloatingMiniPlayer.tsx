@@ -265,6 +265,19 @@ const FloatingMiniPlayer = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (currentTrack) {
+                  startDownload({ id: currentTrack.id, title: currentTrack.title, thumbnail: currentTrack.thumbnail });
+                }
+              }}
+              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
+              aria-label="Download"
+            >
+              {currentTrack && isDownloading(currentTrack.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 setLyricsOpen(!lyricsOpen);
               }}
               className={cn(

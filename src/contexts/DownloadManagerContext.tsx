@@ -129,6 +129,10 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
     } catch {
       updateItem(track.id, { status: 'error', progress: 0 });
       toast.error(`Failed to download: ${track.title}`);
+      // Auto-remove errored download after 8 seconds
+      setTimeout(() => {
+        setDownloads(prev => prev.filter(d => d.id !== track.id));
+      }, 8000);
     }
   }, [isDownloading, updateItem]);
 
