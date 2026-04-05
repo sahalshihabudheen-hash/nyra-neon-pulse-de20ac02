@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipForward, SkipBack, X, Maximize2, Music2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, X, Maximize2, Music2, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SoundwaveVisualizer from '@/components/SoundwaveVisualizer';
 import LyricsDrawer from '@/components/LyricsDrawer';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 
 const PLAYER_WIDTH = 320;
 const PLAYER_HEIGHT = 96;
@@ -24,6 +25,7 @@ const FloatingMiniPlayer = () => {
     setShowMiniPlayer,
   } = useMusicPlayer();
 
+  const { startDownload, isDownloading } = useDownloadManager();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -45,7 +47,7 @@ const FloatingMiniPlayer = () => {
   const hasDragged = useRef(false);
   const playerRef = useRef<HTMLDivElement>(null);
 
-  const shouldShow = Boolean(currentTrack && showMiniPlayer && !hasFullPlayer);
+  const shouldShow = Boolean(currentTrack && isPlaying && showMiniPlayer && !hasFullPlayer);
 
   useEffect(() => {
     if (shouldShow) {
@@ -258,6 +260,19 @@ const FloatingMiniPlayer = () => {
               aria-label="Next track"
             >
               <SkipForward className="h-4 w-4" fill="currentColor" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentTrack) {
+                  startDownload({ id: currentTrack.id, title: currentTrack.title, thumbnail: currentTrack.thumbnail });
+                }
+              }}
+              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
+              aria-label="Download"
+            >
+              {currentTrack && isDownloading(currentTrack.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
             </button>
 
             <button

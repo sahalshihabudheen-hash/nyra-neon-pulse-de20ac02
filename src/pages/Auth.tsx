@@ -35,11 +35,17 @@ const Auth = () => {
           navigate('/');
         }
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
+        // Check if email confirmation is needed
+        if (data.user && !data.session) {
+          toast.success('🎉 Check your email to verify your account!', { duration: 8000 });
+          setIsLogin(true);
+          return;
+        }
         toast.success('Account created! Welcome to NYRA');
         navigate('/');
       }

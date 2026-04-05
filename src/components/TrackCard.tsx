@@ -105,7 +105,7 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
         )}
 
         {/* Action Buttons - Top area */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 md:flex-row md:opacity-0 md:group-hover:opacity-100 transition-all z-10">
+        <div className="absolute top-3 right-3 flex flex-col gap-2 md:flex-row transition-all z-10">
           {/* Favorite Heart */}
           {onToggleFavorite && (
             <button
