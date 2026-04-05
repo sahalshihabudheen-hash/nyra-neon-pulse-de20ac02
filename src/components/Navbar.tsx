@@ -1,4 +1,4 @@
-import { Search, Bell, LogOut } from 'lucide-react';
+import { Search, Bell, LogOut, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -6,15 +6,21 @@ interface NavbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearch: () => void;
+  onClearSearch?: () => void;
 }
 
-const Navbar = ({ searchQuery, onSearchChange, onSearch }: NavbarProps) => {
+const Navbar = ({ searchQuery, onSearchChange, onSearch, onClearSearch }: NavbarProps) => {
   const { user, signOut } = useAuth();
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       onSearch();
     }
+  };
+
+  const handleClear = () => {
+    onSearchChange('');
+    onClearSearch?.();
   };
 
   return (
@@ -29,8 +35,17 @@ const Navbar = ({ searchQuery, onSearchChange, onSearch }: NavbarProps) => {
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full pl-10 md:pl-12 pr-4 h-10 md:h-12 bg-secondary border-border rounded-full text-sm md:text-base text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            className="w-full pl-10 md:pl-12 pr-10 h-10 md:h-12 bg-secondary border-border rounded-full text-sm md:text-base text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
           />
+          {searchQuery && (
+            <button
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-muted hover:bg-destructive/20 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

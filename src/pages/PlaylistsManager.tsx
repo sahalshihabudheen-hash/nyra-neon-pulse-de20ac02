@@ -62,13 +62,18 @@ const PlaylistsManager = () => {
     if (!confirm('Are you sure you want to delete this playlist?')) return;
 
     try {
+      // First delete all items in the playlist
+      const { error: itemsError } = await supabase.from('playlist_items').delete().eq('playlist_id', id);
+      if (itemsError) throw itemsError;
+
       const { error } = await supabase.from('playlists').delete().eq('id', id);
       if (error) throw error;
       
       toast.success('Playlist deleted');
       fetchPlaylists();
     } catch (error: any) {
-      toast.error('Failed to delete playlist');
+      console.error('Delete playlist error:', error);
+      toast.error(error.message || 'Failed to delete playlist');
     }
   };
 

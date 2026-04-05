@@ -109,6 +109,10 @@ const Index = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSearch={handleSearch}
+          onClearSearch={() => {
+            setSearchPerformed(false);
+            setTracks(famousSongs);
+          }}
         />
 
         <main className="pt-24 md:pt-28 pb-48 md:pb-36 px-4 md:px-8">
