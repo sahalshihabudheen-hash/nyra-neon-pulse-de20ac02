@@ -40,29 +40,25 @@ export function useTabTitle(trackTitle: string | null, isPlaying: boolean) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { settings } = useAppSettings();
 
-  // Sync favicon + OG tags when logo/name changes
   useEffect(() => {
+    // Sync favicon + OG tags
     if (settings.app_logo_url) {
       updateFavicon(settings.app_logo_url);
       updateMetaTag('og:image', settings.app_logo_url);
-      // Also update twitter image
-      let twitterMeta = document.querySelector("meta[name='twitter:image']") as HTMLMetaElement | null;
+      const twitterMeta = document.querySelector("meta[name='twitter:image']") as HTMLMetaElement | null;
       if (twitterMeta) twitterMeta.content = settings.app_logo_url;
     }
+
     const appName = settings.app_name || 'NYRA';
     const tagline = settings.app_tagline || 'Feel the Pulse';
     updateMetaTag('og:title', `${appName} - ${tagline}`);
     updateMetaTag('og:description', `${appName} - A premium music streaming platform.`);
-  }, [settings.app_logo_url, settings.app_name, settings.app_tagline]);
 
-  useEffect(() => {
+    // Tab title logic
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-
-    const appName = settings.app_name || 'NYRA';
-    const tagline = settings.app_tagline || 'Feel the Pulse';
 
     if (isPlaying && trackTitle) {
       const update = () => {
@@ -83,5 +79,5 @@ export function useTabTitle(trackTitle: string | null, isPlaying: boolean) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [trackTitle, isPlaying, settings.app_name, settings.app_tagline]);
+  }, [trackTitle, isPlaying, settings.app_name, settings.app_tagline, settings.app_logo_url]);
 }
