@@ -25,6 +25,7 @@ const FloatingMiniPlayer = () => {
     setShowMiniPlayer,
   } = useMusicPlayer();
 
+  const { startDownload, isDownloading } = useDownloadManager();
   const navigate = useNavigate();
   const location = useLocation();
 
