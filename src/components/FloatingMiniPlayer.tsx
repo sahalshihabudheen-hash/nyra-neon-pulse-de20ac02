@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipForward, SkipBack, X, Maximize2, Music2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, X, Maximize2, Music2, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SoundwaveVisualizer from '@/components/SoundwaveVisualizer';
 import LyricsDrawer from '@/components/LyricsDrawer';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 
 const PLAYER_WIDTH = 320;
 const PLAYER_HEIGHT = 96;
