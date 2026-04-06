@@ -82,6 +82,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
 
+  // Track which audio source is active to prevent state conflicts
+  const activeSourceRef = useRef<'youtube' | 'background' | null>(null);
+
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
