@@ -296,17 +296,20 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayPause = useCallback(() => {
-    if (audioRef.current && audioRef.current.src) {
-      try {
-        if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); }
-        else { audioRef.current.play(); setIsPlaying(true); }
-        return;
-      } catch {}
+    // Use active source to determine which player to control
+    if (activeSourceRef.current === 'background' && audioRef.current && audioRef.current.src) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+      return;
     }
     if (!ytPlayerRef.current) return;
     try {
-      if (isPlaying) ytPlayerRef.current.pauseVideo();
-      else ytPlayerRef.current.playVideo();
+      if (isPlaying) { ytPlayerRef.current.pauseVideo(); setIsPlaying(false); }
+      else { ytPlayerRef.current.playVideo(); setIsPlaying(true); }
     } catch {}
   }, [isPlaying]);
 
