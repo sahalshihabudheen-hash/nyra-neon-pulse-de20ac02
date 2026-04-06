@@ -82,6 +82,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
 
+  // Track which audio source is active to prevent state conflicts
+  const activeSourceRef = useRef<'youtube' | 'background' | null>(null);
+
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
@@ -198,6 +201,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       events: {
         onReady: (e: any) => { e.target.setVolume(80); e.target.playVideo(); },
         onStateChange: (e: any) => {
+          // Only update isPlaying from YT events if YT is the active source
+          if (activeSourceRef.current === 'background') return;
           if (e.data === yt.PlayerState.PLAYING) setIsPlaying(true);
           else if (e.data === yt.PlayerState.PAUSED) setIsPlaying(false);
           else if (e.data === yt.PlayerState.ENDED) {
@@ -216,8 +221,16 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [settings.autoPlayNext]);
 
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
+    // Reset active source - YT starts first
+    activeSourceRef.current = 'youtube';
+    
+    // Stop any existing background audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+
     const yt = (window as any).YT;
-    // Start YouTube player immediately for instant playback
     if (ytApiReady && yt?.Player) {
       createPlayer(videoId);
     } else {
@@ -229,23 +242,29 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     if (useBackgroundAudioMode) {
       fetchAudioUrl(videoId).then((audioUrl) => {
         if (audioUrl && audioRef.current) {
-          // Switch from YT to background audio seamlessly
           audioRef.current.src = audioUrl;
           audioRef.current.load();
+          
+          // Sync position from YT player before switching
+          let ytCurrentTime = 0;
+          if (ytPlayerRef.current) {
+            try { ytCurrentTime = ytPlayerRef.current.getCurrentTime?.() || 0; } catch {}
+          }
+          
+          audioRef.current.currentTime = ytCurrentTime;
           audioRef.current.play()
             .then(() => {
+              // Mark background as active BEFORE pausing YT
+              activeSourceRef.current = 'background';
               setIsPlaying(true);
-              // Pause YT player since background audio is now playing
               if (ytPlayerRef.current) {
                 try { ytPlayerRef.current.pauseVideo(); } catch {}
               }
             })
             .catch(() => {
-              // Background audio failed, YT player is already playing
               setUseBackgroundAudioMode(false);
             });
         }
-        // If no audio URL, YT player is already playing - do nothing
       });
     }
   }, [useBackgroundAudioMode, fetchAudioUrl, ytApiReady, createPlayer]);
@@ -277,17 +296,20 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayPause = useCallback(() => {
-    if (audioRef.current && audioRef.current.src) {
-      try {
-        if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); }
-        else { audioRef.current.play(); setIsPlaying(true); }
-        return;
-      } catch {}
+    // Use active source to determine which player to control
+    if (activeSourceRef.current === 'background' && audioRef.current && audioRef.current.src) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      }
+      return;
     }
     if (!ytPlayerRef.current) return;
     try {
-      if (isPlaying) ytPlayerRef.current.pauseVideo();
-      else ytPlayerRef.current.playVideo();
+      if (isPlaying) { ytPlayerRef.current.pauseVideo(); setIsPlaying(false); }
+      else { ytPlayerRef.current.playVideo(); setIsPlaying(true); }
     } catch {}
   }, [isPlaying]);
 
