@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import SoundwaveVisualizer from '@/components/SoundwaveVisualizer';
 import LyricsDrawer from '@/components/LyricsDrawer';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
+import { toast } from 'sonner';
 
 const PLAYER_WIDTH = 320;
 const PLAYER_HEIGHT = 96;
@@ -281,7 +282,6 @@ const FloatingMiniPlayer = () => {
                 if (currentTrack) {
                   const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-embed?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&channel=${encodeURIComponent(currentTrack.channel)}&thumbnail=${encodeURIComponent(currentTrack.thumbnail)}`;
                   navigator.clipboard.writeText(shareUrl);
-                  const { toast } = require('sonner');
                   toast.success('Share link copied!');
                 }
               }}
