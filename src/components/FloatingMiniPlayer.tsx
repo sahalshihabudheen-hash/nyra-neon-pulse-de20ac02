@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipForward, SkipBack, X, Maximize2, Music2, Download, Loader2 } from 'lucide-react';
+import { Play, Pause, SkipForward, SkipBack, X, Maximize2, Music2, Download, Loader2, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -273,6 +273,22 @@ const FloatingMiniPlayer = () => {
               aria-label="Download"
             >
               {currentTrack && isDownloading(currentTrack.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentTrack) {
+                  const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-embed?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&channel=${encodeURIComponent(currentTrack.channel)}&thumbnail=${encodeURIComponent(currentTrack.thumbnail)}`;
+                  navigator.clipboard.writeText(shareUrl);
+                  const { toast } = require('sonner');
+                  toast.success('Share link copied!');
+                }
+              }}
+              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
+              aria-label="Share"
+            >
+              <Share2 className="h-3.5 w-3.5" />
             </button>
 
             <button
