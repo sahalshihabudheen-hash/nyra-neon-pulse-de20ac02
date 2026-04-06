@@ -18,6 +18,7 @@ import AdminTutorial from '@/components/AdminTutorial';
 import AdminAppSettings from '@/components/AdminAppSettings';
 import AdminChat from '@/components/AdminChat';
 import AdminActivityLogs from '@/components/AdminActivityLogs';
+import AdminHealthMonitor from '@/components/AdminHealthMonitor';
 
 const COUNTRY_TO_CODE: Record<string, string> = {
   'Afghanistan': 'AF', 'Albania': 'AL', 'Algeria': 'DZ', 'Argentina': 'AR', 'Australia': 'AU',
@@ -1150,6 +1151,10 @@ const Admin = () => {
               <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">APK</span>
             </TabsTrigger>
+            <TabsTrigger value="health" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Health</span>
+            </TabsTrigger>
             {user?.email === 'admin@gmail.com' && (
               <TabsTrigger value="logs" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
                 <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -2251,6 +2256,10 @@ const Admin = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="health">
+            <AdminHealthMonitor />
           </TabsContent>
 
           {/* Admin Activity Logs Tab - Main admin only */}
