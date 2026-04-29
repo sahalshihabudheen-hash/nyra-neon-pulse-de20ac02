@@ -490,11 +490,9 @@ const PlaylistView = () => {
                     )}>
                       {track.title}
                     </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                       <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] truncate">{track.channel}</p>
-                       <div className="w-1 h-1 rounded-full bg-white/10" />
-                       <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Premium Audio</span>
-                    </div>
+                     <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] truncate">{track.channel}</p>
+                     </div>
                   </div>
 
                   {/* Time Indicator */}
