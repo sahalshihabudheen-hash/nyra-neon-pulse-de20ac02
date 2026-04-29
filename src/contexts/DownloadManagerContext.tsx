@@ -24,6 +24,11 @@ export function useDownloadManager() {
   return ctx;
 }
 
+// Helper to sanitize filenames
+const sanitizeFilename = (filename: string) => {
+  return filename.replace(/[<>:"/\\|?*]/g, '').trim();
+};
+
 export function DownloadManagerProvider({ children }: { children: React.ReactNode }) {
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
 
@@ -36,7 +41,6 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
   }, [downloads]);
 
   const startDownload = useCallback(async (track: { id: string; title: string; thumbnail: string }) => {
-    // Don't start duplicate downloads
     if (isDownloading(track.id)) {
       toast.info('Already downloading this track');
       return;
@@ -51,85 +55,92 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
     };
 
     setDownloads(prev => [item, ...prev.filter(d => d.id !== track.id)]);
+    const safeTitle = sanitizeFilename(track.title);
 
     try {
-      // Fetch audio URL
-      updateItem(track.id, { progress: 20 });
+      updateItem(track.id, { progress: 10 });
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}`,
         { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
       );
+      
+      if (!response.ok) throw new Error('Failed to fetch audio URL');
       const data = await response.json();
 
       if (!data.audioUrl) {
-        updateItem(track.id, { status: 'error', progress: 0 });
-        toast.error(`Download not available: ${track.title}`);
-        return;
+        throw new Error('No audio URL found');
       }
 
-      updateItem(track.id, { status: 'downloading', progress: 50 });
+      updateItem(track.id, { status: 'downloading', progress: 30 });
 
-      // Try to fetch as blob for real progress
+      // Method 1: Blob fetch (Best for progress and reliable filenames)
       try {
         const audioRes = await fetch(data.audioUrl);
-        const contentLength = audioRes.headers.get('content-length');
+        if (!audioRes.ok) throw new Error('Direct fetch blocked');
         
-        if (audioRes.body && contentLength) {
+        const contentLength = audioRes.headers.get('content-length');
+        const reader = audioRes.body?.getReader();
+        
+        if (reader && contentLength) {
           const total = parseInt(contentLength, 10);
-          const reader = audioRes.body.getReader();
-          const chunks: Uint8Array[] = [];
           let received = 0;
+          const chunks = [];
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             chunks.push(value);
             received += value.length;
-            const pct = Math.min(95, 50 + Math.round((received / total) * 45));
-            updateItem(track.id, { progress: pct });
+            updateItem(track.id, { progress: 30 + Math.round((received / total) * 65) });
           }
 
-          const blob = new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
-          const url = URL.createObjectURL(blob);
+          const blob = new Blob(chunks, { type: 'audio/mpeg' });
+          const blobUrl = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url;
-          a.download = `${track.title}.mp3`;
+          a.href = blobUrl;
+          a.download = `${safeTitle}.mp3`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          URL.revokeObjectURL(blobUrl);
+          
+          updateItem(track.id, { status: 'done', progress: 100 });
+          toast.success(`🎵 Saved: ${track.title}`);
         } else {
-          // Fallback: direct link download
-          const a = document.createElement('a');
-          a.href = data.audioUrl;
-          a.download = `${track.title}.mp3`;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          throw new Error('Stream not available');
         }
-      } catch {
-        // Fallback: direct link
+      } catch (e) {
+        // Method 2: Fallback to direct download link
+        console.warn('Blob download failed, falling back to direct link:', e);
+        updateItem(track.id, { progress: 80 });
+        
         const a = document.createElement('a');
         a.href = data.audioUrl;
-        a.download = `${track.title}.mp3`;
+        a.download = `${safeTitle}.mp3`;
         a.target = '_blank';
+        a.rel = 'noopener noreferrer';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        
+        // Give it a bit of time then assume success if it didn't crash
+        setTimeout(() => {
+          updateItem(track.id, { status: 'done', progress: 100 });
+          toast.success(`🎵 Download started for: ${track.title}`);
+        }, 2000);
       }
 
-      updateItem(track.id, { status: 'done', progress: 100 });
-      toast.success(`🎵 Downloaded: ${track.title}`);
-      // Auto-remove completed download after 5 seconds
+      // Auto-cleanup
       setTimeout(() => {
         setDownloads(prev => prev.filter(d => d.id !== track.id));
       }, 5000);
-    } catch {
+
+    } catch (error: any) {
+      console.error('Download error:', error);
       updateItem(track.id, { status: 'error', progress: 0 });
-      toast.error(`Failed to download: ${track.title}`);
-      // Auto-remove errored download after 8 seconds
+      toast.error(`Error: ${error.message || 'Failed to download'}`);
+      
       setTimeout(() => {
         setDownloads(prev => prev.filter(d => d.id !== track.id));
       }, 8000);
@@ -146,3 +157,4 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
     </DownloadManagerContext.Provider>
   );
 }
+
