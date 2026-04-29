@@ -39,6 +39,18 @@ export default async function handler(req: Request) {
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="theme-color" content="#ffd300">
+
+  <!-- Interactive Player for Discord -->
+  <meta property="og:video" content="https://nyra-neon-pulse-23e4f39d.vercel.app/embed-player?id=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
+  <meta property="og:video:secure_url" content="https://nyra-neon-pulse-23e4f39d.vercel.app/embed-player?id=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
+  <meta property="og:video:type" content="text/html">
+  <meta property="og:video:width" content="500">
+  <meta property="og:video:height" content="250">
+
+  <meta name="twitter:card" content="player">
+  <meta name="twitter:player" content="https://nyra-neon-pulse-23e4f39d.vercel.app/embed-player?id=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
+  <meta name="twitter:player:width" content="500">
+  <meta name="twitter:player:height" content="250">
   
   <meta http-equiv="refresh" content="0;url=https://nyra-neon-pulse-23e4f39d.vercel.app/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
 </head>
