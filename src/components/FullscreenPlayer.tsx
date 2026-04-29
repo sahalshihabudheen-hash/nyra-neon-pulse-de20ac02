@@ -106,9 +106,6 @@ const FullscreenPlayer = ({
     };
   }, [isOpen]);
 
-    };
-  }, [isOpen]);
-
   if (!isVisible && !isOpen) return null;
 
   const node = (
@@ -154,7 +151,29 @@ const FullscreenPlayer = ({
         </button>
       </header>
 
-          {/* Soundwave */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-12 overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center w-full">
+          {/* Album Art & Info */}
+          <div className="relative mb-10 group">
+            <div className="absolute -inset-4 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <img 
+              src={currentTrack?.thumbnail || '/placeholder.svg'} 
+              alt={currentTrack?.title}
+              className={cn(
+                "w-64 h-64 md:w-80 md:h-80 rounded-[3rem] object-cover shadow-2xl transition-all duration-700 relative z-10",
+                isPlaying ? "scale-105" : "scale-100 opacity-80"
+              )}
+            />
+            {isPlaying && (
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-32 h-1 bg-primary rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)] animate-pulse z-20" />
+            )}
+          </div>
+
+          <div className="text-center mb-10 max-w-xl">
+             <h2 className="text-3xl md:text-5xl font-black text-foreground mb-3 tracking-tighter italic uppercase line-clamp-2 leading-none">{currentTrack?.title || 'Not Selected'}</h2>
+             <p className="text-sm font-black text-primary uppercase tracking-[0.3em]">{currentTrack?.channel || 'Unknown Artist'}</p>
+          </div>
+
           <div className="w-full max-w-md mb-10">
              <div className="glass-premium border border-white/5 p-6 rounded-3xl shadow-xl">
                 <SoundwaveVisualizer isPlaying={isPlaying} className="h-16 w-full" shape="spectrum" />
