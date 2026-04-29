@@ -27,43 +27,49 @@ const HeadphoneHub = ({ isOpen, onClose }: HeadphoneHubProps) => {
         {/* Left Side: Interactive Visual */}
         <div className="relative flex-1 bg-black/40 flex items-center justify-center p-8 min-h-[300px] md:min-h-[500px] group">
            <img 
-            src="/premium_studio_headphones_1777460808170.png" 
+            src="/headphones.png" 
             alt="Premium Headphones" 
-            className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-contain drop-shadow-[0_0_50px_rgba(var(--primary),0.2)] transition-transform duration-700 group-hover:scale-105"
            />
            
            {/* Interactive Areas Overlay */}
            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-64 h-64">
+              <div className="relative w-full h-full max-w-[400px] max-h-[400px]">
                 {/* Left Earcup Hotspot */}
                 <button 
                   onClick={() => toggleDJMode('left')}
                   className={cn(
-                    "absolute left-0 top-1/2 -translate-y-1/2 w-20 h-32 rounded-full border-2 transition-all duration-500",
-                    djMode === 'left' ? "border-primary bg-primary/20 scale-110 shadow-[0_0_30px_rgba(var(--primary),0.5)]" : "border-white/5 hover:border-white/20"
+                    "absolute left-[5%] top-1/2 -translate-y-1/2 w-[30%] h-[50%] rounded-[30%] border-2 transition-all duration-500",
+                    djMode === 'left' ? "border-primary bg-primary/20 scale-110 shadow-[0_0_50px_rgba(var(--primary),0.6)]" : "border-white/5 hover:border-white/20 hover:bg-white/5"
                   )}
                   title="Lock to Left Ear"
-                />
+                >
+                   {djMode === 'left' && <span className="text-[10px] font-black text-primary animate-pulse">LEFT ACTIVE</span>}
+                </button>
                 
                 {/* Right Earcup Hotspot */}
                 <button 
                   onClick={() => toggleDJMode('right')}
                   className={cn(
-                    "absolute right-0 top-1/2 -translate-y-1/2 w-20 h-32 rounded-full border-2 transition-all duration-500",
-                    djMode === 'right' ? "border-primary bg-primary/20 scale-110 shadow-[0_0_30_rgba(var(--primary),0.5)]" : "border-white/5 hover:border-white/20"
+                    "absolute right-[5%] top-1/2 -translate-y-1/2 w-[30%] h-[50%] rounded-[30%] border-2 transition-all duration-500",
+                    djMode === 'right' ? "border-primary bg-primary/20 scale-110 shadow-[0_0_50px_rgba(var(--primary),0.6)]" : "border-white/5 hover:border-white/20 hover:bg-white/5"
                   )}
                   title="Lock to Right Ear"
-                />
+                >
+                   {djMode === 'right' && <span className="text-[10px] font-black text-primary animate-pulse">RIGHT ACTIVE</span>}
+                </button>
                 
-                {/* Center / Headband Hotspot */}
+                {/* Center / Headband Hotspot (8D Mode) */}
                 <button 
                   onClick={() => toggleDJMode('auto')}
                   className={cn(
-                    "absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 rounded-full border-2 transition-all duration-500",
-                    djMode === 'auto' ? "border-primary bg-primary/20 scale-110 shadow-[0_0_30px_rgba(var(--primary),0.5)]" : "border-white/5 hover:border-white/20"
+                    "absolute top-[5%] left-1/2 -translate-x-1/2 w-[40%] h-[20%] rounded-full border-2 transition-all duration-500",
+                    djMode === 'auto' ? "border-primary bg-primary/20 scale-110 shadow-[0_0_50px_rgba(var(--primary),0.6)]" : "border-white/5 hover:border-white/20 hover:bg-white/5"
                   )}
                   title="8D Auto Panning"
-                />
+                >
+                   {djMode === 'auto' && <span className="text-[10px] font-black text-primary animate-pulse italic">8D PULSE</span>}
+                </button>
               </div>
            </div>
 
