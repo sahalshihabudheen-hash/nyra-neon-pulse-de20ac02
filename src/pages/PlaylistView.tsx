@@ -344,45 +344,68 @@ const PlaylistView = () => {
         </div>
 
         {/* Search within playlist page */}
-        <div className="mb-6 p-4 bg-card rounded-xl border border-border">
-          <h3 className="text-lg font-semibold mb-3 text-foreground">Add Songs to Playlist</h3>
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="mb-8 glass-premium border border-white/5 p-6 rounded-[2rem] shadow-xl animate-in-up">
+          <div className="flex items-center gap-3 mb-6">
+             <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center">
+                <Search className="w-5 h-5 text-primary" />
+             </div>
+             <div>
+                <h3 className="text-xl font-black text-foreground uppercase italic tracking-tighter">Add Songs</h3>
+                <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Find your next favorite</p>
+             </div>
+          </div>
+
+          <div className="flex gap-3">
+            <div className="flex-1 relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="text"
                 placeholder="Search YouTube for songs..."
                 value={playlistSearchQuery}
                 onChange={(e) => setPlaylistSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handlePlaylistSearch()}
-                className="pl-10 bg-secondary border-border"
+                className="pl-12 h-14 bg-white/5 border-white/10 rounded-2xl focus:border-primary/50 focus:ring-primary/20 transition-all font-medium placeholder:text-muted-foreground/40"
               />
             </div>
-            <Button onClick={handlePlaylistSearch} disabled={isSearching}>
+            <button 
+              onClick={handlePlaylistSearch} 
+              disabled={isSearching}
+              className="h-14 px-8 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+            >
               {isSearching ? 'Searching...' : 'Search'}
-            </Button>
+            </button>
           </div>
 
           {searchResults.length > 0 && (
-            <ScrollArea className="mt-4 max-h-60">
-              <div className="space-y-2">
-                {searchResults.map((track) => (
-                  <div
-                    key={track.id}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                  >
-                    <img src={track.thumbnail} alt={track.title} className="w-12 h-12 rounded object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{track.channel}</p>
+            <div className="mt-8 border-t border-white/5 pt-6">
+              <ScrollArea className="h-[400px] pr-4 -mr-4">
+                <div className="grid grid-cols-1 gap-3">
+                  {searchResults.map((track) => (
+                    <div
+                      key={track.id}
+                      className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/5 transition-all group"
+                    >
+                      <div className="relative w-14 h-14 flex-shrink-0">
+                         <img src={track.thumbnail} alt={track.title} className="w-full h-full rounded-xl object-cover" />
+                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
+                            <Play className="w-5 h-5 text-white" fill="currentColor" />
+                         </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
+                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">{track.channel}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleAddToPlaylistDB(track)}
+                        className="px-5 py-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-black text-[10px] uppercase tracking-widest transition-all active:scale-90"
+                      >
+                        Add
+                      </button>
                     </div>
-                    <Button size="sm" onClick={() => handleAddToPlaylistDB(track)} className="shrink-0">
-                      Add
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           )}
         </div>
 
