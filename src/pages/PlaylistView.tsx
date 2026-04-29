@@ -417,8 +417,8 @@ const PlaylistView = () => {
             <p className="text-sm">Use the search above to add songs</p>
           </div>
         ) : (
-          <div className="h-[calc(100vh-500px)] min-h-64 overflow-y-auto pr-2">
-            <div className="space-y-2">
+          <div className="h-[calc(100vh-500px)] min-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3">
               {playlistTracks.map((track, index) => (
                 <div
                   key={track.id}
@@ -430,29 +430,34 @@ const PlaylistView = () => {
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={cn(
-                    'w-full flex items-center gap-2 md:gap-4 p-2 md:p-4 rounded-xl transition-all group',
+                    'w-full flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 group relative overflow-hidden',
                     currentTrack?.id === track.id
-                      ? 'bg-primary/20 border border-primary/30'
-                      : 'bg-card hover:bg-card/80 border border-transparent',
+                      ? 'bg-primary/10 border border-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.1)]'
+                      : 'glass-premium border border-white/5 hover:bg-white/10 hover:border-white/10',
                     draggedIndex === index && 'opacity-50 scale-[0.98]'
                   )}
                 >
+                  {/* Playing Indicator Line */}
+                  {currentTrack?.id === track.id && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary animate-pulse" />
+                  )}
+
+                  {/* Drag Handle */}
                   <div
-                    className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 bg-primary/20 hover:bg-primary/40 rounded p-1 md:p-3 transition-all border border-primary/50"
+                    className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 opacity-20 group-hover:opacity-100 transition-all p-2 hover:bg-white/5 rounded-xl"
                     onTouchStart={(e) => handleTouchStart(index, e)}
                   >
-                    <div className="flex flex-col gap-0.5 w-2 md:w-5">
-                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
-                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
-                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                    <div className="flex flex-col gap-1 w-4">
+                      <div className="h-0.5 w-full bg-foreground rounded-full"></div>
+                      <div className="h-0.5 w-full bg-foreground rounded-full"></div>
                     </div>
                   </div>
 
-                  <div className="relative shrink-0">
+                  <div className="relative shrink-0 group/art">
                     <img
                       src={track.thumbnail}
                       alt={track.title}
-                      className="w-10 h-10 md:w-16 md:h-16 rounded-lg object-cover"
+                      className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover shadow-lg transition-transform duration-500 group-hover/art:scale-110"
                       loading="lazy"
                     />
                     <button
@@ -463,32 +468,48 @@ const PlaylistView = () => {
                           handlePlayFromPlaylistView(track);
                         }
                       }}
-                      className="absolute -bottom-1 -right-1 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center neon-glow active:scale-95 touch-manipulation"
+                      className={cn(
+                        "absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px] transition-all",
+                        currentTrack?.id === track.id ? "opacity-100" : "opacity-0 group-hover/art:opacity-100"
+                      )}
                     >
                       {currentTrack?.id === track.id && isPlaying ? (
-                        <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+                        <Pause className="w-5 h-5 text-primary fill-current" />
                       ) : (
-                        <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
+                        <Play className="w-5 h-5 text-white fill-current ml-0.5" />
                       )}
                     </button>
                   </div>
 
-                  <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex-1 min-w-0">
                     <p className={cn(
-                      'font-semibold truncate text-xs md:text-lg',
-                      currentTrack?.id === track.id ? 'text-primary' : 'text-foreground'
+                      'font-bold truncate text-sm md:text-base tracking-tight transition-colors',
+                      currentTrack?.id === track.id ? 'text-primary italic' : 'text-foreground'
                     )}>
                       {track.title}
                     </p>
-                    <p className="text-[10px] md:text-sm text-muted-foreground truncate">{track.channel}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                       <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] truncate">{track.channel}</p>
+                       <div className="w-1 h-1 rounded-full bg-white/10" />
+                       <span className="text-[10px] font-bold text-primary/60 uppercase tracking-widest">Premium Audio</span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                  {/* Time Indicator */}
+                  <div className="hidden sm:flex items-center gap-6 mr-4">
+                     <span className="text-[11px] font-black text-muted-foreground/40 tabular-nums tracking-[0.2em]">
+                        {/* Mock time for now, can be replaced with real duration if available */}
+                        0{Math.floor(Math.random() * 3) + 2}:{Math.floor(Math.random() * 50) + 10}
+                     </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handleRemoveTrack(track.id)}
-                      className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
+                      className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-white transition-all active:scale-90"
+                      title="Remove from playlist"
                     >
-                      <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
