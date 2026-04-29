@@ -62,7 +62,7 @@ const Settings = () => {
   useEffect(() => {
     if (!user) return;
     const checkAdmin = async () => {
-      if (user.email === 'admin@gmail.com') {
+      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
         setIsAdmin(true);
         return;
       }

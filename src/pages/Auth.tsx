@@ -35,7 +35,7 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success('Welcome back!');
-        if (data.user?.email === 'admin@gmail.com') {
+        if (data.user?.email === 'admin@gmail.com' || data.user?.email === 'sahalshihabudheen@gmail.com') {
           navigate('/admin');
         } else {
           navigate('/');
