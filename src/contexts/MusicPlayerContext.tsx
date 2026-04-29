@@ -172,20 +172,35 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
       const bass = ctx.createBiquadFilter();
       bass.type = 'lowshelf';
-      bass.frequency.value = 200;
+      bass.frequency.value = 150;
       bass.gain.value = 0;
       bassNodeRef.current = bass;
 
+      // 8D Reverb / Delay Nodes
+      const delay = ctx.createDelay();
+      delay.delayTime.value = 0.05; // Tight stadium echo
+      delayNodeRef.current = delay;
+
+      const feedback = ctx.createGain();
+      feedback.gain.value = 0; // Default off
+      feedbackNodeRef.current = feedback;
+
       // Connect: Source -> Bass -> Panner -> Destination
+      // Feed: Panner -> Delay -> Feedback -> Panner (Echo Loop)
       source.connect(bass);
       bass.connect(panner);
       panner.connect(ctx.destination);
+      
+      panner.connect(delay);
+      delay.connect(feedback);
+      feedback.connect(panner);
+      
     } catch (e) {
       console.error('Audio Engine Init Failed:', e);
     }
   }, []);
 
-  // DJ Mode Logic
+  // DJ Mode Logic (EXTREME 8D)
   useEffect(() => {
     if (djMode) {
       if (audioContextRef.current?.state === 'suspended') {
@@ -193,20 +208,30 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
 
       if (bassNodeRef.current) {
-        bassNodeRef.current.gain.setTargetAtTime(15, audioContextRef.current!.currentTime, 0.1);
+        // Extreme Bass Boost
+        bassNodeRef.current.gain.setTargetAtTime(25, audioContextRef.current!.currentTime, 0.1);
+      }
+
+      if (feedbackNodeRef.current) {
+        // Activate Reverb Echo
+        feedbackNodeRef.current.gain.setTargetAtTime(0.4, audioContextRef.current!.currentTime, 0.1);
       }
 
       let side = 1; // 1 = Right, -1 = Left
       djIntervalRef.current = window.setInterval(() => {
         if (pannerNodeRef.current && audioContextRef.current) {
           const now = audioContextRef.current.currentTime;
-          pannerNodeRef.current.pan.setTargetAtTime(side, now, 0.5);
+          // Hard bounce panning
+          pannerNodeRef.current.pan.exponentialRampToValueAtTime(side, now + 1.5);
           side = side === 1 ? -1 : 1;
         }
-      }, 4000); // Shift every 4 seconds
+      }, 2500); // Bounce every 2.5 seconds
     } else {
       if (bassNodeRef.current && audioContextRef.current) {
         bassNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
+      }
+      if (feedbackNodeRef.current && audioContextRef.current) {
+        feedbackNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
       }
       if (pannerNodeRef.current && audioContextRef.current) {
         pannerNodeRef.current.pan.setTargetAtTime(0, audioContextRef.current.currentTime, 0.5);
