@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal, Share2, Zap, Heart, Music2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import StyledProgressBar from './StyledProgressBar';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import EqualizerPanel from './EqualizerPanel';
 import { ScrollArea } from './ui/scroll-area';
+import { toast } from 'sonner';
 
 interface Track {
   id: string;
@@ -61,12 +62,11 @@ const FullscreenPlayer = ({
   const [showEQ, setShowEQ] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Animate in/out
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
     } else {
-      const timer = setTimeout(() => setIsVisible(false), 300);
+      const timer = setTimeout(() => setIsVisible(false), 500);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -78,9 +78,14 @@ const FullscreenPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
+  const handleShare = () => {
+    if (currentTrack) {
+      const shareUrl = `${window.location.origin}/api/og?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}`;
+      navigator.clipboard.writeText(shareUrl);
+      toast.success('Share link copied!');
+    }
+  };
 
-  // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -91,16 +96,12 @@ const FullscreenPlayer = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Lock page scroll while fullscreen is open
   useEffect(() => {
     if (!isOpen) return;
     const prevOverflow = document.body.style.overflow;
-    const prevTouchAction = document.body.style.touchAction;
     document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
     return () => {
       document.body.style.overflow = prevOverflow;
-      document.body.style.touchAction = prevTouchAction;
     };
   }, [isOpen]);
 
@@ -109,380 +110,191 @@ const FullscreenPlayer = ({
   const node = (
     <div
       className={cn(
-        // Use dvh to avoid “not fully fullscreen” on mobile browser UI.
-        "fixed inset-0 z-[9999] w-screen h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden",
-        "transition-all duration-300",
-        "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
-        isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        "fixed inset-0 z-[9999] w-screen h-[100dvh] flex flex-col overflow-hidden transition-all duration-700 ease-in-out",
+        isOpen ? "opacity-100 scale-100" : "opacity-0 scale-110 pointer-events-none"
       )}
-      style={{
-        background: `linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)`,
-      }}
       role="dialog"
       aria-modal="true"
     >
-      {/* Background with album art blur */}
-      {currentTrack && (
-        <div 
-          className="absolute inset-0 opacity-20 blur-3xl scale-110"
-          style={{
-            backgroundImage: `url(${currentTrack.thumbnail})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        />
-      )}
-      
-      {/* Gradient overlay */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 50% 0%, hsl(var(--primary) / 0.15), transparent 60%),
-                       linear-gradient(180deg, transparent 0%, hsl(0 0% 3% / 0.8) 100%)`,
-        }}
-      />
+      {/* Immersive Background */}
+      <div className="absolute inset-0 bg-[#080808]">
+        {currentTrack && (
+          <div 
+            className="absolute inset-0 opacity-40 blur-[120px] scale-150 transition-all duration-1000"
+            style={{
+              backgroundImage: `url(${currentTrack.thumbnail})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#080808]/80 to-[#080808]" />
+      </div>
 
       {/* Header */}
-      <header className="relative flex items-center justify-between px-4 py-3 md:px-6 md:py-4 flex-shrink-0">
-        <button
-          onClick={onClose}
-          className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all active:scale-95 touch-manipulation"
-          aria-label="Close"
-        >
+      <header className="relative z-10 flex items-center justify-between px-6 py-6 md:px-10">
+        <button onClick={onClose} className="w-12 h-12 rounded-2xl glass-premium border-white/5 flex items-center justify-center transition-all active:scale-90 hover:bg-white/10">
           <ChevronDown className="w-6 h-6" />
         </button>
         
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest">Now Playing</p>
-          <p className="text-sm font-medium text-foreground/80 truncate max-w-[200px]">
-            {currentTrack?.channel || 'Unknown Artist'}
-          </p>
+        <div className="text-center group cursor-default">
+          <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-1">Now Playing</p>
+          <div className="flex items-center justify-center gap-2">
+             <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+             <p className="text-sm font-black text-foreground uppercase tracking-widest">{currentTrack?.channel || 'Unknown'}</p>
+          </div>
         </div>
         
-        <button
-          onClick={() => setShowQueue(!showQueue)}
-          className={cn(
-            "w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-95 touch-manipulation",
-            showQueue ? "text-primary" : "bg-white/10 hover:bg-white/20"
-          )}
-          style={showQueue ? { background: 'var(--theme-gradient, hsl(var(--primary) / 0.2))' } : undefined}
-          aria-label="Toggle queue"
-        >
+        <button onClick={() => setShowQueue(!showQueue)} className={cn("w-12 h-12 rounded-2xl glass-premium border-white/5 flex items-center justify-center transition-all active:scale-90", showQueue ? "bg-primary text-primary-foreground border-primary" : "hover:bg-white/10")}>
           <ListMusic className="w-5 h-5" />
         </button>
       </header>
 
-      {/* Main Content Area */}
-      <main className="relative flex-1 flex flex-col items-center justify-center px-6 py-4 overflow-y-auto overflow-x-hidden overscroll-contain">
-        {/* Queue Panel - Mobile Overlay / Desktop Side Panel */}
+      {/* Main Area */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-20">
+        <div className={cn(
+          "flex flex-col items-center transition-all duration-700 w-full max-w-4xl",
+          showQueue ? "md:opacity-0 md:scale-90 md:pointer-events-none" : "opacity-100 scale-100"
+        )}>
+          {/* Album Art */}
+          <div className="relative group mb-10">
+             <div className={cn("absolute -inset-10 rounded-[3rem] bg-primary/20 blur-[60px] transition-opacity duration-1000", isPlaying ? "opacity-100" : "opacity-0")} />
+             <div className="relative aspect-square w-64 sm:w-80 md:w-[400px] rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 transform transition-transform duration-1000 hover:scale-[1.02]">
+                <img src={currentTrack?.thumbnail} alt={track.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+             </div>
+          </div>
+
+          {/* Track Info */}
+          <div className="text-center mb-10 w-full">
+             <h1 className="text-3xl md:text-5xl font-black text-foreground tracking-tighter uppercase italic mb-3 line-clamp-2 px-4">
+                {currentTrack?.title}
+             </h1>
+             <div className="flex items-center justify-center gap-3">
+                <Music2 className="w-4 h-4 text-primary" />
+                <span className="text-sm font-bold text-muted-foreground uppercase tracking-[0.2em]">{currentTrack?.channel}</span>
+                <Zap className="w-4 h-4 text-primary animate-pulse" />
+             </div>
+          </div>
+
+          {/* Soundwave */}
+          <div className="w-full max-w-md mb-10">
+             <div className="glass-premium border border-white/5 p-6 rounded-3xl shadow-xl">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-16 w-full" shape="spectrum" />
+                <p className="text-center text-[9px] font-black text-primary/40 uppercase tracking-[0.5em] mt-4">Audio Engine Active</p>
+             </div>
+          </div>
+
+          {/* Progress */}
+          <div className="w-full max-w-2xl px-4 mb-12">
+             <StyledProgressBar progress={progress} duration={duration} onSeek={onSeek} className="mb-4" />
+             <div className="flex justify-between text-xs font-black text-muted-foreground/60 tabular-nums tracking-widest">
+                <span>{formatTime(progress)}</span>
+                <span>{formatTime(duration)}</span>
+             </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-6 md:gap-10">
+             <button onClick={onToggleShuffle} className={cn("p-4 rounded-2xl transition-all", shuffleMode ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground")}>
+                <Shuffle className="w-6 h-6" />
+             </button>
+             
+             <button onClick={onPrevious} className="p-4 rounded-full glass-premium border-white/5 hover:bg-white/10 transition-all active:scale-75">
+                <SkipBack className="w-8 h-8 fill-current" />
+             </button>
+             
+             <button onClick={onPlayPause} className="w-24 h-24 md:w-32 md:h-32 rounded-[2.5rem] flex items-center justify-center transition-all duration-500 active:scale-90 relative shadow-[0_20px_50px_rgba(var(--primary),0.3)]" style={{ background: 'var(--theme-gradient, hsl(var(--primary)))' }}>
+                <div className="relative text-primary-foreground">
+                  {isPlaying ? <Pause className="w-10 h-10 md:w-12 md:h-12 fill-current" /> : <Play className="w-10 h-10 md:w-12 md:h-12 fill-current ml-2" />}
+                </div>
+             </button>
+
+             <button onClick={onNext} className="p-4 rounded-full glass-premium border-white/5 hover:bg-white/10 transition-all active:scale-75">
+                <SkipForward className="w-8 h-8 fill-current" />
+             </button>
+
+             <button onClick={onCycleLoopMode} className={cn("p-4 rounded-2xl transition-all", loopMode !== 'off' ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground")}>
+                {loopMode === 'one' ? <Repeat1 className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}
+             </button>
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="mt-12 flex items-center gap-4">
+             <button onClick={() => setShowEQ(!showEQ)} className={cn("flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", showEQ ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10")}>
+                <SlidersHorizontal className="w-4 h-4" />
+                Equalizer
+             </button>
+             <button onClick={handleShare} className="p-3 rounded-2xl glass-premium border-white/5 hover:bg-white/10 transition-all">
+                <Share2 className="w-5 h-5" />
+             </button>
+          </div>
+        </div>
+
+        {/* Queue Overlay (Desktop Side) */}
         {showQueue && (
-          <>
-            {/* Mobile: Full overlay */}
-            <div className="md:hidden fixed inset-0 z-50 bg-background/98 backdrop-blur-xl flex flex-col animate-fade-in">
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <h3 className="font-semibold text-lg text-foreground flex items-center gap-2">
-                  <ListMusic className="w-5 h-5 text-primary" />
-                  Queue ({queue.length})
-                </h3>
-                <button
-                  onClick={() => setShowQueue(false)}
-                  className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <ScrollArea className="flex-1">
-                {queue.length > 0 ? (
-                  <div className="p-3 space-y-2">
-                    {queue.map((track, index) => (
-                      <div
-                        key={track.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-white/5 active:bg-white/10 transition-all"
-                        onClick={() => {
-                          onPlayFromQueue?.(track);
-                          setShowQueue(false);
-                        }}
-                      >
-                        <span className="w-6 text-center text-sm text-primary font-bold">
-                          {index + 1}
-                        </span>
-                        <img
-                          src={track.thumbnail}
-                          alt={track.title}
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate text-foreground">{track.title}</p>
-                          <p className="text-sm text-muted-foreground truncate">{track.channel}</p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveFromQueue?.(track.id);
-                          }}
-                          className="w-10 h-10 rounded-full hover:bg-destructive/20 hover:text-destructive flex items-center justify-center"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 md:p-10 animate-fade-in">
+             <div className="w-full max-w-2xl h-full glass-premium border border-white/10 rounded-[3rem] flex flex-col overflow-hidden shadow-2xl backdrop-blur-3xl">
+                <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                      <ListMusic className="w-8 h-8 text-primary" />
+                      <div>
+                         <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter italic">Engine Queue</h3>
+                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{queue.length} Tracks Ready</p>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
-                    <ListMusic className="w-16 h-16 mb-4 opacity-20" />
-                    <p className="text-lg font-medium">Queue is empty</p>
-                    <p className="text-sm opacity-60 mt-1">Add songs to play next</p>
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
-            
-            {/* Desktop: Side panel */}
-            <div className="hidden md:flex absolute right-4 top-0 bottom-0 w-80 lg:w-96 bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 flex-col animate-scale-in overflow-hidden">
-              <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                <h3 className="font-semibold text-foreground flex items-center gap-2">
-                  <ListMusic className="w-5 h-5 text-primary" />
-                  Queue ({queue.length})
-                </h3>
-                <button
-                  onClick={() => setShowQueue(false)}
-                  className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <ScrollArea className="flex-1">
-                {queue.length > 0 ? (
-                  <div className="p-2 space-y-1">
-                    {queue.map((track, index) => (
-                      <div
-                        key={track.id}
-                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 group transition-all cursor-pointer"
-                        onClick={() => onPlayFromQueue?.(track)}
-                      >
-                        <span className="w-6 text-center text-sm text-muted-foreground font-mono">
-                          {index + 1}
-                        </span>
-                        <div className="relative w-10 h-10 flex-shrink-0">
-                          <img
-                            src={track.thumbnail}
-                            alt={track.title}
-                            className="w-full h-full rounded object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded transition-opacity">
-                            <Play className="w-4 h-4" fill="currentColor" />
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate text-foreground">{track.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">{track.channel}</p>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveFromQueue?.(track.id);
-                          }}
-                          className="w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive flex items-center justify-center transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                   </div>
+                   <button onClick={() => setShowQueue(false)} className="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center">
+                      <X className="w-6 h-6" />
+                   </button>
+                </div>
+                <ScrollArea className="flex-1 p-4">
+                   {queue.length > 0 ? (
+                      <div className="space-y-2">
+                         {queue.map((track, idx) => (
+                            <div key={track.id} className="flex items-center gap-4 p-4 rounded-3xl hover:bg-white/5 transition-all cursor-pointer group" onClick={() => onPlayFromQueue?.(track)}>
+                               <span className="text-xs font-black text-primary/40 w-6">{idx + 1}</span>
+                               <img src={track.thumbnail} className="w-14 h-14 rounded-2xl object-cover" />
+                               <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
+                                  <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">{track.channel}</p>
+                               </div>
+                               <button onClick={(e) => { e.stopPropagation(); onRemoveFromQueue?.(track.id); }} className="p-3 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
+                                  <Trash2 className="w-5 h-5" />
+                               </button>
+                            </div>
+                         ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
-                    <ListMusic className="w-12 h-12 mb-3 opacity-20" />
-                    <p className="text-sm">Queue is empty</p>
-                  </div>
-                )}
-              </ScrollArea>
-            </div>
-          </>
-        )}
-
-        {/* Album Art */}
-        <div className={cn(
-          "relative mb-6 md:mb-8 transition-all duration-300",
-          showQueue && "md:mr-80 lg:mr-96"
-        )}>
-          {/* Glow effect */}
-          <div 
-            className={cn(
-              "absolute -inset-6 md:-inset-10 rounded-3xl blur-3xl transition-opacity duration-700",
-              isPlaying ? "opacity-50" : "opacity-20"
-            )}
-            style={{ background: 'var(--theme-gradient, hsl(var(--primary)))' }}
-          />
-          
-          {/* Album image */}
-          <div className="relative">
-            <img
-              src={currentTrack?.thumbnail || '/placeholder.svg'}
-              alt={currentTrack?.title || 'No track'}
-              className={cn(
-                "w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-2xl md:rounded-3xl object-cover shadow-2xl transition-transform duration-700",
-                isPlaying && "scale-[1.02]"
-              )}
-            />
-            
-            {/* Playing indicator overlay */}
-            {isPlaying && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm rounded-full px-3 py-1.5 flex gap-0.5">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-0.5 bg-primary rounded-full equalizer-bar"
-                    style={{ height: '12px' }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Track Info */}
-        <div className={cn(
-          "text-center mb-4 md:mb-6 max-w-sm md:max-w-lg px-4 transition-all duration-300",
-          showQueue && "md:mr-80 lg:mr-96"
-        )}>
-          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-1 line-clamp-2">
-            {currentTrack?.title || 'No track selected'}
-          </h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            {currentTrack?.channel || 'Select a track to play'}
-          </p>
-        </div>
-
-        {/* Soundwave Visualizer */}
-        {settings.soundwaveEnabled && (
-          <div className={cn(
-            "w-full max-w-xs md:max-w-sm mb-6 transition-all duration-300",
-            showQueue && "md:mr-80 lg:mr-96"
-          )}>
-            <div className="bg-black/40 rounded-xl px-4 py-3 border border-primary/20">
-              <SoundwaveVisualizer isPlaying={isPlaying} className="h-12 md:h-16 w-full" />
-            </div>
+                   ) : (
+                      <div className="flex flex-col items-center justify-center h-full opacity-20">
+                         <Music2 className="w-20 h-20 mb-4" />
+                         <p className="font-black uppercase tracking-widest">Queue Empty</p>
+                      </div>
+                   )}
+                </ScrollArea>
+             </div>
           </div>
         )}
 
-        {/* Progress Bar */}
-        <div className={cn(
-          "w-full max-w-xs sm:max-w-sm md:max-w-md px-2 mb-6 md:mb-8 transition-all duration-300",
-          showQueue && "md:mr-80 lg:mr-96"
-        )}>
-          <StyledProgressBar
-            progress={progress}
-            duration={duration}
-            onSeek={onSeek}
-            className="w-full"
-          />
-          <div className="flex justify-between mt-2 text-xs md:text-sm text-muted-foreground font-mono">
-            <span>{formatTime(progress)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className={cn(
-          "flex items-center justify-center gap-3 sm:gap-4 md:gap-6 transition-all duration-300",
-          showQueue && "md:mr-80 lg:mr-96"
-        )}>
-          <button 
-            onClick={onToggleShuffle}
-            className={cn(
-              'w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
-              shuffleMode ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
-            )}
-            style={shuffleMode ? { background: 'var(--theme-gradient, hsl(var(--primary) / 0.2))' } : undefined}
-          >
-            <Shuffle className="w-5 h-5" />
-          </button>
-          
-          <button
-            onClick={onPrevious}
-            className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center transition-all active:scale-90 touch-manipulation"
-          >
-            <SkipBack className="w-6 h-6" fill="currentColor" />
-          </button>
-          
-          <button
-            onClick={onPlayPause}
-            className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all active:scale-95 relative touch-manipulation"
-            style={{ background: 'var(--theme-gradient, hsl(var(--primary)))' }}
-          >
-            {isPlaying && (
-              <div 
-                className="absolute inset-0 rounded-full blur-xl animate-pulse"
-                style={{ background: 'var(--theme-gradient, hsl(var(--primary) / 0.4))' }}
-              />
-            )}
-            <div className="relative text-primary-foreground">
-              {isPlaying ? (
-                <Pause className="w-7 h-7 md:w-8 md:h-8" fill="currentColor" />
-              ) : (
-                <Play className="w-7 h-7 md:w-8 md:h-8 ml-1" fill="currentColor" />
-              )}
-            </div>
-          </button>
-          
-          <button
-            onClick={onNext}
-            className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center transition-all active:scale-90 touch-manipulation"
-          >
-            <SkipForward className="w-6 h-6" fill="currentColor" />
-          </button>
-          
-          <button 
-            onClick={onCycleLoopMode}
-            className={cn(
-              'w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all active:scale-90 touch-manipulation',
-              loopMode !== 'off' ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-white/10'
-            )}
-            style={loopMode !== 'off' ? { background: 'var(--theme-gradient, hsl(var(--primary) / 0.2))' } : undefined}
-            title={`Loop: ${loopMode}`}
-          >
-            {loopMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
-          </button>
-        </div>
-
-        {/* Equalizer Toggle */}
-        <div className={cn(
-          "mt-4 flex justify-center transition-all duration-300",
-          showQueue && "md:mr-80 lg:mr-96"
-        )}>
-          <button
-            onClick={() => setShowEQ(!showEQ)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all active:scale-95 touch-manipulation",
-              showEQ
-                ? "bg-primary text-primary-foreground"
-                : "bg-white/10 text-muted-foreground hover:text-foreground hover:bg-white/15"
-            )}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Equalizer
-          </button>
-        </div>
-
-        {/* Equalizer Panel */}
-        {audioRef && (
-          <div className={cn(
-            "mt-3 w-full max-w-sm md:max-w-md px-2 transition-all duration-300",
-            showQueue && "md:mr-80 lg:mr-96"
-          )}>
-            <EqualizerPanel
-              audioRef={audioRef}
-              isOpen={showEQ}
-              onClose={() => setShowEQ(false)}
-            />
+        {/* Equalizer Overlay */}
+        {showEQ && audioRef && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
+             <div className="w-full max-w-sm glass-premium border border-white/10 rounded-[3rem] p-10 shadow-2xl backdrop-blur-3xl">
+                <div className="flex items-center justify-between mb-8">
+                   <h3 className="text-xl font-black text-foreground uppercase italic tracking-tighter">Audio Matrix</h3>
+                   <button onClick={() => setShowEQ(false)} className="w-10 h-10 rounded-xl hover:bg-white/5 flex items-center justify-center">
+                      <X className="w-5 h-5" />
+                   </button>
+                </div>
+                <EqualizerPanel audioRef={audioRef} isOpen={showEQ} onClose={() => setShowEQ(false)} />
+             </div>
           </div>
         )}
       </main>
     </div>
   );
 
-  // Render at document.body so it always sits above Sidebar/Navbar/MusicPlayer stacking contexts
   return createPortal(node, document.body);
 };
 
 export default FullscreenPlayer;
+
