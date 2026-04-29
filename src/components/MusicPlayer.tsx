@@ -311,23 +311,50 @@ const MusicPlayer = ({
           )}>
             {currentTrack && (
                <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/5 border border-white/5 mr-2">
-                 {/* DJ Mode Button */}
-                 <button 
-                  onClick={toggleDJMode} 
-                  className={cn(
-                    "p-2 rounded-xl transition-all duration-500 relative group/dj", 
-                    djMode ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-                  )}
-                  title={isHeadphoneConnected ? "DJ Mode (Headphones Detected)" : "DJ Mode (Optimized for Headsets)"}
-                 >
-                    <Headphones className={cn("w-4 h-4 transition-transform duration-500", djMode && "scale-110")} />
-                    {djMode && (
-                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                      </span>
+                 {/* DJ Mode Controls */}
+                 <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+                   <button 
+                    onClick={() => toggleDJMode('left')} 
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black transition-all", 
+                      djMode === 'left' ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.4)]" : "text-muted-foreground hover:bg-white/10"
                     )}
-                 </button>
+                    title="Hard Left Ear"
+                   >
+                     L
+                   </button>
+                   <button 
+                    onClick={() => toggleDJMode('auto')} 
+                    className={cn(
+                      "w-9 h-8 rounded-lg flex items-center justify-center text-[10px] font-black transition-all relative overflow-hidden", 
+                      djMode === 'auto' ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "text-muted-foreground hover:bg-white/10"
+                    )}
+                    title="Auto 8D Panning"
+                   >
+                     {djMode === 'auto' && <span className="absolute inset-0 bg-white/20 animate-pulse" />}
+                     8D
+                   </button>
+                   <button 
+                    onClick={() => toggleDJMode('right')} 
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black transition-all", 
+                      djMode === 'right' ? "bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.4)]" : "text-muted-foreground hover:bg-white/10"
+                    )}
+                    title="Hard Right Ear"
+                   >
+                     R
+                   </button>
+                   <button 
+                    onClick={() => toggleDJMode('off')} 
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive transition-all",
+                      djMode === 'off' && "opacity-20"
+                    )}
+                    title="Disable DJ Mode"
+                   >
+                     <VolumeX className="w-3 h-3" />
+                   </button>
+                 </div>
 
                  <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                     <Music2 className="w-4 h-4" />

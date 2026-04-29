@@ -19,7 +19,7 @@ interface MusicPlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
   useBackgroundAudioMode: boolean;
-  djMode: boolean;
+  djMode: 'off' | 'auto' | 'left' | 'right';
   isHeadphoneConnected: boolean;
 
   // Player refs
@@ -37,7 +37,7 @@ interface MusicPlayerContextType {
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
   handleClearPlaylist: () => void;
-  toggleDJMode: () => void;
+  toggleDJMode: (mode?: 'off' | 'auto' | 'left' | 'right') => void;
 
   // Playlist & Queue
   playlist: Track[];
@@ -81,7 +81,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
   const [ytApiReady, setYtApiReady] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
-  const [djMode, setDjMode] = useState(false);
+  const [djMode, setDjMode] = useState<'off' | 'auto' | 'left' | 'right'>('off');
   const [isHeadphoneConnected, setIsHeadphoneConnected] = useState(false);
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
@@ -92,6 +92,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const sourceNodeRef = useRef<MediaElementSourceNode | null>(null);
   const pannerNodeRef = useRef<StereoPannerNode | null>(null);
   const bassNodeRef = useRef<BiquadFilterNode | null>(null);
+  const delayNodeRef = useRef<DelayNode | null>(null);
+  const feedbackNodeRef = useRef<GainNode | null>(null);
   const djIntervalRef = useRef<number | null>(null);
 
   // Track which audio source is active to prevent state conflicts
@@ -202,7 +204,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   // DJ Mode Logic (EXTREME 8D)
   useEffect(() => {
-    if (djMode) {
+    if (djMode !== 'off') {
       if (audioContextRef.current?.state === 'suspended') {
         audioContextRef.current.resume();
       }
@@ -217,15 +219,25 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         feedbackNodeRef.current.gain.setTargetAtTime(0.4, audioContextRef.current!.currentTime, 0.1);
       }
 
-      let side = 1; // 1 = Right, -1 = Left
-      djIntervalRef.current = window.setInterval(() => {
+      if (djMode === 'auto') {
+        let side = 1; // 1 = Right, -1 = Left
+        djIntervalRef.current = window.setInterval(() => {
+          if (pannerNodeRef.current && audioContextRef.current) {
+            const now = audioContextRef.current.currentTime;
+            // Hard bounce panning
+            pannerNodeRef.current.pan.exponentialRampToValueAtTime(side, now + 1.5);
+            side = side === 1 ? -1 : 1;
+          }
+        }, 2500); // Bounce every 2.5 seconds
+      } else if (djMode === 'left') {
         if (pannerNodeRef.current && audioContextRef.current) {
-          const now = audioContextRef.current.currentTime;
-          // Hard bounce panning
-          pannerNodeRef.current.pan.exponentialRampToValueAtTime(side, now + 1.5);
-          side = side === 1 ? -1 : 1;
+          pannerNodeRef.current.pan.setTargetAtTime(-1, audioContextRef.current.currentTime, 0.2);
         }
-      }, 2500); // Bounce every 2.5 seconds
+      } else if (djMode === 'right') {
+        if (pannerNodeRef.current && audioContextRef.current) {
+          pannerNodeRef.current.pan.setTargetAtTime(1, audioContextRef.current.currentTime, 0.2);
+        }
+      }
     } else {
       if (bassNodeRef.current && audioContextRef.current) {
         bassNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
@@ -245,8 +257,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, [djMode]);
 
-  const toggleDJMode = useCallback(() => {
-    if (!isHeadphoneConnected && !djMode) {
+  const toggleDJMode = useCallback((mode?: 'off' | 'auto' | 'left' | 'right') => {
+    if (!isHeadphoneConnected && djMode === 'off') {
       toast.info('Connect headphones for the best DJ experience!', {
         description: 'DJ Mode uses spatial ear-to-ear panning.',
       });
@@ -256,8 +268,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       initAudioEngine();
     }
     
-    setDjMode(prev => !prev);
-    if (!djMode) {
+    if (mode) {
+      setDjMode(mode);
+    } else {
+      setDjMode(prev => {
+        if (prev === 'off') return 'auto';
+        if (prev === 'auto') return 'left';
+        if (prev === 'left') return 'right';
+        return 'off';
+      });
+    }
+    
+    if (djMode === 'off') {
       toast.success('DJ Mode Active 🎧', {
         description: 'Spatial panning and Bass boost enabled.',
       });
