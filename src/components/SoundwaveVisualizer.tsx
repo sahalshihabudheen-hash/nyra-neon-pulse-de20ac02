@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
-import AdvancedVisualizer from './AdvancedVisualizer';
 
-export type SoundwaveShape = 'bars' | 'waves' | 'dots' | 'pulse' | 'spectrum' | '3d-cyber' | '3d-nebula';
+export type SoundwaveShape = 'bars' | 'waves' | 'dots' | 'pulse' | 'spectrum';
 
 interface SoundwaveVisualizerProps {
   isPlaying: boolean;
@@ -233,11 +232,6 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
         ))}
       </div>
     );
-  }
-
-  // 3D Visualizer Skins
-  if (shape === '3d-cyber' || shape === '3d-nebula') {
-    return <AdvancedVisualizer theme={shape === '3d-cyber' ? 'cyber' : 'nebula'} className={className} />;
   }
 
   return null;

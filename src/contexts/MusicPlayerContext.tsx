@@ -23,7 +23,6 @@ interface MusicPlayerContextType {
   // Player refs
   ytPlayerRef: React.MutableRefObject<any>;
   audioRef: React.MutableRefObject<HTMLAudioElement | null>;
-  analyserRef: React.MutableRefObject<AnalyserNode | null>;
 
   // Actions
   handlePlayTrack: (track: Track, trackList?: Track[]) => void;
@@ -83,28 +82,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
 
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceNodeRef = useRef<MediaElementSourceNode | null>(null);
-
-  const initAnalyser = useCallback(() => {
-    if (!audioRef.current || analyserRef.current) return;
-    try {
-      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioContextClass();
-      audioContextRef.current = ctx;
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
-      analyserRef.current = analyser;
-      const source = ctx.createMediaElementSource(audioRef.current);
-      sourceNodeRef.current = source;
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-    } catch (e) {
-      console.warn('Analyser Init Failed:', e);
-    }
-  }, []);
-
 
 
   // Track which audio source is active to prevent state conflicts
@@ -143,9 +120,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current.src = '';
-        }
-        if (audioContextRef.current) {
-          audioContextRef.current.close();
         }
       };
     }, []);
@@ -281,11 +255,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           }
           
           audioRef.current.currentTime = ytCurrentTime;
-          initAnalyser();
-          
-          if (audioContextRef.current?.state === 'suspended') {
-            audioContextRef.current.resume();
-          }
           
           audioRef.current.play()
             .then(() => {
@@ -335,13 +304,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-          initAnalyser();
-          if (audioContextRef.current?.state === 'suspended') {
-            audioContextRef.current.resume();
-          }
-        }).catch(() => {});
+        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
       }
       return;
     }
@@ -508,7 +471,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   return (
     <MusicPlayerContext.Provider value={{
       currentTrack, isPlaying, useBackgroundAudioMode,
-      ytPlayerRef, audioRef, analyserRef,
+      ytPlayerRef, audioRef,
       handlePlayTrack, handlePlayPause, handleNext, handlePrevious,
       handlePlayFromPlaylist, handlePlayFromQueue,
       handleAddToPlaylist, handleAddToQueue,
