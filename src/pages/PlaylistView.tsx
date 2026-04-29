@@ -75,7 +75,9 @@ const PlaylistView = () => {
         .from('playlists')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.id)
         .single();
+
 
       if (playlistError) throw playlistError;
       setPlaylist(playlistData);

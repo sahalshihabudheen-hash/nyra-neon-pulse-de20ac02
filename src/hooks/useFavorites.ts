@@ -107,12 +107,19 @@ export function useFavorites() {
 
   const toggleFavorite = useCallback(async (track: Track) => {
     const isFav = favorites.some(f => f.track_id === track.id);
+    let success = false;
     if (isFav) {
-      return removeFromFavorites(track.id);
+      success = await removeFromFavorites(track.id);
     } else {
-      return addToFavorites(track);
+      success = await addToFavorites(track);
     }
-  }, [favorites, addToFavorites, removeFromFavorites]);
+    
+    if (success) {
+      await fetchFavorites(); // Force a clean refresh from the server
+    }
+    return success;
+  }, [favorites, addToFavorites, removeFromFavorites, fetchFavorites]);
+
 
   const isFavorite = useCallback((trackId: string) => {
     return favorites.some(f => f.track_id === trackId);
