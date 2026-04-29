@@ -22,19 +22,13 @@ export default async function handler(req: Request) {
   <meta name="title" content="${trackTitle}">
   <meta name="description" content="${trackChannel} · ${appName}">
 
-  <!-- Twitter Player Card (PRIORITY) -->
-  <meta name="twitter:card" content="player">
-  <meta name="twitter:site" content="@nyra">
-  <meta name="twitter:player" content="${embedUrl}">
-  <meta name="twitter:player:width" content="500">
-  <meta name="twitter:player:height" content="250">
+  <!-- Premium Static Music Card (Plan B) -->
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${trackTitle}">
-  <meta name="twitter:description" content="${trackChannel} · ${appName}">
+  <meta name="twitter:description" content="🎵 ${trackChannel} · NYRA PREMIUM">
   <meta name="twitter:image" content="${trackThumbnail}">
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="video.other">
-  <meta property="og:url" content="${url.href}">
+  <meta property="og:type" content="music.song">
   <meta property="og:title" content="${trackTitle}">
   <meta property="og:description" content="${trackChannel} · ${appName}">
   <meta property="og:image" content="${trackThumbnail}">
@@ -42,23 +36,19 @@ export default async function handler(req: Request) {
   <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="${appName}">
 
-  <!-- Interactive Video Tags -->
-  <meta property="og:video" content="${embedUrl}">
-  <meta property="og:video:secure_url" content="${embedUrl}">
-  <meta property="og:video:type" content="text/html">
-  <meta property="og:video:width" content="500">
-  <meta property="og:video:height" content="250">
-  <meta property="og:video:tag" content="music">
-
-
   <meta name="theme-color" content="#ffd300">
   
   <meta http-equiv="refresh" content="0;url=https://nyra-neon-pulse-23e4f39d.vercel.app/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
 </head>
 <body>
-  <p>Redirecting to ${appName}...</p>
+  <div style="background: #0b0b0b; color: white; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif;">
+    <img src="${trackThumbnail}" style="width: 200px; height: 200px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+    <h1 style="margin: 0; font-size: 24px;">${trackTitle}</h1>
+    <p style="color: #888; margin-top: 8px;">Opening in ${appName}...</p>
+  </div>
 </body>
 </html>`;
+
 
   return new Response(html, {
     headers: {
