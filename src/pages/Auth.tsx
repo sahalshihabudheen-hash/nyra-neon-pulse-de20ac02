@@ -12,6 +12,7 @@ const Auth = () => {
   const { settings: appSettings } = useAppSettings();
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,6 +22,17 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        toast.success('Password reset link sent! Check your email.');
+        setIsForgotPassword(false);
+        setIsLogin(true);
+        return;
+      }
+
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -28,7 +40,7 @@ const Auth = () => {
         });
         if (error) throw error;
         toast.success('Welcome back!');
-        if (data.user?.email === 'admin@gmail.com') {
+        if (data.user?.email === 'admin@gmail.com' || data.user?.email === 'sahalshihabudheen@gmail.com') {
           navigate('/admin');
         } else {
           navigate('/');
@@ -159,21 +171,39 @@ const Auth = () => {
                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                   Processing...
                 </div>
-              ) : isLogin ? 'Launch Nyra' : 'Create Account'}
+              ) : isForgotPassword ? 'Send Reset Link' : isLogin ? 'Launch Nyra' : 'Create Account'}
             </Button>
           </form>
 
-          <div className="text-center pt-2">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-xs text-muted-foreground hover:text-primary transition-all duration-300 font-medium tracking-wide"
-            >
-              {isLogin ? (
-                <span>New here? <span className="text-primary underline underline-offset-4 decoration-primary/30">Create an account</span></span>
-              ) : (
-                <span>Already a member? <span className="text-primary underline underline-offset-4 decoration-primary/30">Log in instead</span></span>
-              )}
-            </button>
+          <div className="text-center space-y-3 pt-2">
+            {isLogin && !isForgotPassword && (
+              <button
+                onClick={() => setIsForgotPassword(true)}
+                className="text-xs text-muted-foreground hover:text-primary transition-all duration-300 font-medium tracking-wide block w-full"
+              >
+                Forgot your password?
+              </button>
+            )}
+
+            {isForgotPassword ? (
+              <button
+                onClick={() => setIsForgotPassword(false)}
+                className="text-xs text-muted-foreground hover:text-primary transition-all duration-300 font-medium tracking-wide"
+              >
+                Back to login
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsLogin(!isLogin)}
+                className="text-xs text-muted-foreground hover:text-primary transition-all duration-300 font-medium tracking-wide"
+              >
+                {isLogin ? (
+                  <span>New here? <span className="text-primary underline underline-offset-4 decoration-primary/30">Create an account</span></span>
+                ) : (
+                  <span>Already a member? <span className="text-primary underline underline-offset-4 decoration-primary/30">Log in instead</span></span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </Card>

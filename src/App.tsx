@@ -22,6 +22,7 @@ import Favorites from "./pages/Favorites";
 import Admin from "./pages/Admin";
 import Games from "./pages/Games";
 import AiDj from "./pages/AiDj";
+import ResetPassword from "./pages/ResetPassword";
 import EmbedPlayer from "./components/EmbedPlayer";
 
 import NotFound from "./pages/NotFound";
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/ai-dj" element={<AiDj />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/embed-player" element={<EmbedPlayer />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
