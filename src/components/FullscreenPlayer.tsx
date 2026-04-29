@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal, Share2, Zap, Heart, Music2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal, Share2, Zap, Heart, Music2, Headphones, Minus, Plus, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import StyledProgressBar from './StyledProgressBar';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import EqualizerPanel from './EqualizerPanel';
+import HeadphoneHub from './HeadphoneHub';
 import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 interface Track {
   id: string;
@@ -58,8 +60,10 @@ const FullscreenPlayer = ({
   audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
+  const { djMode } = useMusicPlayer();
   const [showQueue, setShowQueue] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
+  const [showHeadphoneHub, setShowHeadphoneHub] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -232,10 +236,23 @@ const FullscreenPlayer = ({
                 </button>
              </div>
 
-             <button onClick={() => setShowEQ(!showEQ)} className={cn("flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", showEQ ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10")}>
-                <SlidersHorizontal className="w-4 h-4" />
-                Equalizer
-             </button>
+             <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setShowHeadphoneHub(true)} 
+                  className={cn(
+                    "flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", 
+                    djMode !== 'off' ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10"
+                  )}
+                >
+                  <Headphones className="w-4 h-4" />
+                  DJ Engine
+                </button>
+
+                <button onClick={() => setShowEQ(!showEQ)} className={cn("flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", showEQ ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10")}>
+                    <SlidersHorizontal className="w-4 h-4" />
+                    Equalizer
+                </button>
+             </div>
           </div>
         </div>
 
@@ -268,7 +285,7 @@ const FullscreenPlayer = ({
                                </div>
                                <button onClick={(e) => { e.stopPropagation(); onRemoveFromQueue?.(track.id); }} className="p-3 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
                                   <Trash2 className="w-5 h-5" />
-                               </button>
+                                </button>
                             </div>
                          ))}
                       </div>
@@ -297,6 +314,9 @@ const FullscreenPlayer = ({
              </div>
           </div>
         )}
+
+        {/* Headphone Hub Overlay */}
+        <HeadphoneHub isOpen={showHeadphoneHub} onClose={() => setShowHeadphoneHub(false)} />
       </main>
     </div>
   );
