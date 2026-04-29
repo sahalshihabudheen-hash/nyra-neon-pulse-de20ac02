@@ -38,7 +38,9 @@ const App = () => (
           <MusicPlayerProvider>
             <DownloadManagerProvider>
             <MaintenanceGuard>
+              <div className="dynamic-bg" />
               <Routes>
+
                 <Route path="/" element={<Index />} />
                 <Route path="/playlists" element={<PlaylistsManager />} />
                 <Route path="/playlist/:id" element={<PlaylistView />} />
