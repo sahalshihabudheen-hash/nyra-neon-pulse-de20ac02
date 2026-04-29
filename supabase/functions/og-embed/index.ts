@@ -41,19 +41,25 @@ serve(async (req) => {
   <meta property="og:site_name" content="${appName}" />
   
   <!-- Video Embed for Discord/Socials -->
-  <meta property="og:video" content="https://www.youtube.com/v/${trackId}" />
-  <meta property="og:video:secure_url" content="https://www.youtube.com/v/${trackId}" />
-  <meta property="og:video:type" content="application/x-shockwave-flash" />
+  <meta property="og:video" content="https://www.youtube.com/embed/${trackId}" />
+  <meta property="og:video:secure_url" content="https://www.youtube.com/embed/${trackId}" />
+  <meta property="og:video:type" content="text/html" />
   <meta property="og:video:width" content="1280" />
   <meta property="og:video:height" content="720" />
   
-  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:card" content="player" />
+  <meta name="twitter:player" content="https://www.youtube.com/embed/${trackId}" />
+  <meta name="twitter:player:width" content="1280" />
+  <meta name="twitter:player:height" content="720" />
   <meta name="twitter:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
   <meta name="twitter:description" content="${trackChannel.replace(/"/g, '&quot;')} · ${appName}" />
   <meta name="twitter:image" content="${thumbnail}" />
+  
+  <meta property="og:image:width" content="1280" />
+  <meta property="og:image:height" content="720" />
   <meta name="theme-color" content="#ffd300" />
   
-  <meta http-equiv="refresh" content="0;url=${url.origin.replace('/functions/v1/og-embed', '')}/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}" />
+  <meta http-equiv="refresh" content="0;url=https://nyra-neon-pulse-23e4f39d.vercel.app/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}" />
 </head>
 <body>
   <p>Redirecting to ${appName}...</p>
