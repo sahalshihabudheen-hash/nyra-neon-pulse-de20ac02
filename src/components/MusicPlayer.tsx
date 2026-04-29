@@ -212,7 +212,7 @@ const MusicPlayer = ({
 
   const handleShare = () => {
     if (currentTrack) {
-      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-embed?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&channel=${encodeURIComponent(currentTrack.channel)}&thumbnail=${encodeURIComponent(currentTrack.thumbnail)}`;
+      const shareUrl = `https://nyra-neon-pulse-23e4f39d.vercel.app/api/og?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&channel=${encodeURIComponent(currentTrack.channel)}&thumbnail=${encodeURIComponent(currentTrack.thumbnail)}`;
       navigator.clipboard.writeText(shareUrl);
       toast.success('Share link copied!');
     }
