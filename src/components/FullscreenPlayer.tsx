@@ -160,7 +160,7 @@ const FullscreenPlayer = ({
           <div className="relative group mb-10">
              <div className={cn("absolute -inset-10 rounded-[3rem] bg-primary/20 blur-[60px] transition-opacity duration-1000", isPlaying ? "opacity-100" : "opacity-0")} />
              <div className="relative aspect-square w-64 sm:w-80 md:w-[400px] rounded-[3rem] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] border border-white/10 transform transition-transform duration-1000 hover:scale-[1.02]">
-                <img src={currentTrack?.thumbnail} alt={track.title} className="w-full h-full object-cover" />
+                <img src={currentTrack?.thumbnail || ''} alt={currentTrack?.title || 'Track'} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
              </div>
           </div>
