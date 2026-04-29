@@ -16,22 +16,18 @@ export default async function handler(req: Request) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>${trackTitle}</title>
+  <title>🎧 ${trackTitle}</title>
   
   <!-- Primary Meta Tags -->
-  <meta name="title" content="${trackTitle}">
-  <meta name="description" content="${trackChannel} · ${appName}">
+  <meta name="title" content="💖 ${trackTitle}">
+  <meta name="description" content="✨ ${trackChannel} · NYRA PREMIUM • FEEL THE PULSE">
 
-  <!-- Premium Static Music Card (Plan B) -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${trackTitle}">
-  <meta name="twitter:description" content="🎵 ${trackChannel} · NYRA PREMIUM">
-  <meta name="twitter:image" content="${trackThumbnail}">
-
-  <meta property="og:type" content="music.song">
-  <meta property="og:title" content="${trackTitle}">
-  <meta property="og:description" content="${trackChannel} · ${appName}">
+  <meta property="og:type" content="video.other">
+  <meta property="og:site_name" content="NYRA • FEEL THE PULSE">
+  <meta property="og:title" content="🎧 ${trackTitle}">
+  <meta property="og:description" content="✨ ${trackChannel} • Click the link for full Soundwaves!">
   <meta property="og:image" content="${trackThumbnail}">
+
   <!-- YouTube Fakeout to force Play Button -->
   <meta property="og:video" content="https://www.youtube.com/embed/${trackId}">
   <meta property="og:video:secure_url" content="https://www.youtube.com/embed/${trackId}">
