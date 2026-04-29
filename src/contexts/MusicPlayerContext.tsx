@@ -202,8 +202,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       // Source -> Bass -> Splitter
       // Splitter(0) -> LeftGain -> Merger(0)
       // Splitter(1) -> RightGain -> Merger(1)
-      // Merger -> Reverb Loop -> Destination
+      // Merger -> Reverb Loop -> MasterGain -> Destination
       
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 1.5; // Slight boost to prove engine is working
+
       source.connect(bass);
       bass.connect(splitter);
       
@@ -213,10 +216,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       leftGain.connect(merger, 0, 0);
       rightGain.connect(merger, 0, 1);
 
-      merger.connect(ctx.destination);
+      merger.connect(masterGain);
+      masterGain.connect(ctx.destination);
+      
+      // Reverb path
       merger.connect(delay);
       delay.connect(feedback);
       feedback.connect(merger);
+
+      // HIJACK PROOF: Lower direct element volume so we only hear the processed sound
+      if (audioRef.current) {
+        audioRef.current.volume = 0.5; // Lower standard volume
+      }
       
     } catch (e) {
       console.error('Audio Engine Init Failed:', e);
@@ -477,8 +488,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setLastPlayed(track.id);
     setShowMiniPlayer(true);
     recordPlay(track);
+    initAudioEngine(); // FORCE INITIALIZE ON INTERACTION
     playWithBackgroundAudio(track.id);
-  }, [tracks, playWithBackgroundAudio, setLastPlayed, recordPlay]);
+  }, [tracks, playWithBackgroundAudio, setLastPlayed, recordPlay, initAudioEngine]);
 
   const handlePlayFromPlaylist = useCallback((track: Track) => {
     setCurrentTrack(track);
@@ -486,11 +498,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setLastPlayed(track.id);
     setShowMiniPlayer(true);
     recordPlay(track);
+    initAudioEngine(); // FORCE INITIALIZE ON INTERACTION
     playWithBackgroundAudio(track.id);
-  }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
+  }, [playWithBackgroundAudio, setLastPlayed, recordPlay, initAudioEngine]);
 
   const handlePlayPause = useCallback(() => {
     if (activeSourceRef.current === 'background' && audioRef.current && audioRef.current.src) {
+      initAudioEngine(); // FORCE RE-SYNC
       if (isPlaying) {
         audioRef.current.pause();
         setIsPlaying(false);
