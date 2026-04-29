@@ -106,6 +106,7 @@ const FullscreenPlayer = ({
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prevOverflow;
+    };
   }, [isOpen]);
 
   // Center scroll in scroll mode
