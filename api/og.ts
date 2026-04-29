@@ -24,6 +24,7 @@ export default async function handler(req: Request) {
 
   <!-- Twitter Player Card (PRIORITY) -->
   <meta name="twitter:card" content="player">
+  <meta name="twitter:site" content="@nyra">
   <meta name="twitter:player" content="${embedUrl}">
   <meta name="twitter:player:width" content="500">
   <meta name="twitter:player:height" content="250">
@@ -47,6 +48,8 @@ export default async function handler(req: Request) {
   <meta property="og:video:type" content="text/html">
   <meta property="og:video:width" content="500">
   <meta property="og:video:height" content="250">
+  <meta property="og:video:tag" content="music">
+
 
   <meta name="theme-color" content="#ffd300">
   
