@@ -10,6 +10,7 @@ export default async function handler(req: Request) {
   const trackThumbnail = url.searchParams.get('thumbnail') || 'https://nyra-neon-pulse-23e4f39d.vercel.app/og-image.png';
   
   const appName = "NYRA";
+  const embedUrl = `https://nyra-neon-pulse-23e4f39d.vercel.app/embed-player?id=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}`;
   
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -19,38 +20,35 @@ export default async function handler(req: Request) {
   
   <!-- Primary Meta Tags -->
   <meta name="title" content="${trackTitle}">
-  <meta name="description" content="Listen to ${trackTitle} by ${trackChannel} on ${appName}">
+  <meta name="description" content="${trackChannel} · ${appName}">
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="music.song">
+  <!-- Twitter Player Card (PRIORITY) -->
+  <meta name="twitter:card" content="player">
+  <meta name="twitter:player" content="${embedUrl}">
+  <meta name="twitter:player:width" content="500">
+  <meta name="twitter:player:height" content="250">
+  <meta name="twitter:title" content="${trackTitle}">
+  <meta name="twitter:description" content="${trackChannel} · ${appName}">
+  <meta name="twitter:image" content="${trackThumbnail}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="video.other">
   <meta property="og:url" content="${url.href}">
   <meta property="og:title" content="${trackTitle}">
   <meta property="og:description" content="${trackChannel} · ${appName}">
   <meta property="og:image" content="${trackThumbnail}">
-  <meta property="og:site_name" content="${appName}">
-
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="${url.href}">
-  <meta property="twitter:title" content="${trackTitle}">
-  <meta property="twitter:description" content="${trackChannel} · ${appName}">
-  <meta property="twitter:image" content="${trackThumbnail}">
-
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta name="theme-color" content="#ffd300">
+  <meta property="og:site_name" content="${appName}">
 
-  <!-- Interactive Player for Discord -->
-  <meta property="og:video" content="https://nyra-neon-pulse-23e4f39d.vercel.app/embed-player?id=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
-  <meta property="og:video:secure_url" content="https://nyra-neon-pulse-23e4f39d.vercel.app/embed-player?id=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
+  <!-- Interactive Video Tags -->
+  <meta property="og:video" content="${embedUrl}">
+  <meta property="og:video:secure_url" content="${embedUrl}">
   <meta property="og:video:type" content="text/html">
   <meta property="og:video:width" content="500">
   <meta property="og:video:height" content="250">
 
-  <meta name="twitter:card" content="player">
-  <meta name="twitter:player" content="https://nyra-neon-pulse-23e4f39d.vercel.app/embed-player?id=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
-  <meta name="twitter:player:width" content="500">
-  <meta name="twitter:player:height" content="250">
+  <meta name="theme-color" content="#ffd300">
   
   <meta http-equiv="refresh" content="0;url=https://nyra-neon-pulse-23e4f39d.vercel.app/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}">
 </head>
