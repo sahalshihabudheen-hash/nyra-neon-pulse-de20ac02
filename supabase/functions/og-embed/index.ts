@@ -40,17 +40,7 @@ serve(async (req) => {
   <meta property="og:type" content="music.song" />
   <meta property="og:site_name" content="${appName}" />
   
-  <!-- Video Embed for Discord/Socials -->
-  <meta property="og:video" content="https://www.youtube.com/embed/${trackId}" />
-  <meta property="og:video:secure_url" content="https://www.youtube.com/embed/${trackId}" />
-  <meta property="og:video:type" content="text/html" />
-  <meta property="og:video:width" content="1280" />
-  <meta property="og:video:height" content="720" />
-  
-  <meta name="twitter:card" content="player" />
-  <meta name="twitter:player" content="https://www.youtube.com/embed/${trackId}" />
-  <meta name="twitter:player:width" content="1280" />
-  <meta name="twitter:player:height" content="720" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
   <meta name="twitter:description" content="${trackChannel.replace(/"/g, '&quot;')} · ${appName}" />
   <meta name="twitter:image" content="${thumbnail}" />
