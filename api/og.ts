@@ -32,9 +32,17 @@ export default async function handler(req: Request) {
   <meta property="og:title" content="${trackTitle}">
   <meta property="og:description" content="${trackChannel} · ${appName}">
   <meta property="og:image" content="${trackThumbnail}">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta property="og:site_name" content="${appName}">
+  <!-- YouTube Fakeout to force Play Button -->
+  <meta property="og:video" content="https://www.youtube.com/embed/${trackId}">
+  <meta property="og:video:secure_url" content="https://www.youtube.com/embed/${trackId}">
+  <meta property="og:video:type" content="text/html">
+  <meta property="og:video:width" content="1280">
+  <meta property="og:video:height" content="720">
+
+  <meta name="twitter:card" content="player">
+  <meta name="twitter:player" content="https://www.youtube.com/embed/${trackId}">
+  <meta name="twitter:player:width" content="1280">
+  <meta name="twitter:player:height" content="720">
 
   <meta name="theme-color" content="#ffd300">
   
@@ -48,6 +56,7 @@ export default async function handler(req: Request) {
   </div>
 </body>
 </html>`;
+
 
 
   return new Response(html, {
