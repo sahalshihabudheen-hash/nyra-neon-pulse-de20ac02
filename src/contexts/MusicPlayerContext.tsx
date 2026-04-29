@@ -434,7 +434,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     if (useBackgroundAudioMode) {
       fetchAudioUrl(videoId).then((audioUrl) => {
         if (audioUrl && audioRef.current) {
-          audioRef.current.src = audioUrl;
+          // CORS TUNNEL: Enable Web Audio API for cross-origin streams
+          const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(audioUrl)}`;
+          audioRef.current.src = proxiedUrl;
           audioRef.current.load();
           
           let ytCurrentTime = 0;
@@ -443,6 +445,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           }
           
           audioRef.current.currentTime = ytCurrentTime;
+          initAudioEngine(); // Re-initialize to connect nodes to the new proxied stream
+          
           audioRef.current.play()
             .then(() => {
               activeSourceRef.current = 'background';
