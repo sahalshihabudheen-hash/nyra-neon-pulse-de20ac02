@@ -366,7 +366,8 @@ const PlaylistView = () => {
           </div>
 
           {searchResults.length > 0 && (
-            <ScrollArea className="mt-4 max-h-60">
+            <div className="mt-4 h-80 overflow-y-auto pr-2 custom-scrollbar">
+
               <div className="space-y-2">
                 {searchResults.map((track) => (
                   <div
@@ -384,8 +385,9 @@ const PlaylistView = () => {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
           )}
+
         </div>
 
         {/* Playlist Tracks */}
