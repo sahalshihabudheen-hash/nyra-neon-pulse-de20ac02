@@ -167,23 +167,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, []);
 
-  const fetchAudioUrl = useCallback(async (videoId: string): Promise<string | null> => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data.fallback || data.error || !data.audioUrl) return null;
-      return data.audioUrl;
-    } catch {
-      return null;
-    }
-  }, []);
+
 
   const createPlayer = useCallback((videoId: string) => {
     if (ytPlayerRef.current) {
@@ -240,37 +224,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       toast.error('Player not ready. Please try again.');
       return;
     }
-
-    if (useBackgroundAudioMode) {
-      fetchAudioUrl(videoId).then((audioUrl) => {
-        if (audioUrl && audioRef.current) {
-          // CORS TUNNEL: Enable Web Audio API for cross-origin streams
-          const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(audioUrl)}`;
-          audioRef.current.src = proxiedUrl;
-          audioRef.current.load();
-          
-          let ytCurrentTime = 0;
-          if (ytPlayerRef.current) {
-            try { ytCurrentTime = ytPlayerRef.current.getCurrentTime?.() || 0; } catch {}
-          }
-          
-          audioRef.current.currentTime = ytCurrentTime;
-          
-          audioRef.current.play()
-            .then(() => {
-              activeSourceRef.current = 'background';
-              setIsPlaying(true);
-              if (ytPlayerRef.current) {
-                try { ytPlayerRef.current.pauseVideo(); } catch {}
-              }
-            })
-            .catch(() => {
-              setUseBackgroundAudioMode(false);
-            });
-        }
-      });
-    }
-  }, [useBackgroundAudioMode, fetchAudioUrl, ytApiReady, createPlayer]);
+  }, [ytApiReady, createPlayer]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
