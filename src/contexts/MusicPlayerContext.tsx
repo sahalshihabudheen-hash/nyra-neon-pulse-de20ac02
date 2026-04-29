@@ -87,10 +87,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
 
-  // Audio Context & Nodes for DJ Mode
+  // Audio Context & Nodes for DJ Mode (V3 HARD SPLIT)
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<MediaElementSourceNode | null>(null);
-  const pannerNodeRef = useRef<StereoPannerNode | null>(null);
+  const splitterNodeRef = useRef<ChannelSplitterNode | null>(null);
+  const mergerNodeRef = useRef<ChannelMergerNode | null>(null);
+  const leftGainNodeRef = useRef<GainNode | null>(null);
+  const rightGainNodeRef = useRef<GainNode | null>(null);
   const bassNodeRef = useRef<BiquadFilterNode | null>(null);
   const delayNodeRef = useRef<DelayNode | null>(null);
   const feedbackNodeRef = useRef<GainNode | null>(null);
@@ -169,8 +172,16 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       const source = ctx.createMediaElementSource(audioRef.current);
       sourceNodeRef.current = source;
 
-      const panner = ctx.createStereoPanner();
-      pannerNodeRef.current = panner;
+      // Hard Splitter Setup
+      const splitter = ctx.createChannelSplitter(2);
+      const merger = ctx.createChannelMerger(2);
+      const leftGain = ctx.createGain();
+      const rightGain = ctx.createGain();
+      
+      splitterNodeRef.current = splitter;
+      mergerNodeRef.current = merger;
+      leftGainNodeRef.current = leftGain;
+      rightGainNodeRef.current = rightGain;
 
       const bass = ctx.createBiquadFilter();
       bass.type = 'lowshelf';
@@ -178,31 +189,41 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       bass.gain.value = 0;
       bassNodeRef.current = bass;
 
-      // 8D Reverb / Delay Nodes
+      // 8D Reverb
       const delay = ctx.createDelay();
-      delay.delayTime.value = 0.05; // Tight stadium echo
+      delay.delayTime.value = 0.05;
       delayNodeRef.current = delay;
 
       const feedback = ctx.createGain();
-      feedback.gain.value = 0; // Default off
+      feedback.gain.value = 0;
       feedbackNodeRef.current = feedback;
 
-      // Connect: Source -> Bass -> Panner -> Destination
-      // Feed: Panner -> Delay -> Feedback -> Panner (Echo Loop)
-      source.connect(bass);
-      bass.connect(panner);
-      panner.connect(ctx.destination);
+      // Connection Chain:
+      // Source -> Bass -> Splitter
+      // Splitter(0) -> LeftGain -> Merger(0)
+      // Splitter(1) -> RightGain -> Merger(1)
+      // Merger -> Reverb Loop -> Destination
       
-      panner.connect(delay);
+      source.connect(bass);
+      bass.connect(splitter);
+      
+      splitter.connect(leftGain, 0);
+      splitter.connect(rightGain, 1);
+      
+      leftGain.connect(merger, 0, 0);
+      rightGain.connect(merger, 0, 1);
+
+      merger.connect(ctx.destination);
+      merger.connect(delay);
       delay.connect(feedback);
-      feedback.connect(panner);
+      feedback.connect(merger);
       
     } catch (e) {
       console.error('Audio Engine Init Failed:', e);
     }
   }, []);
 
-  // DJ Mode Logic (EXTREME 8D)
+  // DJ Mode Logic (V3 HARD ISOLATION)
   useEffect(() => {
     if (djMode !== 'off') {
       if (audioContextRef.current?.state === 'suspended') {
@@ -220,22 +241,30 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
 
       if (djMode === 'auto') {
-        let side = 1; // 1 = Right, -1 = Left
+        let side = 'left';
         djIntervalRef.current = window.setInterval(() => {
-          if (pannerNodeRef.current && audioContextRef.current) {
+          if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
             const now = audioContextRef.current.currentTime;
-            // Hard bounce panning
-            pannerNodeRef.current.pan.exponentialRampToValueAtTime(side, now + 1.5);
-            side = side === 1 ? -1 : 1;
+            if (side === 'left') {
+              leftGainNodeRef.current.gain.exponentialRampToValueAtTime(1, now + 0.5);
+              rightGainNodeRef.current.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+              side = 'right';
+            } else {
+              leftGainNodeRef.current.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+              rightGainNodeRef.current.gain.exponentialRampToValueAtTime(1, now + 0.5);
+              side = 'left';
+            }
           }
-        }, 2500); // Bounce every 2.5 seconds
+        }, 2000);
       } else if (djMode === 'left') {
-        if (pannerNodeRef.current && audioContextRef.current) {
-          pannerNodeRef.current.pan.setTargetAtTime(-1, audioContextRef.current.currentTime, 0.2);
+        if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
+          leftGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.1);
+          rightGainNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
         }
       } else if (djMode === 'right') {
-        if (pannerNodeRef.current && audioContextRef.current) {
-          pannerNodeRef.current.pan.setTargetAtTime(1, audioContextRef.current.currentTime, 0.2);
+        if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
+          leftGainNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
+          rightGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.1);
         }
       }
     } else {
@@ -245,8 +274,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       if (feedbackNodeRef.current && audioContextRef.current) {
         feedbackNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
       }
-      if (pannerNodeRef.current && audioContextRef.current) {
-        pannerNodeRef.current.pan.setTargetAtTime(0, audioContextRef.current.currentTime, 0.5);
+      if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
+        leftGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.5);
+        rightGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.5);
       }
       if (djIntervalRef.current) {
         clearInterval(djIntervalRef.current);
