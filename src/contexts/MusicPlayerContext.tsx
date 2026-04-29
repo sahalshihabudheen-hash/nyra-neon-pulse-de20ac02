@@ -19,6 +19,8 @@ interface MusicPlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
   useBackgroundAudioMode: boolean;
+  djMode: boolean;
+  isHeadphoneConnected: boolean;
 
   // Player refs
   ytPlayerRef: React.MutableRefObject<any>;
@@ -35,6 +37,7 @@ interface MusicPlayerContextType {
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
   handleClearPlaylist: () => void;
+  toggleDJMode: () => void;
 
   // Playlist & Queue
   playlist: Track[];
@@ -78,9 +81,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
   const [ytApiReady, setYtApiReady] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
+  const [djMode, setDjMode] = useState(false);
+  const [isHeadphoneConnected, setIsHeadphoneConnected] = useState(false);
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
+
+  // Audio Context & Nodes for DJ Mode
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<MediaElementSourceNode | null>(null);
+  const pannerNodeRef = useRef<StereoPannerNode | null>(null);
+  const bassNodeRef = useRef<BiquadFilterNode | null>(null);
+  const djIntervalRef = useRef<number | null>(null);
 
   // Track which audio source is active to prevent state conflicts
   const activeSourceRef = useRef<'youtube' | 'background' | null>(null);
@@ -107,18 +119,125 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     if (!audioRef.current) {
       const audio = new Audio();
       audio.preload = 'auto';
+      audio.crossOrigin = 'anonymous'; // Critical for Web Audio API
       (audio as any).playsInline = true;
       audio.setAttribute('playsinline', 'true');
       audio.setAttribute('webkit-playsinline', 'true');
       audioRef.current = audio;
     }
+
+    // Check for headphones
+    const checkHeadphones = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const hasHeadphones = devices.some(device => 
+          device.kind === 'audiooutput' && 
+          (device.label.toLowerCase().includes('headphone') || device.label.toLowerCase().includes('headset'))
+        );
+        setIsHeadphoneConnected(hasHeadphones);
+      } catch (e) {
+        console.warn('Could not detect audio devices');
+      }
+    };
+
+    checkHeadphones();
+    navigator.mediaDevices.addEventListener('devicechange', checkHeadphones);
+
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
       }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      navigator.mediaDevices.removeEventListener('devicechange', checkHeadphones);
     };
   }, []);
+
+  // Initialize Web Audio nodes
+  const initAudioEngine = useCallback(() => {
+    if (!audioRef.current || audioContextRef.current) return;
+
+    try {
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioContextClass();
+      audioContextRef.current = ctx;
+
+      const source = ctx.createMediaElementSource(audioRef.current);
+      sourceNodeRef.current = source;
+
+      const panner = ctx.createStereoPanner();
+      pannerNodeRef.current = panner;
+
+      const bass = ctx.createBiquadFilter();
+      bass.type = 'lowshelf';
+      bass.frequency.value = 200;
+      bass.gain.value = 0;
+      bassNodeRef.current = bass;
+
+      // Connect: Source -> Bass -> Panner -> Destination
+      source.connect(bass);
+      bass.connect(panner);
+      panner.connect(ctx.destination);
+    } catch (e) {
+      console.error('Audio Engine Init Failed:', e);
+    }
+  }, []);
+
+  // DJ Mode Logic
+  useEffect(() => {
+    if (djMode) {
+      if (audioContextRef.current?.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+
+      if (bassNodeRef.current) {
+        bassNodeRef.current.gain.setTargetAtTime(15, audioContextRef.current!.currentTime, 0.1);
+      }
+
+      let side = 1; // 1 = Right, -1 = Left
+      djIntervalRef.current = window.setInterval(() => {
+        if (pannerNodeRef.current && audioContextRef.current) {
+          const now = audioContextRef.current.currentTime;
+          pannerNodeRef.current.pan.setTargetAtTime(side, now, 0.5);
+          side = side === 1 ? -1 : 1;
+        }
+      }, 4000); // Shift every 4 seconds
+    } else {
+      if (bassNodeRef.current && audioContextRef.current) {
+        bassNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
+      }
+      if (pannerNodeRef.current && audioContextRef.current) {
+        pannerNodeRef.current.pan.setTargetAtTime(0, audioContextRef.current.currentTime, 0.5);
+      }
+      if (djIntervalRef.current) {
+        clearInterval(djIntervalRef.current);
+      }
+    }
+    return () => {
+      if (djIntervalRef.current) clearInterval(djIntervalRef.current);
+    };
+  }, [djMode]);
+
+  const toggleDJMode = useCallback(() => {
+    if (!isHeadphoneConnected && !djMode) {
+      toast.info('Connect headphones for the best DJ experience!', {
+        description: 'DJ Mode uses spatial ear-to-ear panning.',
+      });
+    }
+    
+    if (!audioContextRef.current) {
+      initAudioEngine();
+    }
+    
+    setDjMode(prev => !prev);
+    if (!djMode) {
+      toast.success('DJ Mode Active 🎧', {
+        description: 'Spatial panning and Bass boost enabled.',
+      });
+    }
+  }, [djMode, isHeadphoneConnected, initAudioEngine]);
 
   // Audio event listeners
   useEffect(() => {
@@ -201,7 +320,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       events: {
         onReady: (e: any) => { e.target.setVolume(80); e.target.playVideo(); },
         onStateChange: (e: any) => {
-          // Only update isPlaying from YT events if YT is the active source
           if (activeSourceRef.current === 'background') return;
           if (e.data === yt.PlayerState.PLAYING) setIsPlaying(true);
           else if (e.data === yt.PlayerState.PAUSED) setIsPlaying(false);
@@ -221,10 +339,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [settings.autoPlayNext]);
 
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
-    // Reset active source - YT starts first
     activeSourceRef.current = 'youtube';
     
-    // Stop any existing background audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = '';
@@ -238,14 +354,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return;
     }
 
-    // Fetch background audio URL in parallel, switch if available
     if (useBackgroundAudioMode) {
       fetchAudioUrl(videoId).then((audioUrl) => {
         if (audioUrl && audioRef.current) {
           audioRef.current.src = audioUrl;
           audioRef.current.load();
           
-          // Sync position from YT player before switching
           let ytCurrentTime = 0;
           if (ytPlayerRef.current) {
             try { ytCurrentTime = ytPlayerRef.current.getCurrentTime?.() || 0; } catch {}
@@ -254,7 +368,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           audioRef.current.currentTime = ytCurrentTime;
           audioRef.current.play()
             .then(() => {
-              // Mark background as active BEFORE pausing YT
               activeSourceRef.current = 'background';
               setIsPlaying(true);
               if (ytPlayerRef.current) {
@@ -296,7 +409,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayPause = useCallback(() => {
-    // Use active source to determine which player to control
     if (activeSourceRef.current === 'background' && audioRef.current && audioRef.current.src) {
       if (isPlaying) {
         audioRef.current.pause();
@@ -322,7 +434,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const handleNext = useCallback(() => {
-    // Loop One: replay the same track
     if (loopMode === 'one' && currentTrack) {
       if (audioRef.current && audioRef.current.src) {
         audioRef.current.currentTime = 0;
@@ -350,7 +461,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         playWithBackgroundAudio(nextTrack.id);
         return;
       } else if (loopMode === 'all' && playlist.length > 0) {
-        // Loop All: go back to first track in playlist
         const firstTrack = playlist[0];
         setCurrentTrack(firstTrack);
         setLastPlayed(firstTrack.id);
@@ -466,17 +576,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, [handleNext, handlePrevious]);
 
-  // Animate browser tab with track info + soundwave
   useTabTitle(currentTrack?.title || null, isPlaying);
 
   return (
     <MusicPlayerContext.Provider value={{
       currentTrack, isPlaying, useBackgroundAudioMode,
+      djMode, isHeadphoneConnected,
       ytPlayerRef, audioRef,
       handlePlayTrack, handlePlayPause, handleNext, handlePrevious,
       handlePlayFromPlaylist, handlePlayFromQueue,
       handleAddToPlaylist, handleAddToQueue,
       handleRemoveFromPlaylist, handleClearPlaylist,
+      toggleDJMode,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
       shuffleMode, toggleShuffle,
       loopMode, cycleLoopMode,
@@ -485,7 +596,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       showMiniPlayer, setShowMiniPlayer,
     }}>
       {children}
-      {/* Hidden YouTube Player Container - persists across routes */}
       <div
         id="youtube-player-container"
         className="fixed -top-[1px] left-0 w-1 h-[1px] opacity-0 pointer-events-none overflow-hidden"

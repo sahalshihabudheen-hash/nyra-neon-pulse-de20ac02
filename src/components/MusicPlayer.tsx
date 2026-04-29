@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2, Zap } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2, Zap, Headphones } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
@@ -10,6 +10,7 @@ import LyricsDrawer from './LyricsDrawer';
 import EqualizerPanel from './EqualizerPanel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 const DownloadButton = ({ track }: { track: { id: string; title: string; thumbnail: string } }) => {
   const { startDownload, isDownloading } = useDownloadManager();
@@ -76,6 +77,7 @@ const MusicPlayer = ({
   onPlayFromQueue,
 }: MusicPlayerProps) => {
   const { settings } = useTheme();
+  const { djMode, toggleDJMode, isHeadphoneConnected } = useMusicPlayer();
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -304,11 +306,29 @@ const MusicPlayer = ({
 
           {/* Side Actions (Desktop) */}
           <div className={cn(
-            'flex items-center gap-4 justify-end',
+            'flex items-center gap-2 justify-end',
             isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-80'
           )}>
             {currentTrack && (
-               <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/5 border border-white/5">
+               <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/5 border border-white/5 mr-2">
+                 {/* DJ Mode Button */}
+                 <button 
+                  onClick={toggleDJMode} 
+                  className={cn(
+                    "p-2 rounded-xl transition-all duration-500 relative group/dj", 
+                    djMode ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  )}
+                  title={isHeadphoneConnected ? "DJ Mode (Headphones Detected)" : "DJ Mode (Optimized for Headsets)"}
+                 >
+                    <Headphones className={cn("w-4 h-4 transition-transform duration-500", djMode && "scale-110")} />
+                    {djMode && (
+                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                      </span>
+                    )}
+                 </button>
+
                  <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                     <Music2 className="w-4 h-4" />
                  </button>
@@ -341,8 +361,6 @@ const MusicPlayer = ({
           </div>
         )}
       </footer>
-
-      <div id="youtube-player-container" className="absolute -top-[1px] left-0 w-1 h-[1px] opacity-0 pointer-events-none" />
 
       <FullscreenPlayer
         isOpen={isFullscreen}
