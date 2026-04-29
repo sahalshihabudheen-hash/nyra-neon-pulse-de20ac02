@@ -40,13 +40,14 @@ serve(async (req) => {
   <meta property="og:type" content="music.song" />
   <meta property="og:site_name" content="${appName}" />
   
+  <meta property="og:url" content="${url.href}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
   <meta name="twitter:description" content="${trackChannel.replace(/"/g, '&quot;')} · ${appName}" />
   <meta name="twitter:image" content="${thumbnail}" />
   
-  <meta property="og:image:width" content="1280" />
-  <meta property="og:image:height" content="720" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta name="theme-color" content="#ffd300" />
   
   <meta http-equiv="refresh" content="0;url=https://nyra-neon-pulse-23e4f39d.vercel.app/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}" />
@@ -57,6 +58,6 @@ serve(async (req) => {
 </html>`;
 
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: { 'Content-Type': 'text/html' },
   });
 });
