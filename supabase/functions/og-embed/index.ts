@@ -33,17 +33,27 @@ serve(async (req) => {
 <html>
 <head>
   <meta charset="utf-8">
+  <title>${trackTitle.replace(/"/g, '&quot;')}</title>
   <meta property="og:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
   <meta property="og:description" content="${trackChannel.replace(/"/g, '&quot;')} · Playing on ${appName}" />
   <meta property="og:image" content="${thumbnail}" />
   <meta property="og:type" content="music.song" />
   <meta property="og:site_name" content="${appName}" />
+  
+  <!-- Video Embed for Discord/Socials -->
+  <meta property="og:video" content="https://www.youtube.com/v/${trackId}" />
+  <meta property="og:video:secure_url" content="https://www.youtube.com/v/${trackId}" />
+  <meta property="og:video:type" content="application/x-shockwave-flash" />
+  <meta property="og:video:width" content="1280" />
+  <meta property="og:video:height" content="720" />
+  
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
   <meta name="twitter:description" content="${trackChannel.replace(/"/g, '&quot;')} · ${appName}" />
   <meta name="twitter:image" content="${thumbnail}" />
   <meta name="theme-color" content="#ffd300" />
-  <meta http-equiv="refresh" content="0;url=${url.origin.replace('/functions/v1/og-embed', '')}/?play=${trackId}" />
+  
+  <meta http-equiv="refresh" content="0;url=${url.origin.replace('/functions/v1/og-embed', '')}/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}" />
 </head>
 <body>
   <p>Redirecting to ${appName}...</p>

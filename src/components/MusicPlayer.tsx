@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
@@ -208,6 +208,14 @@ const MusicPlayer = ({
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+  };
+
+  const handleShare = () => {
+    if (currentTrack) {
+      const shareUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-embed?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}&channel=${encodeURIComponent(currentTrack.channel)}&thumbnail=${encodeURIComponent(currentTrack.thumbnail)}`;
+      navigator.clipboard.writeText(shareUrl);
+      toast.success('Share link copied!');
+    }
   };
 
   const handleAddToPlaylist = () => {
@@ -448,9 +456,18 @@ const MusicPlayer = ({
           'flex items-center gap-2 justify-end',
           isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-72'
         )}>
-          {/* Download */}
+          {/* Download & Share */}
           {currentTrack && (
-            <DownloadButton track={currentTrack} />
+            <div className="flex items-center gap-1">
+              <DownloadButton track={currentTrack} />
+              <button
+                onClick={handleShare}
+                className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors rounded-full hover:bg-secondary active:scale-90 touch-manipulation"
+                title="Share track"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+            </div>
           )}
 
           {/* Volume */}
@@ -532,6 +549,15 @@ const MusicPlayer = ({
               >
                 <SlidersHorizontal className="w-3 h-3" />
               </button>
+              {currentTrack && (
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-all active:scale-95 touch-manipulation border text-muted-foreground hover:text-foreground border-border bg-secondary/50"
+                  title="Share"
+                >
+                  <Share2 className="w-3 h-3" />
+                </button>
+              )}
             </div>
 
             {/* Volume */}
