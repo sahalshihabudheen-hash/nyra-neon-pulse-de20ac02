@@ -181,7 +181,6 @@ const FullscreenPlayer = ({
           <div className="w-full max-w-md mb-10">
              <div className="glass-premium border border-white/5 p-6 rounded-3xl shadow-xl">
                 <SoundwaveVisualizer isPlaying={isPlaying} className="h-16 w-full" shape="spectrum" />
-                <p className="text-center text-[9px] font-black text-primary/40 uppercase tracking-[0.5em] mt-4">Audio Engine Active</p>
              </div>
           </div>
 
@@ -220,13 +219,22 @@ const FullscreenPlayer = ({
           </div>
 
           {/* Bottom Actions */}
-          <div className="mt-12 flex items-center gap-4">
-             <button onClick={() => setShowEQ(!showEQ)} className={cn("flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", showEQ ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10")}>
+          <div className="mt-12 flex items-center gap-6">
+             <div className="flex items-center gap-2 p-1.5 rounded-2xl glass-premium border-white/5">
+                <button onClick={() => audioRef?.current && (audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.1))} className="p-3 rounded-xl hover:bg-white/5 text-muted-foreground transition-all">
+                   <Minus className="w-4 h-4" />
+                </button>
+                <button onClick={() => audioRef?.current && (audioRef.current.muted = !audioRef.current.muted)} className="p-3 rounded-xl hover:bg-white/5 text-primary transition-all">
+                   <Volume2 className="w-5 h-5" />
+                </button>
+                <button onClick={() => audioRef?.current && (audioRef.current.volume = Math.min(1, audioRef.current.volume + 0.1))} className="p-3 rounded-xl hover:bg-white/5 text-muted-foreground transition-all">
+                   <Plus className="w-4 h-4" />
+                </button>
+             </div>
+
+             <button onClick={() => setShowEQ(!showEQ)} className={cn("flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", showEQ ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10")}>
                 <SlidersHorizontal className="w-4 h-4" />
                 Equalizer
-             </button>
-             <button onClick={handleShare} className="p-3 rounded-2xl glass-premium border-white/5 hover:bg-white/10 transition-all">
-                <Share2 className="w-5 h-5" />
              </button>
           </div>
         </div>
