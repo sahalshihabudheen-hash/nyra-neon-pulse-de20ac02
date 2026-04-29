@@ -70,11 +70,13 @@ const PlaylistView = () => {
   }, [user, authLoading, id, navigate]);
 
   const fetchPlaylist = async () => {
+    if (!user) return;
     try {
       const { data: playlistData, error: playlistError } = await supabase
         .from('playlists')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.id)
         .single();
 
       if (playlistError) throw playlistError;
