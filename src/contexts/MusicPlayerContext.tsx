@@ -19,12 +19,11 @@ interface MusicPlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
   useBackgroundAudioMode: boolean;
-  djMode: 'off' | 'auto' | 'left' | 'right';
-  isHeadphoneConnected: boolean;
 
   // Player refs
   ytPlayerRef: React.MutableRefObject<any>;
   audioRef: React.MutableRefObject<HTMLAudioElement | null>;
+  analyserRef: React.MutableRefObject<AnalyserNode | null>;
 
   // Actions
   handlePlayTrack: (track: Track, trackList?: Track[]) => void;
@@ -37,7 +36,6 @@ interface MusicPlayerContextType {
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
   handleClearPlaylist: () => void;
-  toggleDJMode: (mode?: 'off' | 'auto' | 'left' | 'right') => void;
 
   // Playlist & Queue
   playlist: Track[];
@@ -81,23 +79,33 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
   const [ytApiReady, setYtApiReady] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
-  const [djMode, setDjMode] = useState<'off' | 'auto' | 'left' | 'right'>('off');
-  const [isHeadphoneConnected, setIsHeadphoneConnected] = useState(false);
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
 
-  // Audio Context & Nodes for DJ Mode (V3 HARD SPLIT)
   const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceNodeRef = useRef<MediaElementSourceNode | null>(null);
-  const splitterNodeRef = useRef<ChannelSplitterNode | null>(null);
-  const mergerNodeRef = useRef<ChannelMergerNode | null>(null);
-  const leftGainNodeRef = useRef<GainNode | null>(null);
-  const rightGainNodeRef = useRef<GainNode | null>(null);
-  const bassNodeRef = useRef<BiquadFilterNode | null>(null);
-  const delayNodeRef = useRef<DelayNode | null>(null);
-  const feedbackNodeRef = useRef<GainNode | null>(null);
-  const djIntervalRef = useRef<number | null>(null);
+
+  const initAnalyser = useCallback(() => {
+    if (!audioRef.current || analyserRef.current) return;
+    try {
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioContextClass();
+      audioContextRef.current = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyserRef.current = analyser;
+      const source = ctx.createMediaElementSource(audioRef.current);
+      sourceNodeRef.current = source;
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
+    } catch (e) {
+      console.warn('Analyser Init Failed:', e);
+    }
+  }, []);
+
+
 
   // Track which audio source is active to prevent state conflicts
   const activeSourceRef = useRef<'youtube' | 'background' | null>(null);
@@ -119,213 +127,30 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const { isFavorite, toggleFavorite } = useFavorites();
   const { recordPlay } = useListeningHistory();
 
-  // Create background audio element on mount
-  useEffect(() => {
-    if (!audioRef.current) {
-      const audio = new Audio();
-      audio.preload = 'auto';
-      audio.crossOrigin = 'anonymous'; // Critical for Web Audio API
-      (audio as any).playsInline = true;
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
-      audioRef.current = audio;
-    }
-
-    // Check for headphones
-    const checkHeadphones = async () => {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const hasHeadphones = devices.some(device => 
-          device.kind === 'audiooutput' && 
-          (device.label.toLowerCase().includes('headphone') || device.label.toLowerCase().includes('headset'))
-        );
-        setIsHeadphoneConnected(hasHeadphones);
-      } catch (e) {
-        console.warn('Could not detect audio devices');
+    // Create background audio element on mount
+    useEffect(() => {
+      if (!audioRef.current) {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous'; // Critical for Web Audio API
+        (audio as any).playsInline = true;
+        audio.setAttribute('playsinline', 'true');
+        audio.setAttribute('webkit-playsinline', 'true');
+        audioRef.current = audio;
       }
-    };
-
-    checkHeadphones();
-    navigator.mediaDevices.addEventListener('devicechange', checkHeadphones);
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-      navigator.mediaDevices.removeEventListener('devicechange', checkHeadphones);
-    };
-  }, []);
-
-  // Initialize Web Audio nodes
-  const initAudioEngine = useCallback(() => {
-    if (!audioRef.current || audioContextRef.current) return;
-
-    try {
-      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioContextClass();
-      audioContextRef.current = ctx;
-
-      const source = ctx.createMediaElementSource(audioRef.current);
-      sourceNodeRef.current = source;
-
-      // Hard Splitter Setup
-      const splitter = ctx.createChannelSplitter(2);
-      const merger = ctx.createChannelMerger(2);
-      const leftGain = ctx.createGain();
-      const rightGain = ctx.createGain();
-      
-      splitterNodeRef.current = splitter;
-      mergerNodeRef.current = merger;
-      leftGainNodeRef.current = leftGain;
-      rightGainNodeRef.current = rightGain;
-
-      const bass = ctx.createBiquadFilter();
-      bass.type = 'lowshelf';
-      bass.frequency.value = 150;
-      bass.gain.value = 0;
-      bassNodeRef.current = bass;
-
-      // 8D Reverb
-      const delay = ctx.createDelay();
-      delay.delayTime.value = 0.05;
-      delayNodeRef.current = delay;
-
-      const feedback = ctx.createGain();
-      feedback.gain.value = 0;
-      feedbackNodeRef.current = feedback;
-
-      // Connection Chain:
-      // Source -> Bass -> Splitter
-      // Splitter(0) -> LeftGain -> Merger(0)
-      // Splitter(1) -> RightGain -> Merger(1)
-      // Merger -> Reverb Loop -> MasterGain -> Destination
-      
-      const masterGain = ctx.createGain();
-      masterGain.gain.value = 1.5; // Slight boost to prove engine is working
-
-      source.connect(bass);
-      bass.connect(splitter);
-      
-      splitter.connect(leftGain, 0);
-      splitter.connect(rightGain, 1);
-      
-      leftGain.connect(merger, 0, 0);
-      rightGain.connect(merger, 0, 1);
-
-      merger.connect(masterGain);
-      masterGain.connect(ctx.destination);
-      
-      // Reverb path
-      merger.connect(delay);
-      delay.connect(feedback);
-      feedback.connect(merger);
-
-      // HIJACK PROOF: Lower direct element volume so we only hear the processed sound
-      if (audioRef.current) {
-        audioRef.current.volume = 0.5; // Lower standard volume
-      }
-      
-    } catch (e) {
-      console.error('Audio Engine Init Failed:', e);
-    }
-  }, []);
-
-  // DJ Mode Logic (V3 HARD ISOLATION)
-  useEffect(() => {
-    if (djMode !== 'off') {
-      if (audioContextRef.current?.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-
-      if (bassNodeRef.current) {
-        // Extreme Bass Boost
-        bassNodeRef.current.gain.setTargetAtTime(25, audioContextRef.current!.currentTime, 0.1);
-      }
-
-      if (feedbackNodeRef.current) {
-        // Activate Reverb Echo
-        feedbackNodeRef.current.gain.setTargetAtTime(0.4, audioContextRef.current!.currentTime, 0.1);
-      }
-
-      if (djMode === 'auto') {
-        let side = 'left';
-        djIntervalRef.current = window.setInterval(() => {
-          if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
-            const now = audioContextRef.current.currentTime;
-            if (side === 'left') {
-              leftGainNodeRef.current.gain.exponentialRampToValueAtTime(1, now + 0.5);
-              rightGainNodeRef.current.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-              side = 'right';
-            } else {
-              leftGainNodeRef.current.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-              rightGainNodeRef.current.gain.exponentialRampToValueAtTime(1, now + 0.5);
-              side = 'left';
-            }
-          }
-        }, 2000);
-      } else if (djMode === 'left') {
-        if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
-          leftGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.1);
-          rightGainNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
+  
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
         }
-      } else if (djMode === 'right') {
-        if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
-          leftGainNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
-          rightGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.1);
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
         }
-      }
-    } else {
-      if (bassNodeRef.current && audioContextRef.current) {
-        bassNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
-      }
-      if (feedbackNodeRef.current && audioContextRef.current) {
-        feedbackNodeRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
-      }
-      if (leftGainNodeRef.current && rightGainNodeRef.current && audioContextRef.current) {
-        leftGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.5);
-        rightGainNodeRef.current.gain.setTargetAtTime(1, audioContextRef.current.currentTime, 0.5);
-      }
-      if (djIntervalRef.current) {
-        clearInterval(djIntervalRef.current);
-      }
-    }
-    return () => {
-      if (djIntervalRef.current) clearInterval(djIntervalRef.current);
-    };
-  }, [djMode]);
+      };
+    }, []);
 
-  const toggleDJMode = useCallback((mode?: 'off' | 'auto' | 'left' | 'right') => {
-    if (!isHeadphoneConnected && djMode === 'off') {
-      toast.info('Connect headphones for the best DJ experience!', {
-        description: 'DJ Mode uses spatial ear-to-ear panning.',
-      });
-    }
-    
-    if (!audioContextRef.current) {
-      initAudioEngine();
-    }
-    
-    if (mode) {
-      setDjMode(mode);
-    } else {
-      setDjMode(prev => {
-        if (prev === 'off') return 'auto';
-        if (prev === 'auto') return 'left';
-        if (prev === 'left') return 'right';
-        return 'off';
-      });
-    }
-    
-    if (djMode === 'off') {
-      toast.success('DJ Mode Active 🎧', {
-        description: 'Spatial panning and Bass boost enabled.',
-      });
-    }
-  }, [djMode, isHeadphoneConnected, initAudioEngine]);
+
 
   // Audio event listeners
   useEffect(() => {
@@ -456,7 +281,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           }
           
           audioRef.current.currentTime = ytCurrentTime;
-          initAudioEngine(); // Re-initialize to connect nodes to the new proxied stream
+          initAnalyser();
+          
+          if (audioContextRef.current?.state === 'suspended') {
+            audioContextRef.current.resume();
+          }
           
           audioRef.current.play()
             .then(() => {
@@ -488,9 +317,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setLastPlayed(track.id);
     setShowMiniPlayer(true);
     recordPlay(track);
-    initAudioEngine(); // FORCE INITIALIZE ON INTERACTION
     playWithBackgroundAudio(track.id);
-  }, [tracks, playWithBackgroundAudio, setLastPlayed, recordPlay, initAudioEngine]);
+  }, [tracks, playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayFromPlaylist = useCallback((track: Track) => {
     setCurrentTrack(track);
@@ -498,18 +326,22 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setLastPlayed(track.id);
     setShowMiniPlayer(true);
     recordPlay(track);
-    initAudioEngine(); // FORCE INITIALIZE ON INTERACTION
     playWithBackgroundAudio(track.id);
-  }, [playWithBackgroundAudio, setLastPlayed, recordPlay, initAudioEngine]);
+  }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayPause = useCallback(() => {
     if (activeSourceRef.current === 'background' && audioRef.current && audioRef.current.src) {
-      initAudioEngine(); // FORCE RE-SYNC
       if (isPlaying) {
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        audioRef.current.play().then(() => {
+          setIsPlaying(true);
+          initAnalyser();
+          if (audioContextRef.current?.state === 'suspended') {
+            audioContextRef.current.resume();
+          }
+        }).catch(() => {});
       }
       return;
     }
@@ -676,13 +508,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   return (
     <MusicPlayerContext.Provider value={{
       currentTrack, isPlaying, useBackgroundAudioMode,
-      djMode, isHeadphoneConnected,
-      ytPlayerRef, audioRef,
+      ytPlayerRef, audioRef, analyserRef,
       handlePlayTrack, handlePlayPause, handleNext, handlePrevious,
       handlePlayFromPlaylist, handlePlayFromQueue,
       handleAddToPlaylist, handleAddToQueue,
       handleRemoveFromPlaylist, handleClearPlaylist,
-      toggleDJMode,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
       shuffleMode, toggleShuffle,
       loopMode, cycleLoopMode,

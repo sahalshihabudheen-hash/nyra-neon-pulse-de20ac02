@@ -8,7 +8,6 @@ import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
 import LyricsDrawer from './LyricsDrawer';
 import EqualizerPanel from './EqualizerPanel';
-import HeadphoneHub from './HeadphoneHub';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -78,7 +77,6 @@ const MusicPlayer = ({
   onPlayFromQueue,
 }: MusicPlayerProps) => {
   const { settings } = useTheme();
-  const { djMode, toggleDJMode, isHeadphoneConnected } = useMusicPlayer();
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -88,7 +86,6 @@ const MusicPlayer = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
-  const [headphoneHubOpen, setHeadphoneHubOpen] = useState(false);
   const progressRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -313,23 +310,7 @@ const MusicPlayer = ({
           )}>
             {currentTrack && (
                <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/5 border border-white/5 mr-2">
-                 {/* Headphone Hub Trigger */}
-                 <button 
-                  onClick={() => setHeadphoneHubOpen(true)} 
-                  className={cn(
-                    "p-2.5 rounded-xl transition-all duration-500 relative group/dj", 
-                    djMode !== 'off' ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5 border border-white/5"
-                  )}
-                  title="Open Headphone Hub"
-                 >
-                    <Headphones className={cn("w-4 h-4 transition-transform duration-500", djMode !== 'off' && "scale-110")} />
-                    {djMode !== 'off' && (
-                      <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                      </span>
-                    )}
-                 </button>
+
 
                  <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                     <Music2 className="w-4 h-4" />
@@ -387,7 +368,7 @@ const MusicPlayer = ({
 
       <LyricsDrawer isOpen={lyricsOpen} onClose={() => setLyricsOpen(false)} />
 
-      <HeadphoneHub isOpen={headphoneHubOpen} onClose={() => setHeadphoneHubOpen(false)} />
+
     </>
   );
 };

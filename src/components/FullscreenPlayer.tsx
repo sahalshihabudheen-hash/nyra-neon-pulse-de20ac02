@@ -6,7 +6,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import StyledProgressBar from './StyledProgressBar';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import EqualizerPanel from './EqualizerPanel';
-import HeadphoneHub from './HeadphoneHub';
 import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -60,10 +59,9 @@ const FullscreenPlayer = ({
   audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
-  const { djMode } = useMusicPlayer();
   const [showQueue, setShowQueue] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
-  const [showHeadphoneHub, setShowHeadphoneHub] = useState(false);
+  const [visualizerShape, setVisualizerShape] = useState<'bars' | 'waves' | 'dots' | 'pulse' | 'spectrum' | '3d-cyber' | '3d-nebula'>('spectrum');
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -182,10 +180,30 @@ const FullscreenPlayer = ({
           </div>
 
           {/* Soundwave */}
-          <div className="w-full max-w-md mb-10">
-             <div className="glass-premium border border-white/5 p-6 rounded-3xl shadow-xl">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="h-16 w-full" shape="spectrum" />
+          <div className="w-full max-w-2xl mb-10 group/viz relative">
+             <div className="glass-premium border border-white/5 p-6 rounded-3xl shadow-xl transition-all duration-700 hover:border-primary/30">
+                <SoundwaveVisualizer 
+                  isPlaying={isPlaying} 
+                  className={cn(
+                    "w-full transition-all duration-700",
+                    (visualizerShape === '3d-cyber' || visualizerShape === '3d-nebula') ? "h-64" : "h-24"
+                  )} 
+                  shape={visualizerShape} 
+                />
              </div>
+             
+             {/* Viz Switcher Overlay */}
+             <button 
+              onClick={() => {
+                const shapes: ('bars' | 'waves' | 'dots' | 'pulse' | 'spectrum' | '3d-cyber' | '3d-nebula')[] = 
+                  ['bars', 'waves', 'dots', 'pulse', 'spectrum', '3d-cyber', '3d-nebula'];
+                const nextIdx = (shapes.indexOf(visualizerShape) + 1) % shapes.length;
+                setVisualizerShape(shapes[nextIdx]);
+              }}
+              className="absolute -right-4 -top-4 w-10 h-10 rounded-full glass-premium border-white/10 opacity-0 group-hover/viz:opacity-100 flex items-center justify-center transition-all hover:bg-primary hover:text-primary-foreground shadow-xl"
+             >
+                <Zap className="w-4 h-4" />
+             </button>
           </div>
 
           {/* Progress */}
@@ -237,17 +255,6 @@ const FullscreenPlayer = ({
              </div>
 
              <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => setShowHeadphoneHub(true)} 
-                  className={cn(
-                    "flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", 
-                    djMode !== 'off' ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10"
-                  )}
-                >
-                  <Headphones className="w-4 h-4" />
-                  DJ Engine
-                </button>
-
                 <button onClick={() => setShowEQ(!showEQ)} className={cn("flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", showEQ ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10")}>
                     <SlidersHorizontal className="w-4 h-4" />
                     Equalizer
@@ -315,8 +322,7 @@ const FullscreenPlayer = ({
           </div>
         )}
 
-        {/* Headphone Hub Overlay */}
-        <HeadphoneHub isOpen={showHeadphoneHub} onClose={() => setShowHeadphoneHub(false)} />
+
       </main>
     </div>
   );
