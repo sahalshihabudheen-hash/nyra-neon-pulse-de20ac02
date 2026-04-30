@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2, Zap, Headphones } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
+import { cn } from '@/lib/utils';
 import StyledProgressBar from './StyledProgressBar';
 import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
@@ -288,6 +288,12 @@ const MusicPlayer = ({
                 <SkipForward className="w-6 h-6 fill-current" />
               </button>
             </div>
+
+            {!isMiniMode && (
+              <div className="w-full max-w-md h-6 mb-[-4px] animate-in-fade opacity-80 overflow-hidden">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
+              </div>
+            )}
 
             {!isMiniMode && (
               <div className="w-full max-w-2xl flex items-center gap-4 group/progress">
