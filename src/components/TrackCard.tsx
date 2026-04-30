@@ -75,10 +75,10 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
         
-        {/* Action Overlay (Bottom) */}
+        {/* Action Overlay (Bottom) - Always visible for better discoverability */}
         <div className={cn(
-          "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-500 flex flex-col justify-end p-4",
-          isPlaying ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          "absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-500 flex flex-col justify-end p-4",
+          "opacity-100"
         )}>
           <div className="flex items-center gap-2">
             <button
@@ -119,7 +119,7 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
         </div>
 
         {/* Top Actions Group (Secondary) */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 transform translate-x-12 group-hover:translate-x-0 transition-transform duration-500 z-10">
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all duration-500">
           <button onClick={handleDownload} className="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
             {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
           </button>

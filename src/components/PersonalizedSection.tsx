@@ -161,8 +161,8 @@ const PersonalizedSection = ({
                 )}>
                   <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                   <div className={cn(
-                    "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity",
-                    isCurrentTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    "absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-300",
+                    "opacity-100"
                   )}>
                     <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
                       <button onClick={() => onPlayTrack(track)}
