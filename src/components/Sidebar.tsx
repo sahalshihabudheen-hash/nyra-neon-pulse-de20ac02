@@ -27,7 +27,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) { setIsAdmin(false); return; }
-      if (user.email === 'admin@gmail.com') { setIsAdmin(true); return; }
+      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') { setIsAdmin(true); return; }
       const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
       setIsAdmin(!!data);
     };

@@ -82,6 +82,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
 
+
+
   // Track which audio source is active to prevent state conflicts
   const activeSourceRef = useRef<'youtube' | 'background' | null>(null);
 
@@ -102,23 +104,27 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const { isFavorite, toggleFavorite } = useFavorites();
   const { recordPlay } = useListeningHistory();
 
-  // Create background audio element on mount
-  useEffect(() => {
-    if (!audioRef.current) {
-      const audio = new Audio();
-      audio.preload = 'auto';
-      (audio as any).playsInline = true;
-      audio.setAttribute('playsinline', 'true');
-      audio.setAttribute('webkit-playsinline', 'true');
-      audioRef.current = audio;
-    }
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
+    // Create background audio element on mount
+    useEffect(() => {
+      if (!audioRef.current) {
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.crossOrigin = 'anonymous'; // Critical for Web Audio API
+        (audio as any).playsInline = true;
+        audio.setAttribute('playsinline', 'true');
+        audio.setAttribute('webkit-playsinline', 'true');
+        audioRef.current = audio;
       }
-    };
-  }, []);
+  
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.src = '';
+        }
+      };
+    }, []);
+
+
 
   // Audio event listeners
   useEffect(() => {
@@ -161,23 +167,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, []);
 
-  const fetchAudioUrl = useCallback(async (videoId: string): Promise<string | null> => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
-      );
-      const data = await response.json();
-      if (data.fallback || data.error || !data.audioUrl) return null;
-      return data.audioUrl;
-    } catch {
-      return null;
-    }
-  }, []);
+
 
   const createPlayer = useCallback((videoId: string) => {
     if (ytPlayerRef.current) {
@@ -201,7 +191,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       events: {
         onReady: (e: any) => { e.target.setVolume(80); e.target.playVideo(); },
         onStateChange: (e: any) => {
-          // Only update isPlaying from YT events if YT is the active source
           if (activeSourceRef.current === 'background') return;
           if (e.data === yt.PlayerState.PLAYING) setIsPlaying(true);
           else if (e.data === yt.PlayerState.PAUSED) setIsPlaying(false);
@@ -221,10 +210,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [settings.autoPlayNext]);
 
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
-    // Reset active source - YT starts first
     activeSourceRef.current = 'youtube';
     
-    // Stop any existing background audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = '';
@@ -237,37 +224,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       toast.error('Player not ready. Please try again.');
       return;
     }
-
-    // Fetch background audio URL in parallel, switch if available
-    if (useBackgroundAudioMode) {
-      fetchAudioUrl(videoId).then((audioUrl) => {
-        if (audioUrl && audioRef.current) {
-          audioRef.current.src = audioUrl;
-          audioRef.current.load();
-          
-          // Sync position from YT player before switching
-          let ytCurrentTime = 0;
-          if (ytPlayerRef.current) {
-            try { ytCurrentTime = ytPlayerRef.current.getCurrentTime?.() || 0; } catch {}
-          }
-          
-          audioRef.current.currentTime = ytCurrentTime;
-          audioRef.current.play()
-            .then(() => {
-              // Mark background as active BEFORE pausing YT
-              activeSourceRef.current = 'background';
-              setIsPlaying(true);
-              if (ytPlayerRef.current) {
-                try { ytPlayerRef.current.pauseVideo(); } catch {}
-              }
-            })
-            .catch(() => {
-              setUseBackgroundAudioMode(false);
-            });
-        }
-      });
-    }
-  }, [useBackgroundAudioMode, fetchAudioUrl, ytApiReady, createPlayer]);
+  }, [ytApiReady, createPlayer]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
@@ -296,7 +253,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayPause = useCallback(() => {
-    // Use active source to determine which player to control
     if (activeSourceRef.current === 'background' && audioRef.current && audioRef.current.src) {
       if (isPlaying) {
         audioRef.current.pause();
@@ -322,7 +278,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const handleNext = useCallback(() => {
-    // Loop One: replay the same track
     if (loopMode === 'one' && currentTrack) {
       if (audioRef.current && audioRef.current.src) {
         audioRef.current.currentTime = 0;
@@ -350,7 +305,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         playWithBackgroundAudio(nextTrack.id);
         return;
       } else if (loopMode === 'all' && playlist.length > 0) {
-        // Loop All: go back to first track in playlist
         const firstTrack = playlist[0];
         setCurrentTrack(firstTrack);
         setLastPlayed(firstTrack.id);
@@ -466,7 +420,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, [handleNext, handlePrevious]);
 
-  // Animate browser tab with track info + soundwave
   useTabTitle(currentTrack?.title || null, isPlaying);
 
   return (
@@ -485,7 +438,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       showMiniPlayer, setShowMiniPlayer,
     }}>
       {children}
-      {/* Hidden YouTube Player Container - persists across routes */}
       <div
         id="youtube-player-container"
         className="fixed -top-[1px] left-0 w-1 h-[1px] opacity-0 pointer-events-none overflow-hidden"

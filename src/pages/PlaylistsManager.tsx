@@ -34,6 +34,7 @@ const PlaylistsManager = () => {
   }, [user, authLoading, navigate]);
 
   const fetchPlaylists = async () => {
+    if (!user) return;
     try {
       const { data, error } = await supabase
         .from('playlists')
@@ -41,6 +42,7 @@ const PlaylistsManager = () => {
           *,
           playlist_items(count)
         `)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

@@ -70,11 +70,13 @@ const PlaylistView = () => {
   }, [user, authLoading, id, navigate]);
 
   const fetchPlaylist = async () => {
+    if (!user) return;
     try {
       const { data: playlistData, error: playlistError } = await supabase
         .from('playlists')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.id)
         .single();
 
       if (playlistError) throw playlistError;
@@ -344,45 +346,68 @@ const PlaylistView = () => {
         </div>
 
         {/* Search within playlist page */}
-        <div className="mb-6 p-4 bg-card rounded-xl border border-border">
-          <h3 className="text-lg font-semibold mb-3 text-foreground">Add Songs to Playlist</h3>
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <div className="mb-8 glass-premium border border-white/5 p-6 rounded-[2rem] shadow-xl animate-in-up">
+          <div className="flex items-center gap-3 mb-6">
+             <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center">
+                <Search className="w-5 h-5 text-primary" />
+             </div>
+             <div>
+                <h3 className="text-xl font-black text-foreground uppercase italic tracking-tighter">Add Songs</h3>
+                <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Find your next favorite</p>
+             </div>
+          </div>
+
+          <div className="flex gap-3">
+            <div className="flex-1 relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="text"
                 placeholder="Search YouTube for songs..."
                 value={playlistSearchQuery}
                 onChange={(e) => setPlaylistSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handlePlaylistSearch()}
-                className="pl-10 bg-secondary border-border"
+                className="pl-12 h-14 bg-white/5 border-white/10 rounded-2xl focus:border-primary/50 focus:ring-primary/20 transition-all font-medium placeholder:text-muted-foreground/40"
               />
             </div>
-            <Button onClick={handlePlaylistSearch} disabled={isSearching}>
+            <button 
+              onClick={handlePlaylistSearch} 
+              disabled={isSearching}
+              className="h-14 px-8 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+            >
               {isSearching ? 'Searching...' : 'Search'}
-            </Button>
+            </button>
           </div>
 
           {searchResults.length > 0 && (
-            <ScrollArea className="mt-4 max-h-60">
-              <div className="space-y-2">
-                {searchResults.map((track) => (
-                  <div
-                    key={track.id}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                  >
-                    <img src={track.thumbnail} alt={track.title} className="w-12 h-12 rounded object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{track.channel}</p>
+            <div className="mt-8 border-t border-white/5 pt-6">
+              <ScrollArea className="h-[400px] pr-4 -mr-4">
+                <div className="grid grid-cols-1 gap-3">
+                  {searchResults.map((track) => (
+                    <div
+                      key={track.id}
+                      className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-white/5 transition-all group"
+                    >
+                      <div className="relative w-14 h-14 flex-shrink-0">
+                         <img src={track.thumbnail} alt={track.title} className="w-full h-full rounded-xl object-cover" />
+                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
+                            <Play className="w-5 h-5 text-white" fill="currentColor" />
+                         </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
+                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">{track.channel}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleAddToPlaylistDB(track)}
+                        className="px-5 py-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-black text-[10px] uppercase tracking-widest transition-all active:scale-90"
+                      >
+                        Add
+                      </button>
                     </div>
-                    <Button size="sm" onClick={() => handleAddToPlaylistDB(track)} className="shrink-0">
-                      Add
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           )}
         </div>
 
@@ -394,8 +419,8 @@ const PlaylistView = () => {
             <p className="text-sm">Use the search above to add songs</p>
           </div>
         ) : (
-          <div className="h-[calc(100vh-500px)] min-h-64 overflow-y-auto pr-2">
-            <div className="space-y-2">
+          <div className="h-[calc(100vh-500px)] min-h-64 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3">
               {playlistTracks.map((track, index) => (
                 <div
                   key={track.id}
@@ -407,29 +432,34 @@ const PlaylistView = () => {
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   className={cn(
-                    'w-full flex items-center gap-2 md:gap-4 p-2 md:p-4 rounded-xl transition-all group',
+                    'w-full flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 group relative overflow-hidden',
                     currentTrack?.id === track.id
-                      ? 'bg-primary/20 border border-primary/30'
-                      : 'bg-card hover:bg-card/80 border border-transparent',
+                      ? 'bg-primary/10 border border-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.1)]'
+                      : 'glass-premium border border-white/5 hover:bg-white/10 hover:border-white/10',
                     draggedIndex === index && 'opacity-50 scale-[0.98]'
                   )}
                 >
+                  {/* Playing Indicator Line */}
+                  {currentTrack?.id === track.id && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary animate-pulse" />
+                  )}
+
+                  {/* Drag Handle */}
                   <div
-                    className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 bg-primary/20 hover:bg-primary/40 rounded p-1 md:p-3 transition-all border border-primary/50"
+                    className="cursor-grab active:cursor-grabbing touch-manipulation flex-shrink-0 opacity-20 group-hover:opacity-100 transition-all p-2 hover:bg-white/5 rounded-xl"
                     onTouchStart={(e) => handleTouchStart(index, e)}
                   >
-                    <div className="flex flex-col gap-0.5 w-2 md:w-5">
-                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
-                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
-                      <div className="h-0.5 w-full bg-primary rounded-full"></div>
+                    <div className="flex flex-col gap-1 w-4">
+                      <div className="h-0.5 w-full bg-foreground rounded-full"></div>
+                      <div className="h-0.5 w-full bg-foreground rounded-full"></div>
                     </div>
                   </div>
 
-                  <div className="relative shrink-0">
+                  <div className="relative shrink-0 group/art">
                     <img
                       src={track.thumbnail}
                       alt={track.title}
-                      className="w-10 h-10 md:w-16 md:h-16 rounded-lg object-cover"
+                      className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover shadow-lg transition-transform duration-500 group-hover/art:scale-110"
                       loading="lazy"
                     />
                     <button
@@ -440,32 +470,46 @@ const PlaylistView = () => {
                           handlePlayFromPlaylistView(track);
                         }
                       }}
-                      className="absolute -bottom-1 -right-1 w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center neon-glow active:scale-95 touch-manipulation"
+                      className={cn(
+                        "absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px] transition-all",
+                        currentTrack?.id === track.id ? "opacity-100" : "opacity-0 group-hover/art:opacity-100"
+                      )}
                     >
                       {currentTrack?.id === track.id && isPlaying ? (
-                        <Pause className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" />
+                        <Pause className="w-5 h-5 text-primary fill-current" />
                       ) : (
-                        <Play className="w-4 h-4 md:w-5 md:h-5 ml-0.5" fill="currentColor" />
+                        <Play className="w-5 h-5 text-white fill-current ml-0.5" />
                       )}
                     </button>
                   </div>
 
-                  <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex-1 min-w-0">
                     <p className={cn(
-                      'font-semibold truncate text-xs md:text-lg',
-                      currentTrack?.id === track.id ? 'text-primary' : 'text-foreground'
+                      'font-bold truncate text-sm md:text-base tracking-tight transition-colors',
+                      currentTrack?.id === track.id ? 'text-primary italic' : 'text-foreground'
                     )}>
                       {track.title}
                     </p>
-                    <p className="text-[10px] md:text-sm text-muted-foreground truncate">{track.channel}</p>
+                     <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] truncate">{track.channel}</p>
+                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                  {/* Time Indicator */}
+                  <div className="hidden sm:flex items-center gap-6 mr-4">
+                     <span className="text-[11px] font-black text-muted-foreground/40 tabular-nums tracking-[0.2em]">
+                        {/* Mock time for now, can be replaced with real duration if available */}
+                        0{Math.floor(Math.random() * 3) + 2}:{Math.floor(Math.random() * 50) + 10}
+                     </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handleRemoveTrack(track.id)}
-                      className="w-9 h-9 md:w-11 md:h-11 rounded-full bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive/20 transition-colors active:scale-95"
+                      className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-white transition-all active:scale-90"
+                      title="Remove from playlist"
                     >
-                      <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
