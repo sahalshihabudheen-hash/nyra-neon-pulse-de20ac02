@@ -162,26 +162,37 @@ const PlaylistDrawer = ({
             </div>
           ) : (
             <div className="space-y-2">
-              {playlist.map((track, index) => (
-                <div
-                  key={track.id}
-                  data-track-index={index}
-                  draggable={!!onReorderPlaylist}
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  className={cn(
-                    'flex items-center gap-2 md:gap-3 p-3 rounded-xl transition-all group select-none',
-                    currentTrack?.id === track.id
-                      ? 'bg-primary/20 border border-primary/30'
-                      : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent',
-                    draggedIndex === index && 'opacity-50 scale-95 bg-primary/10',
-                    dragOverIndex === index && draggedIndex !== index && 'border-primary border-2 border-dashed bg-primary/5'
-                  )}
-                >
+              {(() => {
+                const currentIndex = playlist.findIndex(t => t.id === currentTrack?.id);
+                const upNextIndex = currentIndex !== -1 && currentIndex < playlist.length - 1 ? currentIndex + 1 : -1;
+
+                return playlist.map((track, index) => {
+                  const isUpNext = index === upNextIndex;
+                  const isPlayingCurrent = currentTrack?.id === track.id;
+
+                  return (
+                    <div
+                      key={track.id}
+                      data-track-index={index}
+                      draggable={!!onReorderPlaylist}
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      className={cn(
+                        'flex items-center gap-2 md:gap-3 p-3 rounded-xl transition-all group select-none',
+                        isPlayingCurrent
+                          ? 'bg-primary/20 border border-primary/30'
+                          : isUpNext
+                          ? 'bg-primary/5 border border-primary/10'
+                          : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent',
+                        draggedIndex === index && 'opacity-50 scale-95 bg-primary/10',
+                        dragOverIndex === index && draggedIndex !== index && 'border-primary border-2 border-dashed bg-primary/5'
+                      )}
+                    >
+
                   {/* Drag Handle - YouTube style 3-line grip */}
                   {onReorderPlaylist && (
                     <div 
@@ -223,16 +234,22 @@ const PlaylistDrawer = ({
                     className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover flex-shrink-0"
                   />
 
-                  {/* Track Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'font-medium truncate text-sm md:text-base',
-                      currentTrack?.id === track.id ? 'text-primary' : 'text-foreground'
-                    )}>
-                      {track.title}
-                    </p>
-                    <p className="text-xs md:text-sm text-muted-foreground truncate">{track.channel}</p>
-                  </div>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className={cn(
+                          'font-medium truncate text-sm md:text-base',
+                          isPlayingCurrent ? 'text-primary' : 'text-foreground'
+                        )}>
+                          {track.title}
+                        </p>
+                        {isUpNext && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-primary/20 text-primary uppercase tracking-wider animate-pulse shrink-0">
+                            Up Next
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">{track.channel}</p>
+                    </div>
 
                   {/* Actions - always visible on mobile */}
                   <div className="flex items-center gap-1.5 md:gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -253,8 +270,9 @@ const PlaylistDrawer = ({
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              ))}
+                    );
+                  });
+                })()}
             </div>
           )}
         </ScrollArea>
