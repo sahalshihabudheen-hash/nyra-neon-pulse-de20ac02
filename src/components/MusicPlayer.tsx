@@ -304,7 +304,7 @@ const MusicPlayer = ({
           </div>
 
           {/* Up Next Preview (Cute) */}
-          {!isMiniMode && nextUpTrack && (
+          {!isMiniMode && isPlaying && nextUpTrack && (
             <div className="hidden md:flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/next cursor-pointer animate-in-scale shrink-0 max-w-[220px]">
               <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-lg">
                 <img 
