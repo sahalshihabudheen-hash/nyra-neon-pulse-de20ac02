@@ -201,7 +201,7 @@ const FullscreenPlayer = ({
           {/* Soundwave */}
           <div className="w-full max-w-md mb-4 px-4 hidden sm:block">
              <div className="glass-premium border border-white/10 px-6 py-3 rounded-3xl shadow-xl backdrop-blur-2xl">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="h-10 w-full" shape="spectrum" />
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-10 w-full" />
              </div>
           </div>
 
