@@ -58,15 +58,10 @@ const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
     return <>{children}</>;
   }
 
-  // If not logged in during maintenance, redirect to auth (unless it's a shared play link)
+  // If not logged in during maintenance, redirect to auth
   if (!user) {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.has('play')) {
-      return <>{children}</>;
-    }
     return <Auth />;
   }
-
 
   // Admins always bypass maintenance
   const userEmail = user?.email || '';

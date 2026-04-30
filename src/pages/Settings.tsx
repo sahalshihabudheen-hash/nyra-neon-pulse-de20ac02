@@ -62,7 +62,7 @@ const Settings = () => {
   useEffect(() => {
     if (!user) return;
     const checkAdmin = async () => {
-      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
+      if (user.email === 'admin@gmail.com') {
         setIsAdmin(true);
         return;
       }
@@ -194,60 +194,6 @@ const Settings = () => {
     localStorage.removeItem('nyra-playlist');
     localStorage.removeItem('nyra-queue');
     toast.success('Playlist and queue cleared');
-  };
-
-  const [syncLoading, setSyncLoading] = useState(false);
-  const handleSyncLocalPlaylist = async () => {
-    if (!user) return;
-    const local = localStorage.getItem('nyra-playlist');
-    if (!local) {
-      toast.info('No local playlist found to sync');
-      return;
-    }
-    
-    setSyncLoading(true);
-    try {
-      const tracks = JSON.parse(local);
-      if (!Array.isArray(tracks) || tracks.length === 0) {
-        toast.info('Local playlist is empty');
-        return;
-      }
-
-      // Create a new playlist in DB
-      const { data: playlist, error: pError } = await supabase
-        .from('playlists')
-        .insert({
-          name: `Imported Playlist (${new Date().toLocaleDateString()})`,
-          user_id: user.id,
-          description: 'Synced from local storage'
-        })
-        .select()
-        .single();
-
-      if (pError) throw pError;
-
-      // Add tracks
-      const items = tracks.map((t: any, index: number) => ({
-        playlist_id: playlist.id,
-        track_id: t.id,
-        track_title: t.title,
-        track_thumbnail: t.thumbnail,
-        track_channel: t.channel,
-        position: index
-      }));
-
-      const { error: iError } = await supabase
-        .from('playlist_items')
-        .insert(items);
-
-      if (iError) throw iError;
-
-      toast.success('Successfully synced local playlist to your account!');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to sync playlist');
-    } finally {
-      setSyncLoading(false);
-    }
   };
 
   return (
@@ -740,37 +686,20 @@ const Settings = () => {
               <h2 className="text-xl md:text-2xl font-semibold text-foreground">Playlist & Queue</h2>
             </div>
 
-            <div className="bg-card rounded-xl p-4 md:p-6 border border-border space-y-6">
+            <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <p className="font-medium text-foreground text-sm md:text-base">Sync Local Playlist</p>
-                  <p className="text-xs md:text-sm text-muted-foreground">Save your pre-Supabase playlists to your account</p>
+                  <p className="font-medium text-foreground text-sm md:text-base">Clear All Data</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Remove all tracks from playlist and queue</p>
                 </div>
                 <Button
-                  onClick={handleSyncLocalPlaylist}
-                  disabled={syncLoading}
+                  variant="destructive"
+                  onClick={handleClearPlaylist}
                   className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
                 >
-                  <RotateCcw className={cn("w-4 h-4", syncLoading && "animate-spin")} />
-                  Sync to Account
+                  <Trash2 className="w-4 h-4" />
+                  Clear All
                 </Button>
-              </div>
-
-              <div className="border-t border-border pt-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium text-foreground text-sm md:text-base">Clear All Data</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">Remove all tracks from playlist and queue</p>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    onClick={handleClearPlaylist}
-                    className="flex items-center gap-2 active:scale-95 touch-manipulation w-full sm:w-auto"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Clear All
-                  </Button>
-                </div>
               </div>
             </div>
           </section>

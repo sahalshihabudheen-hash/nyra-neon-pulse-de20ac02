@@ -75,9 +75,7 @@ const PlaylistView = () => {
         .from('playlists')
         .select('*')
         .eq('id', id)
-        .eq('user_id', user.id)
         .single();
-
 
       if (playlistError) throw playlistError;
       setPlaylist(playlistData);
@@ -366,8 +364,7 @@ const PlaylistView = () => {
           </div>
 
           {searchResults.length > 0 && (
-            <div className="mt-4 h-80 overflow-y-auto pr-2 custom-scrollbar">
-
+            <ScrollArea className="mt-4 max-h-60">
               <div className="space-y-2">
                 {searchResults.map((track) => (
                   <div
@@ -385,9 +382,8 @@ const PlaylistView = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </ScrollArea>
           )}
-
         </div>
 
         {/* Playlist Tracks */}

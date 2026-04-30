@@ -161,8 +161,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
   }, []);
 
-
-
   const fetchAudioUrl = useCallback(async (videoId: string): Promise<string | null> => {
     try {
       const response = await fetch(
@@ -470,38 +468,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   // Animate browser tab with track info + soundwave
   useTabTitle(currentTrack?.title || null, isPlaying);
-
-  // Handle shared track from URL - Moved after definitions to avoid initialization issues
-  useEffect(() => {
-    if (!ytApiReady) return;
-    
-    const params = new URLSearchParams(window.location.search);
-    const playId = params.get('play');
-    const title = params.get('title');
-    const channel = params.get('channel');
-    const thumbnail = params.get('thumbnail');
-
-    if (playId && title && channel && thumbnail) {
-      const track: Track = {
-        id: playId,
-        title: decodeURIComponent(title),
-        channel: decodeURIComponent(channel),
-        thumbnail: decodeURIComponent(thumbnail),
-      };
-      
-      // Small delay to ensure everything is ready
-      const timer = setTimeout(() => {
-        handlePlayTrack(track);
-        toast.success(`Playing shared track: ${track.title}`);
-        
-        // Clean up URL without refreshing
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
-      }, 1500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [ytApiReady, handlePlayTrack]);
 
   return (
     <MusicPlayerContext.Provider value={{

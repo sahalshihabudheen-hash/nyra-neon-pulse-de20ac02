@@ -364,7 +364,7 @@ const Admin = () => {
         setLoading(false);
         return;
       }
-      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
+      if (user.email === 'admin@gmail.com') {
         setIsAdminLoggedIn(true);
         setLoading(false);
         return;
@@ -751,8 +751,8 @@ const Admin = () => {
     setError(null);
 
     try {
-      if (email !== 'admin@gmail.com' && email !== 'sahalshihabudheen@gmail.com') {
-        throw new Error('Invalid admin credentials. Only authorized admins can access this.');
+      if (email !== 'admin@gmail.com') {
+        throw new Error('Invalid admin credentials. Only admin@gmail.com can access this.');
       }
 
       const { data, error: signInError } = await supabase.auth.signInWithPassword({

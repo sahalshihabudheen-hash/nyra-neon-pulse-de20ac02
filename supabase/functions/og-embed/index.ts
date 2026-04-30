@@ -33,24 +33,17 @@ serve(async (req) => {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${trackTitle.replace(/"/g, '&quot;')}</title>
   <meta property="og:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
   <meta property="og:description" content="${trackChannel.replace(/"/g, '&quot;')} · Playing on ${appName}" />
   <meta property="og:image" content="${thumbnail}" />
   <meta property="og:type" content="music.song" />
   <meta property="og:site_name" content="${appName}" />
-  
-  <meta property="og:url" content="${url.href}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
   <meta name="twitter:description" content="${trackChannel.replace(/"/g, '&quot;')} · ${appName}" />
   <meta name="twitter:image" content="${thumbnail}" />
-  
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
   <meta name="theme-color" content="#ffd300" />
-  
-  <meta http-equiv="refresh" content="0;url=https://nyra-neon-pulse-23e4f39d.vercel.app/?play=${trackId}&title=${encodeURIComponent(trackTitle)}&channel=${encodeURIComponent(trackChannel)}&thumbnail=${encodeURIComponent(trackThumbnail)}" />
+  <meta http-equiv="refresh" content="0;url=${url.origin.replace('/functions/v1/og-embed', '')}/?play=${trackId}" />
 </head>
 <body>
   <p>Redirecting to ${appName}...</p>
@@ -58,6 +51,6 @@ serve(async (req) => {
 </html>`;
 
   return new Response(html, {
-    headers: { 'Content-Type': 'text/html' },
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 });

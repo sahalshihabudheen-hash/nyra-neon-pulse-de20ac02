@@ -44,16 +44,12 @@ const Index = () => {
   const { preferences, showOnboarding, savePreferences } = useUserPreferences();
   const { location } = useUserLocation();
 
-  // Redirect to auth if not logged in, UNLESS it's a shared play link
+  // Redirect to auth if not logged in
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const isSharedLink = searchParams.has('play');
-    
-    if (!authLoading && !user && !isSharedLink) {
+    if (!authLoading && !user) {
       navigate('/auth');
     }
   }, [user, authLoading, navigate]);
-
 
   // Show famous songs by default
   useEffect(() => {

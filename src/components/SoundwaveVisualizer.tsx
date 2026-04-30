@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useTheme, type SoundwaveShape } from '@/contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
+export type SoundwaveShape = 'bars' | 'waves' | 'dots' | 'pulse' | 'spectrum';
 
 interface SoundwaveVisualizerProps {
   isPlaying: boolean;

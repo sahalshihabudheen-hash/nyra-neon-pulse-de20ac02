@@ -36,6 +36,3 @@ verify_jwt = false
 [functions.check-youtube-keys]
 verify_jwt = false
 
-[functions.og-embed]
-verify_jwt = false
-
