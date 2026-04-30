@@ -42,7 +42,7 @@ serve(async (req) => {
     // Check if user is admin
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    const isAdminByEmail = user.email === "admin@gmail.com" || user.email === "sahalshihabudheen@gmail.com";
+    const isAdminByEmail = user.email === "admin@gmail.com";
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")

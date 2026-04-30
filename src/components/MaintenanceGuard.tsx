@@ -26,7 +26,7 @@ const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
         return;
       }
       // Quick check by email
-      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
+      if (user.email === 'admin@gmail.com') {
         setIsAdmin(true);
         setAdminCheckDone(true);
         return;

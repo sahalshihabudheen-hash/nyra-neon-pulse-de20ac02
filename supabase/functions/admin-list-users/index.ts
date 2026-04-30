@@ -36,7 +36,7 @@ serve(async (req) => {
       );
     }
 
-    const isAdminByEmail = user.email === "admin@gmail.com" || user.email === "sahalshihabudheen@gmail.com";
+    const isAdminByEmail = user.email === "admin@gmail.com";
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")

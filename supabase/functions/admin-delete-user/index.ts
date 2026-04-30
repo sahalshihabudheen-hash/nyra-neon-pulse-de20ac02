@@ -34,8 +34,8 @@ serve(async (req) => {
     }
 
     // Only OG admin can delete users
-    if (user.email !== "admin@gmail.com" && user.email !== "sahalshihabudheen@gmail.com") {
-      return new Response(JSON.stringify({ error: "Only the original admins can delete users" }), {
+    if (user.email !== "admin@gmail.com") {
+      return new Response(JSON.stringify({ error: "Only the original admin can delete users" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

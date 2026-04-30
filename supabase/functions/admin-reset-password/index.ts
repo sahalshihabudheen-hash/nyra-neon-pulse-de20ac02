@@ -37,10 +37,10 @@ serve(async (req) => {
       );
     }
 
-    // Only the original admins can reset passwords
-    if (user.email !== "admin@gmail.com" && user.email !== "sahalshihabudheen@gmail.com") {
+    // Only the original admin can reset passwords
+    if (user.email !== "admin@gmail.com") {
       return new Response(
-        JSON.stringify({ error: "Only the original admins can reset passwords" }),
+        JSON.stringify({ error: "Only the original admin can reset passwords" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
