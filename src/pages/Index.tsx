@@ -18,7 +18,7 @@ import { useUserLocation } from '@/hooks/useUserLocation';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { famousSongs } from '@/data/famousSongs';
 import { cn } from '@/lib/utils';
-import { Sparkles, TrendingUp, Compass, Heart } from 'lucide-react';
+import { Sparkles, TrendingUp, Compass } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -39,6 +39,7 @@ const Index = () => {
     handleRemoveFromPlaylist, handleClearPlaylist,
     playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
     shuffleMode, toggleShuffle,
+    loopMode, cycleLoopMode,
     isFavorite, toggleFavorite,
     tracks, setTracks,
     setShowMiniPlayer,
@@ -267,30 +268,32 @@ const Index = () => {
         </main>
       </div>
 
-      <MusicPlayer
-        currentTrack={currentTrack}
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onNext={handleNext}
-        onPrevious={handlePrevious}
-        onAddToPlaylist={handleAddToPlaylist}
-        isInPlaylist={currentTrack ? isInPlaylist(currentTrack.id) : false}
-        playlist={playlist}
-        onPlayFromPlaylist={handlePlayFromPlaylist}
-        onRemoveFromPlaylist={handleRemoveFromPlaylist}
-        onClearPlaylist={handleClearPlaylist}
-        onReorderPlaylist={reorderPlaylist}
-        ytPlayerRef={ytPlayerRef}
-        audioRef={audioRef}
-        shuffleMode={shuffleMode}
-        onToggleShuffle={toggleShuffle}
-        queue={queue}
-        onRemoveFromQueue={removeFromQueue}
-        onPlayFromQueue={handlePlayFromQueue}
-      />
+      {currentTrack && isPlaying && (
+        <MusicPlayer
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onAddToPlaylist={handleAddToPlaylist}
+          playlist={playlist}
+          onPlayFromPlaylist={handlePlayFromPlaylist}
+          onRemoveFromPlaylist={handleRemoveFromPlaylist}
+          onClearPlaylist={handleClearPlaylist}
+          onReorderPlaylist={reorderPlaylist}
+          ytPlayerRef={ytPlayerRef}
+          audioRef={audioRef}
+          shuffleMode={shuffleMode}
+          onToggleShuffle={toggleShuffle}
+          loopMode={loopMode}
+          onCycleLoopMode={cycleLoopMode}
+          queue={queue}
+          onRemoveFromQueue={removeFromQueue}
+          onPlayFromQueue={handlePlayFromQueue}
+        />
+      )}
     </div>
   );
 };
 
 export default Index;
-
