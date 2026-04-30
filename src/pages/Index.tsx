@@ -145,6 +145,9 @@ const Index = () => {
                   onPlayTrack={handlePlayTrack}
                   currentTrack={currentTrack}
                   isPlaying={isPlaying}
+                  onAddToQueue={handleAddToQueue}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={toggleFavorite}
                 />
               </section>
             )}

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Clock, Play, Pause } from 'lucide-react';
+import { Clock, Play, Pause, ListPlus, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface Track {
   id: string;
@@ -15,9 +17,19 @@ interface RecentlyPlayedSectionProps {
   onPlayTrack: (track: Track) => void;
   currentTrack: Track | null;
   isPlaying: boolean;
+  onAddToQueue?: (track: Track) => void;
+  isFavorite?: (trackId: string) => boolean;
+  onToggleFavorite?: (track: Track) => Promise<boolean>;
 }
 
-const RecentlyPlayedSection = ({ onPlayTrack, currentTrack, isPlaying }: RecentlyPlayedSectionProps) => {
+const RecentlyPlayedSection = ({ 
+  onPlayTrack, 
+  currentTrack, 
+  isPlaying,
+  onAddToQueue,
+  isFavorite,
+  onToggleFavorite
+}: RecentlyPlayedSectionProps) => {
   const { user } = useAuth();
   const [recentTracks, setRecentTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,40 +88,99 @@ const RecentlyPlayedSection = ({ onPlayTrack, currentTrack, isPlaying }: Recentl
       <ScrollArea className="w-full">
         <div className="flex gap-4 pb-4">
           {recentTracks.map((track) => {
-            const isActive = currentTrack?.id === track.id;
+            const isCurrentTrack = currentTrack?.id === track.id;
+            const isTrackPlaying = isCurrentTrack && isPlaying;
+            
             return (
-              <button
+              <div
                 key={track.id}
+                className="group flex-shrink-0 w-36 md:w-44 text-left focus:outline-none cursor-pointer"
                 onClick={() => onPlayTrack(track)}
-                className="group flex-shrink-0 w-36 md:w-44 text-left focus:outline-none"
               >
-                <div className="relative rounded-xl overflow-hidden mb-2 aspect-square">
+                <div className={cn(
+                  "relative rounded-xl overflow-hidden mb-2 aspect-square bg-secondary transition-all duration-300",
+                  isCurrentTrack ? "ring-2 ring-primary neon-glow" : "card-glow"
+                )}>
                   <img
                     src={track.thumbnail}
                     alt={track.title}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all">
-                      {isActive && isPlaying ? (
-                        <Pause className="w-5 h-5 text-primary-foreground" fill="currentColor" />
-                      ) : (
-                        <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
+                  
+                  {/* Action Overlay */}
+                  <div className={cn(
+                    "absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 flex flex-col justify-end p-3",
+                    isCurrentTrack ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  )}>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPlayTrack(track);
+                        }}
+                        className={cn(
+                          "w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-lg",
+                          "bg-primary text-primary-foreground hover:scale-110 active:scale-95"
+                        )}
+                      >
+                        {isTrackPlaying ? (
+                          <Pause className="w-4 h-4" fill="currentColor" />
+                        ) : (
+                          <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
+                        )}
+                      </button>
+                      
+                      {onAddToQueue && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddToQueue(track);
+                            toast.success('Added to queue!');
+                          }}
+                          className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/30 transition-all active:scale-95"
+                          title="Add to Queue"
+                        >
+                          <ListPlus className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      
+                      {onToggleFavorite && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(track);
+                          }}
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 backdrop-blur-sm",
+                            isFavorite?.(track.id) 
+                              ? "bg-primary text-primary-foreground" 
+                              : "bg-white/20 text-white hover:bg-white/30"
+                          )}
+                          title={isFavorite?.(track.id) ? "Remove from Favorites" : "Add to Favorites"}
+                        >
+                          <Heart className="w-3.5 h-3.5" fill={isFavorite?.(track.id) ? 'currentColor' : 'none'} />
+                        </button>
                       )}
                     </div>
                   </div>
-                  {isActive && isPlaying && (
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-0.5">
+                  
+                  {/* Equalizer (playing state) */}
+                  {isTrackPlaying && (
+                    <div className="absolute top-2 left-2 flex items-end gap-0.5 h-3 bg-primary/90 rounded-md px-1.5 py-0.5">
                       {[...Array(3)].map((_, i) => (
-                        <div key={i} className="w-0.5 bg-primary rounded-full equalizer-bar" style={{ height: '10px' }} />
+                        <div
+                          key={i}
+                          className="w-0.5 bg-primary-foreground rounded-full equalizer-bar"
+                          style={{ height: '100%' }}
+                        />
                       ))}
                     </div>
                   )}
                 </div>
-                <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
+                <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
                 <p className="text-xs text-muted-foreground truncate">{track.channel}</p>
-              </button>
+              </div>
             );
           })}
         </div>
