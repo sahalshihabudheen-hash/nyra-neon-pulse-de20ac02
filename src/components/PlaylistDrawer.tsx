@@ -234,7 +234,7 @@ const PlaylistDrawer = ({
                     className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover flex-shrink-0"
                   />
 
-                    <div className="flex flex-col min-w-0">
+                    <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className={cn(
                           'font-medium truncate text-sm md:text-base',
@@ -243,7 +243,7 @@ const PlaylistDrawer = ({
                           {track.title}
                         </p>
                         {isUpNext && (
-                          <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-primary/20 text-primary uppercase tracking-wider animate-pulse shrink-0">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-primary text-primary-foreground uppercase tracking-wider shadow-[0_0_10px_rgba(var(--primary),0.5)] shrink-0 animate-pulse">
                             Up Next
                           </span>
                         )}
