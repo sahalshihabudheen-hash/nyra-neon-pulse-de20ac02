@@ -42,10 +42,15 @@ async function getWorkingPipedInstances(): Promise<string[]> {
     return working;
   } catch (error) {
     console.log('Failed to fetch Piped instances list:', error.message);
-    // Fallback to known instances
+    // Fallback to known reliable instances
     return [
-      'https://api.piped.private.coffee',
       'https://pipedapi.kavin.rocks',
+      'https://api.piped.private.coffee',
+      'https://piped-api.hostux.net',
+      'https://pipedapi.cl7.it',
+      'https://api-piped.mha.fi',
+      'https://pipedapi.astreapp.it',
+      'https://pipedapi.adminforge.de',
     ];
   }
 }
@@ -123,6 +128,11 @@ serve(async (req) => {
       const invidiousInstances = [
         'https://inv.nadeko.net',
         'https://invidious.nerdvpn.de',
+        'https://invidious.flokinet.to',
+        'https://yewtu.be',
+        'https://invidious.io.lol',
+        'https://iv.melmac.space',
+        'https://invidious.lunar.icu',
       ];
 
       for (const instance of invidiousInstances) {

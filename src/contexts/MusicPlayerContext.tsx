@@ -210,19 +210,58 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [settings.autoPlayNext]);
 
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
-    activeSourceRef.current = 'youtube';
-    
+    // Stop any existing background audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = '';
     }
 
+    // Try to get a direct audio URL for background playback (better for mobile & quality)
+    try {
+      console.log('Attempting to fetch direct audio URL for:', videoId);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.audioUrl && audioRef.current) {
+          console.log('Direct audio URL found, using background player');
+          activeSourceRef.current = 'background';
+          
+          // Clean up YouTube player if it exists
+          if (ytPlayerRef.current) {
+            try { ytPlayerRef.current.pauseVideo(); } catch {}
+          }
+
+          audioRef.current.src = data.audioUrl;
+          audioRef.current.play()
+            .then(() => setIsPlaying(true))
+            .catch(err => {
+              console.error('Audio element playback failed:', err);
+              // Fallback to YouTube on error
+              activeSourceRef.current = 'youtube';
+              createPlayer(videoId);
+            });
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to fetch background audio URL, falling back to YouTube player:', error);
+    }
+
+    // Fallback to standard YouTube IFrame player
+    activeSourceRef.current = 'youtube';
     const yt = (window as any).YT;
     if (ytApiReady && yt?.Player) {
       createPlayer(videoId);
     } else {
       toast.error('Player not ready. Please try again.');
-      return;
     }
   }, [ytApiReady, createPlayer]);
 
