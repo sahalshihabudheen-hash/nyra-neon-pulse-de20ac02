@@ -243,7 +243,7 @@ const PlaylistDrawer = ({
                           {track.title}
                         </p>
                         {isUpNext && (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-primary text-primary-foreground uppercase tracking-wider shadow-[0_0_10px_rgba(var(--primary),0.5)] shrink-0 animate-pulse">
+                          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black bg-primary text-primary-foreground uppercase tracking-wider shadow-[0_0_15px_rgba(255,255,0,0.4)] shrink-0 animate-pulse border border-white/20">
                             Up Next
                           </span>
                         )}
