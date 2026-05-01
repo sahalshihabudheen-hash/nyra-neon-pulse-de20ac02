@@ -118,122 +118,177 @@ const FullscreenPlayer = ({
       aria-modal="true"
     >
       {/* Immersive Background */}
-      <div className="absolute inset-0 bg-[#080808]">
+      <div className="absolute inset-0 bg-[#050505]">
         {currentTrack && (
-          <div 
-            className="absolute inset-0 opacity-40 blur-[120px] scale-150 transition-all duration-1000"
-            style={{
-              backgroundImage: `url(${currentTrack.thumbnail})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          />
+          <>
+            <div 
+              className="absolute inset-0 opacity-50 blur-[140px] scale-150 transition-all duration-[1500ms]"
+              style={{
+                backgroundImage: `url(${currentTrack.thumbnail})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }}
+            />
+            {/* Animated ambient orbs */}
+            <div className="absolute top-[-15%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[140px] animate-pulse" style={{ animationDuration: '6s' }} />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[140px] animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
+          </>
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#080808]/80 to-[#080808]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/70 to-[#050505]" />
+        {/* Subtle noise/grain overlay */}
+        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")'
+        }} />
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-6 md:px-10">
-        <button onClick={onClose} className="w-12 h-12 rounded-2xl glass-premium border-white/5 flex items-center justify-center transition-all active:scale-90 hover:bg-white/10">
-          <ChevronDown className="w-6 h-6" />
+      <header className="relative z-10 flex items-center justify-between px-5 py-5 md:px-10 md:py-6">
+        <button onClick={onClose} className="w-11 h-11 rounded-2xl glass-premium border border-white/10 flex items-center justify-center transition-all active:scale-90 hover:bg-white/10 hover:border-primary/30">
+          <ChevronDown className="w-5 h-5" />
         </button>
         
-        <div className="text-center group cursor-default">
-          <p className="text-[10px] font-black text-primary uppercase tracking-[0.4em] mb-1">Now Playing</p>
+        <div className="text-center">
+          <p className="text-[9px] font-black text-primary/80 uppercase tracking-[0.5em] mb-1.5">Now Playing</p>
           <div className="flex items-center justify-center gap-2">
-             <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-             <p className="text-sm font-black text-foreground uppercase tracking-widest">{currentTrack?.channel || 'Unknown'}</p>
+             <div className="relative">
+               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping absolute" />
+               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+             </div>
+             <p className="text-xs font-bold text-foreground/90 uppercase tracking-[0.25em] truncate max-w-[180px]">{currentTrack?.channel || 'Unknown'}</p>
           </div>
         </div>
         
-        <button onClick={() => setShowQueue(!showQueue)} className={cn("w-12 h-12 rounded-2xl glass-premium border-white/5 flex items-center justify-center transition-all active:scale-90", showQueue ? "bg-primary text-primary-foreground border-primary" : "hover:bg-white/10")}>
+        <button onClick={() => setShowQueue(!showQueue)} className={cn("w-11 h-11 rounded-2xl glass-premium border flex items-center justify-center transition-all active:scale-90", showQueue ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsl(var(--primary)/0.4)]" : "border-white/10 hover:bg-white/10 hover:border-primary/30")}>
           <ListMusic className="w-5 h-5" />
         </button>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-12 overflow-y-auto">
-        <div className="flex-1 flex flex-col items-center justify-center w-full">
-          {/* Album Art & Info */}
-          <div className="relative mb-10 group">
-            <div className="absolute -inset-4 bg-primary/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 pb-8 md:pb-12 overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl">
+          {/* Album Art with vinyl ring */}
+          <div className="relative mb-8 md:mb-10 group">
+            {/* Glow */}
+            <div className={cn(
+              "absolute -inset-8 rounded-full blur-3xl transition-all duration-1000",
+              isPlaying ? "bg-primary/30 opacity-100 scale-100" : "bg-primary/10 opacity-50 scale-90"
+            )} />
+            {/* Rotating outer ring */}
+            <div 
+              className={cn(
+                "absolute -inset-3 rounded-[3.5rem] border border-white/10",
+                isPlaying && "animate-spin"
+              )}
+              style={{ animationDuration: '20s' }}
+            >
+              <div className="absolute top-2 left-1/2 w-2 h-2 rounded-full bg-primary -translate-x-1/2 shadow-[0_0_10px_hsl(var(--primary))]" />
+            </div>
+            {/* Album art */}
             <img 
               src={currentTrack?.thumbnail || '/placeholder.svg'} 
               alt={currentTrack?.title}
               className={cn(
-                "w-64 h-64 md:w-80 md:h-80 rounded-[3rem] object-cover shadow-2xl transition-all duration-700 relative z-10",
-                isPlaying ? "scale-105" : "scale-100 opacity-80"
+                "w-60 h-60 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-[2.5rem] object-cover shadow-[0_30px_80px_rgba(0,0,0,0.6)] transition-all duration-700 relative z-10 ring-1 ring-white/10",
+                isPlaying ? "scale-100" : "scale-95 opacity-90"
               )}
             />
-            {isPlaying && (
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-32 h-1 bg-primary rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)] animate-pulse z-20" />
-            )}
           </div>
 
-          <div className="text-center mb-10 max-w-xl">
-             <h2 className="text-3xl md:text-5xl font-black text-foreground mb-3 tracking-tighter italic uppercase line-clamp-2 leading-none">{currentTrack?.title || 'Not Selected'}</h2>
-             <p className="text-sm font-black text-primary uppercase tracking-[0.3em]">{currentTrack?.channel || 'Unknown Artist'}</p>
+          {/* Title & Artist */}
+          <div className="text-center mb-8 md:mb-10 max-w-xl px-4">
+             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground mb-2.5 tracking-tight italic uppercase line-clamp-2 leading-tight bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text">
+               {currentTrack?.title || 'Not Selected'}
+             </h2>
+             <p className="text-xs md:text-sm font-bold text-primary uppercase tracking-[0.35em]">{currentTrack?.channel || 'Unknown Artist'}</p>
           </div>
 
-          <div className="w-full max-w-md mb-10">
-             <div className="glass-premium border border-white/5 p-6 rounded-3xl shadow-xl">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="h-16 w-full" shape="spectrum" />
+          {/* Soundwave */}
+          <div className="w-full max-w-md mb-6 md:mb-8 px-4">
+             <div className="glass-premium border border-white/10 px-6 py-4 rounded-3xl shadow-xl backdrop-blur-2xl">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-12 w-full" shape="spectrum" />
              </div>
           </div>
 
           {/* Progress */}
-          <div className="w-full max-w-2xl px-4 mb-12">
-             <StyledProgressBar progress={progress} duration={duration} onSeek={onSeek} className="mb-4" />
-             <div className="flex justify-between text-xs font-black text-muted-foreground/60 tabular-nums tracking-widest">
+          <div className="w-full max-w-2xl px-4 mb-8 md:mb-10">
+             <StyledProgressBar progress={progress} duration={duration} onSeek={onSeek} className="mb-3" />
+             <div className="flex justify-between text-[11px] font-bold text-muted-foreground/70 tabular-nums tracking-widest">
                 <span>{formatTime(progress)}</span>
-                <span>{formatTime(duration)}</span>
+                <span>-{formatTime(Math.max(0, duration - progress))}</span>
              </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center justify-center gap-6 md:gap-10">
-             <button onClick={onToggleShuffle} className={cn("p-4 rounded-2xl transition-all", shuffleMode ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground")}>
-                <Shuffle className="w-6 h-6" />
+          {/* Main Controls */}
+          <div className="flex items-center justify-center gap-3 sm:gap-5 md:gap-8">
+             <button onClick={onToggleShuffle} className={cn("p-3 rounded-2xl transition-all active:scale-90", shuffleMode ? "text-primary bg-primary/15 shadow-[0_0_15px_hsl(var(--primary)/0.3)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                <Shuffle className="w-5 h-5" />
              </button>
              
-             <button onClick={onPrevious} className="p-4 rounded-full glass-premium border-white/5 hover:bg-white/10 transition-all active:scale-75">
-                <SkipBack className="w-8 h-8 fill-current" />
+             <button onClick={onPrevious} className="p-3.5 rounded-full hover:bg-white/10 transition-all active:scale-75 text-foreground">
+                <SkipBack className="w-7 h-7 fill-current" />
              </button>
              
-             <button onClick={onPlayPause} className="w-24 h-24 md:w-32 md:h-32 rounded-[2.5rem] flex items-center justify-center transition-all duration-500 active:scale-90 relative shadow-[0_20px_50px_rgba(var(--primary),0.3)]" style={{ background: 'var(--theme-gradient, hsl(var(--primary)))' }}>
-                <div className="relative text-primary-foreground">
-                   {isPlaying ? <Pause className="w-10 h-10 md:w-12 md:h-12 fill-current" /> : <Play className="w-10 h-10 md:w-12 md:h-12 fill-current ml-2" />}
-                </div>
+             <button 
+               onClick={onPlayPause} 
+               className={cn(
+                 "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 relative",
+                 "bg-primary text-primary-foreground",
+                 "shadow-[0_15px_40px_hsl(var(--primary)/0.4),0_0_60px_hsl(var(--primary)/0.2)]",
+                 "hover:scale-105 hover:shadow-[0_20px_50px_hsl(var(--primary)/0.5),0_0_80px_hsl(var(--primary)/0.3)]"
+               )}
+             >
+                {isPlaying ? <Pause className="w-9 h-9 md:w-10 md:h-10 fill-current" /> : <Play className="w-9 h-9 md:w-10 md:h-10 fill-current ml-1" />}
              </button>
 
-             <button onClick={onNext} className="p-4 rounded-full glass-premium border-white/5 hover:bg-white/10 transition-all active:scale-75">
-                <SkipForward className="w-8 h-8 fill-current" />
+             <button onClick={onNext} className="p-3.5 rounded-full hover:bg-white/10 transition-all active:scale-75 text-foreground">
+                <SkipForward className="w-7 h-7 fill-current" />
              </button>
 
-             <button onClick={onCycleLoopMode} className={cn("p-4 rounded-2xl transition-all", loopMode !== 'off' ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground")}>
-                {loopMode === 'one' ? <Repeat1 className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}
+             <button onClick={onCycleLoopMode} className={cn("p-3 rounded-2xl transition-all active:scale-90", loopMode !== 'off' ? "text-primary bg-primary/15 shadow-[0_0_15px_hsl(var(--primary)/0.3)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                {loopMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
              </button>
           </div>
 
-          {/* Bottom Actions */}
-          <div className="mt-12 flex items-center gap-6">
-             <div className="flex items-center gap-2 p-1.5 rounded-2xl glass-premium border-white/5">
-                <button onClick={() => audioRef?.current && (audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.1))} className="p-3 rounded-xl hover:bg-white/5 text-muted-foreground transition-all">
-                   <Minus className="w-4 h-4" />
-                </button>
-                <button onClick={() => audioRef?.current && (audioRef.current.muted = !audioRef.current.muted)} className="p-3 rounded-xl hover:bg-white/5 text-primary transition-all">
-                   <Volume2 className="w-5 h-5" />
-                </button>
-                <button onClick={() => audioRef?.current && (audioRef.current.volume = Math.min(1, audioRef.current.volume + 0.1))} className="p-3 rounded-xl hover:bg-white/5 text-muted-foreground transition-all">
-                   <Plus className="w-4 h-4" />
-                </button>
-             </div>
-
-             <div className="flex items-center gap-3">
-                <button onClick={() => setShowEQ(!showEQ)} className={cn("flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest transition-all", showEQ ? "bg-primary text-primary-foreground" : "glass-premium border-white/5 hover:bg-white/10")}>
-                    <SlidersHorizontal className="w-4 h-4" />
-                    Equalizer
-                </button>
-             </div>
+          {/* Bottom Quick Actions */}
+          <div className="mt-8 md:mt-10 flex items-center gap-2 p-1.5 rounded-2xl glass-premium border border-white/10 backdrop-blur-2xl">
+             <button 
+               onClick={() => audioRef?.current && (audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.1))} 
+               className="w-10 h-10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all flex items-center justify-center active:scale-90"
+               aria-label="Volume down"
+             >
+                <Minus className="w-4 h-4" />
+             </button>
+             <button 
+               onClick={() => audioRef?.current && (audioRef.current.muted = !audioRef.current.muted)} 
+               className="w-10 h-10 rounded-xl hover:bg-white/10 text-primary transition-all flex items-center justify-center active:scale-90"
+               aria-label="Mute"
+             >
+                <Volume2 className="w-5 h-5" />
+             </button>
+             <button 
+               onClick={() => audioRef?.current && (audioRef.current.volume = Math.min(1, audioRef.current.volume + 0.1))} 
+               className="w-10 h-10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all flex items-center justify-center active:scale-90"
+               aria-label="Volume up"
+             >
+                <Plus className="w-4 h-4" />
+             </button>
+             <div className="w-px h-6 bg-white/10 mx-1" />
+             <button 
+               onClick={() => setShowEQ(!showEQ)} 
+               className={cn(
+                 "w-10 h-10 rounded-xl transition-all flex items-center justify-center active:scale-90",
+                 showEQ ? "bg-primary text-primary-foreground" : "hover:bg-white/10 text-muted-foreground hover:text-foreground"
+               )}
+               aria-label="Equalizer"
+             >
+                 <SlidersHorizontal className="w-4 h-4" />
+             </button>
+             <button 
+               onClick={handleShare} 
+               className="w-10 h-10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all flex items-center justify-center active:scale-90"
+               aria-label="Share"
+             >
+                 <Share2 className="w-4 h-4" />
+             </button>
           </div>
         </div>
 
