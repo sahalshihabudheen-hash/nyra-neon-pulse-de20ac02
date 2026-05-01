@@ -163,54 +163,51 @@ const FullscreenPlayer = ({
         </button>
       </header>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 pb-8 md:pb-12 overflow-y-auto">
-        <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-5 pb-4 md:pb-6 overflow-y-auto min-h-0">
+        <div className="flex flex-col items-center justify-center w-full max-w-2xl my-auto">
           {/* Album Art with vinyl ring */}
-          <div className="relative mb-8 md:mb-10 group">
-            {/* Glow */}
+          <div className="relative mb-4 md:mb-6 group">
             <div className={cn(
               "absolute -inset-8 rounded-full blur-3xl transition-all duration-1000",
               isPlaying ? "bg-primary/30 opacity-100 scale-100" : "bg-primary/10 opacity-50 scale-90"
             )} />
-            {/* Rotating outer ring */}
             <div 
               className={cn(
-                "absolute -inset-3 rounded-[3.5rem] border border-white/10",
+                "absolute -inset-3 rounded-[3rem] border border-white/10",
                 isPlaying && "animate-spin"
               )}
               style={{ animationDuration: '20s' }}
             >
               <div className="absolute top-2 left-1/2 w-2 h-2 rounded-full bg-primary -translate-x-1/2 shadow-[0_0_10px_hsl(var(--primary))]" />
             </div>
-            {/* Album art */}
             <img 
               src={currentTrack?.thumbnail || '/placeholder.svg'} 
               alt={currentTrack?.title}
               className={cn(
-                "w-60 h-60 sm:w-72 sm:h-72 md:w-80 md:h-80 rounded-[2.5rem] object-cover shadow-[0_30px_80px_rgba(0,0,0,0.6)] transition-all duration-700 relative z-10 ring-1 ring-white/10",
+                "w-40 h-40 sm:w-52 sm:h-52 md:w-60 md:h-60 rounded-[2rem] object-cover shadow-[0_30px_80px_rgba(0,0,0,0.6)] transition-all duration-700 relative z-10 ring-1 ring-white/10",
                 isPlaying ? "scale-100" : "scale-95 opacity-90"
               )}
             />
           </div>
 
           {/* Title & Artist */}
-          <div className="text-center mb-8 md:mb-10 max-w-xl px-4">
-             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground mb-2.5 tracking-tight italic uppercase line-clamp-2 leading-tight bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text">
+          <div className="text-center mb-4 md:mb-5 max-w-xl px-4">
+             <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-foreground mb-1.5 tracking-tight italic uppercase line-clamp-2 leading-tight">
                {currentTrack?.title || 'Not Selected'}
              </h2>
-             <p className="text-xs md:text-sm font-bold text-primary uppercase tracking-[0.35em]">{currentTrack?.channel || 'Unknown Artist'}</p>
+             <p className="text-[10px] md:text-xs font-bold text-primary uppercase tracking-[0.35em]">{currentTrack?.channel || 'Unknown Artist'}</p>
           </div>
 
           {/* Soundwave */}
-          <div className="w-full max-w-md mb-6 md:mb-8 px-4">
-             <div className="glass-premium border border-white/10 px-6 py-4 rounded-3xl shadow-xl backdrop-blur-2xl">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="h-12 w-full" shape="spectrum" />
+          <div className="w-full max-w-md mb-4 px-4 hidden sm:block">
+             <div className="glass-premium border border-white/10 px-6 py-3 rounded-3xl shadow-xl backdrop-blur-2xl">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-10 w-full" shape="spectrum" />
              </div>
           </div>
 
           {/* Progress */}
-          <div className="w-full max-w-2xl px-4 mb-8 md:mb-10">
-             <StyledProgressBar progress={progress} duration={duration} onSeek={onSeek} className="mb-3" />
+          <div className="w-full max-w-2xl px-4 mb-4 md:mb-5">
+             <StyledProgressBar progress={progress} duration={duration} onSeek={onSeek} className="mb-2" />
              <div className="flex justify-between text-[11px] font-bold text-muted-foreground/70 tabular-nums tracking-widest">
                 <span>{formatTime(progress)}</span>
                 <span>-{formatTime(Math.max(0, duration - progress))}</span>
@@ -218,38 +215,38 @@ const FullscreenPlayer = ({
           </div>
 
           {/* Main Controls */}
-          <div className="flex items-center justify-center gap-3 sm:gap-5 md:gap-8">
-             <button onClick={onToggleShuffle} className={cn("p-3 rounded-2xl transition-all active:scale-90", shuffleMode ? "text-primary bg-primary/15 shadow-[0_0_15px_hsl(var(--primary)/0.3)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+          <div className="flex items-center justify-center gap-3 sm:gap-5 md:gap-7">
+             <button onClick={onToggleShuffle} className={cn("p-2.5 rounded-2xl transition-all active:scale-90", shuffleMode ? "text-primary bg-primary/15 shadow-[0_0_15px_hsl(var(--primary)/0.3)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                 <Shuffle className="w-5 h-5" />
              </button>
              
-             <button onClick={onPrevious} className="p-3.5 rounded-full hover:bg-white/10 transition-all active:scale-75 text-foreground">
-                <SkipBack className="w-7 h-7 fill-current" />
+             <button onClick={onPrevious} className="p-3 rounded-full hover:bg-white/10 transition-all active:scale-75 text-foreground">
+                <SkipBack className="w-6 h-6 fill-current" />
              </button>
              
              <button 
                onClick={onPlayPause} 
                className={cn(
-                 "w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 relative",
+                 "w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 relative",
                  "bg-primary text-primary-foreground",
                  "shadow-[0_15px_40px_hsl(var(--primary)/0.4),0_0_60px_hsl(var(--primary)/0.2)]",
                  "hover:scale-105 hover:shadow-[0_20px_50px_hsl(var(--primary)/0.5),0_0_80px_hsl(var(--primary)/0.3)]"
                )}
              >
-                {isPlaying ? <Pause className="w-9 h-9 md:w-10 md:h-10 fill-current" /> : <Play className="w-9 h-9 md:w-10 md:h-10 fill-current ml-1" />}
+                {isPlaying ? <Pause className="w-7 h-7 md:w-8 md:h-8 fill-current" /> : <Play className="w-7 h-7 md:w-8 md:h-8 fill-current ml-1" />}
              </button>
 
-             <button onClick={onNext} className="p-3.5 rounded-full hover:bg-white/10 transition-all active:scale-75 text-foreground">
-                <SkipForward className="w-7 h-7 fill-current" />
+             <button onClick={onNext} className="p-3 rounded-full hover:bg-white/10 transition-all active:scale-75 text-foreground">
+                <SkipForward className="w-6 h-6 fill-current" />
              </button>
 
-             <button onClick={onCycleLoopMode} className={cn("p-3 rounded-2xl transition-all active:scale-90", loopMode !== 'off' ? "text-primary bg-primary/15 shadow-[0_0_15px_hsl(var(--primary)/0.3)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+             <button onClick={onCycleLoopMode} className={cn("p-2.5 rounded-2xl transition-all active:scale-90", loopMode !== 'off' ? "text-primary bg-primary/15 shadow-[0_0_15px_hsl(var(--primary)/0.3)]" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                 {loopMode === 'one' ? <Repeat1 className="w-5 h-5" /> : <Repeat className="w-5 h-5" />}
              </button>
           </div>
 
           {/* Bottom Quick Actions */}
-          <div className="mt-8 md:mt-10 flex items-center gap-2 p-1.5 rounded-2xl glass-premium border border-white/10 backdrop-blur-2xl">
+          <div className="mt-4 md:mt-5 flex items-center gap-1.5 p-1.5 rounded-2xl glass-premium border border-white/10 backdrop-blur-2xl">
              <button 
                onClick={() => audioRef?.current && (audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.1))} 
                className="w-10 h-10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all flex items-center justify-center active:scale-90"
