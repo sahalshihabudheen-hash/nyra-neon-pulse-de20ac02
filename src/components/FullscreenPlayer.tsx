@@ -59,9 +59,32 @@ const FullscreenPlayer = ({
   audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
+  const { playlist, handlePlayFromPlaylist } = useMusicPlayer();
   const [showQueue, setShowQueue] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+
+  // Build combined "Up Next": temporary queue first, then upcoming playlist tracks
+  const upcomingPlaylist = (() => {
+    if (!currentTrack || playlist.length === 0) return [] as Track[];
+    const idx = playlist.findIndex(t => t.id === currentTrack.id);
+    if (idx === -1) return [] as Track[];
+    return playlist.slice(idx + 1);
+  })();
+
+  const queueIds = new Set(queue.map(t => t.id));
+  const upNextCombined: Array<Track & { _source: 'queue' | 'playlist' }> = [
+    ...queue.map(t => ({ ...t, _source: 'queue' as const })),
+    ...upcomingPlaylist.filter(t => !queueIds.has(t.id)).map(t => ({ ...t, _source: 'playlist' as const })),
+  ];
+
+  const playUpNextItem = (track: Track & { _source: 'queue' | 'playlist' }) => {
+    if (track._source === 'queue') {
+      onPlayFromQueue?.(track);
+    } else {
+      handlePlayFromPlaylist(track);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
