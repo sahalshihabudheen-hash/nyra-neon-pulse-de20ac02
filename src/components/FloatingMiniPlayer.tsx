@@ -24,7 +24,23 @@ const FloatingMiniPlayer = () => {
     audioRef,
     showMiniPlayer,
     setShowMiniPlayer,
+    queue,
+    playlist,
+    handlePlayFromQueue,
+    handlePlayFromPlaylist,
   } = useMusicPlayer();
+
+  // Compute the next-up track (queue first, otherwise next playlist track)
+  const nextUpTrack = useMemo(() => {
+    if (queue && queue.length > 0) return { track: queue[0], source: 'queue' as const };
+    if (currentTrack && playlist && playlist.length > 0) {
+      const idx = playlist.findIndex(t => t.id === currentTrack.id);
+      if (idx !== -1 && idx < playlist.length - 1) {
+        return { track: playlist[idx + 1], source: 'playlist' as const };
+      }
+    }
+    return null;
+  }, [queue, playlist, currentTrack]);
 
   const { startDownload, isDownloading } = useDownloadManager();
   const navigate = useNavigate();
