@@ -342,6 +342,36 @@ const FloatingMiniPlayer = () => {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        {nextUpTrack && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (nextUpTrack.source === 'queue') {
+                handlePlayFromQueue(nextUpTrack.track);
+              } else {
+                handlePlayFromPlaylist(nextUpTrack.track);
+              }
+            }}
+            className="flex items-center gap-2 w-full px-3 py-1.5 bg-secondary/40 hover:bg-secondary/70 transition-colors text-left border-t border-border/40 active:scale-[0.98]"
+            aria-label={`Play next: ${nextUpTrack.track.title}`}
+          >
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary shrink-0">
+              {nextUpTrack.source === 'queue' ? '⌛ Next' : 'Next'}
+            </span>
+            <img
+              src={nextUpTrack.track.thumbnail}
+              alt=""
+              className="h-6 w-6 rounded object-cover shrink-0"
+              loading="lazy"
+            />
+            <p className="truncate text-[11px] font-semibold text-foreground/90 flex-1 min-w-0">
+              {nextUpTrack.track.title}
+            </p>
+            <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />
+          </button>
+        )}
       </div>
     </div>
   );
