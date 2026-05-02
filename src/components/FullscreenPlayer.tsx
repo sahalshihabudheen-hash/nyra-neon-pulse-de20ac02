@@ -312,25 +312,28 @@ const FullscreenPlayer = ({
            </div>
 
           {/* Compact Up Next Strip */}
-          {queue.length > 0 && (
+          {upNextCombined.length > 0 && (
             <div className="mt-4 md:mt-5 w-full max-w-xl px-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">⌛ Up Next · {queue.length}</p>
+                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">⌛ Up Next · {upNextCombined.length}</p>
                 <button onClick={() => setShowQueue(true)} className="text-[10px] font-bold text-muted-foreground hover:text-primary uppercase tracking-widest transition-colors">
                   View All
                 </button>
               </div>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 snap-x">
-                {queue.slice(0, 5).map((track) => (
+                {upNextCombined.slice(0, 6).map((track) => (
                   <button
-                    key={track.id}
-                    onClick={() => onPlayFromQueue?.(track)}
+                    key={`${track._source}-${track.id}`}
+                    onClick={() => playUpNextItem(track)}
                     className="group relative flex-shrink-0 w-[180px] flex items-center gap-2.5 p-2 rounded-2xl glass-premium border border-white/10 hover:border-primary/40 hover:bg-white/5 transition-all active:scale-95 snap-start"
                   >
                     <img src={track.thumbnail} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
-                      <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{track.channel}</p>
+                      <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest truncate flex items-center gap-1">
+                        <span className={cn("w-1 h-1 rounded-full", track._source === 'queue' ? "bg-primary" : "bg-muted-foreground/40")} />
+                        {track._source === 'queue' ? 'Queue' : 'Playlist'} · {track.channel}
+                      </p>
                     </div>
                   </button>
                 ))}
