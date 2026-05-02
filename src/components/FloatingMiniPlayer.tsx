@@ -24,7 +24,23 @@ const FloatingMiniPlayer = () => {
     audioRef,
     showMiniPlayer,
     setShowMiniPlayer,
+    queue,
+    playlist,
+    handlePlayFromQueue,
+    handlePlayFromPlaylist,
   } = useMusicPlayer();
+
+  // Compute the next-up track (queue first, otherwise next playlist track)
+  const nextUpTrack = useMemo(() => {
+    if (queue && queue.length > 0) return { track: queue[0], source: 'queue' as const };
+    if (currentTrack && playlist && playlist.length > 0) {
+      const idx = playlist.findIndex(t => t.id === currentTrack.id);
+      if (idx !== -1 && idx < playlist.length - 1) {
+        return { track: playlist[idx + 1], source: 'playlist' as const };
+      }
+    }
+    return null;
+  }, [queue, playlist, currentTrack]);
 
   const { startDownload, isDownloading } = useDownloadManager();
   const navigate = useNavigate();
@@ -326,6 +342,36 @@ const FloatingMiniPlayer = () => {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+
+        {nextUpTrack && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (nextUpTrack.source === 'queue') {
+                handlePlayFromQueue(nextUpTrack.track);
+              } else {
+                handlePlayFromPlaylist(nextUpTrack.track);
+              }
+            }}
+            className="flex items-center gap-2 w-full px-3 py-1.5 bg-secondary/40 hover:bg-secondary/70 transition-colors text-left border-t border-border/40 active:scale-[0.98]"
+            aria-label={`Play next: ${nextUpTrack.track.title}`}
+          >
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-primary shrink-0">
+              {nextUpTrack.source === 'queue' ? '⌛ Next' : 'Next'}
+            </span>
+            <img
+              src={nextUpTrack.track.thumbnail}
+              alt=""
+              className="h-6 w-6 rounded object-cover shrink-0"
+              loading="lazy"
+            />
+            <p className="truncate text-[11px] font-semibold text-foreground/90 flex-1 min-w-0">
+              {nextUpTrack.track.title}
+            </p>
+            <SkipForward className="h-3 w-3 text-muted-foreground shrink-0" />
+          </button>
+        )}
       </div>
     </div>
   );
