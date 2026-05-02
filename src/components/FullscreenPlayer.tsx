@@ -59,9 +59,32 @@ const FullscreenPlayer = ({
   audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
+  const { playlist, handlePlayFromPlaylist } = useMusicPlayer();
   const [showQueue, setShowQueue] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+
+  // Build combined "Up Next": temporary queue first, then upcoming playlist tracks
+  const upcomingPlaylist = (() => {
+    if (!currentTrack || playlist.length === 0) return [] as Track[];
+    const idx = playlist.findIndex(t => t.id === currentTrack.id);
+    if (idx === -1) return [] as Track[];
+    return playlist.slice(idx + 1);
+  })();
+
+  const queueIds = new Set(queue.map(t => t.id));
+  const upNextCombined: Array<Track & { _source: 'queue' | 'playlist' }> = [
+    ...queue.map(t => ({ ...t, _source: 'queue' as const })),
+    ...upcomingPlaylist.filter(t => !queueIds.has(t.id)).map(t => ({ ...t, _source: 'playlist' as const })),
+  ];
+
+  const playUpNextItem = (track: Track & { _source: 'queue' | 'playlist' }) => {
+    if (track._source === 'queue') {
+      onPlayFromQueue?.(track);
+    } else {
+      handlePlayFromPlaylist(track);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -289,25 +312,28 @@ const FullscreenPlayer = ({
            </div>
 
           {/* Compact Up Next Strip */}
-          {queue.length > 0 && (
+          {upNextCombined.length > 0 && (
             <div className="mt-4 md:mt-5 w-full max-w-xl px-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">⌛ Up Next · {queue.length}</p>
+                <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">⌛ Up Next · {upNextCombined.length}</p>
                 <button onClick={() => setShowQueue(true)} className="text-[10px] font-bold text-muted-foreground hover:text-primary uppercase tracking-widest transition-colors">
                   View All
                 </button>
               </div>
               <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 snap-x">
-                {queue.slice(0, 5).map((track) => (
+                {upNextCombined.slice(0, 6).map((track) => (
                   <button
-                    key={track.id}
-                    onClick={() => onPlayFromQueue?.(track)}
+                    key={`${track._source}-${track.id}`}
+                    onClick={() => playUpNextItem(track)}
                     className="group relative flex-shrink-0 w-[180px] flex items-center gap-2.5 p-2 rounded-2xl glass-premium border border-white/10 hover:border-primary/40 hover:bg-white/5 transition-all active:scale-95 snap-start"
                   >
                     <img src={track.thumbnail} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
-                      <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{track.channel}</p>
+                      <p className="text-[9px] font-black text-muted-foreground/60 uppercase tracking-widest truncate flex items-center gap-1">
+                        <span className={cn("w-1 h-1 rounded-full", track._source === 'queue' ? "bg-primary" : "bg-muted-foreground/40")} />
+                        {track._source === 'queue' ? 'Queue' : 'Playlist'} · {track.channel}
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -326,8 +352,8 @@ const FullscreenPlayer = ({
                    <div className="flex items-center gap-4">
                       <ListMusic className="w-8 h-8 text-primary" />
                       <div>
-                         <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter italic">Engine Queue</h3>
-                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{queue.length} Tracks Ready</p>
+                         <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter italic">Up Next</h3>
+                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{queue.length} in Queue · {upcomingPlaylist.length} in Playlist</p>
                       </div>
                    </div>
                    <button onClick={() => setShowQueue(false)} className="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center">
@@ -335,26 +361,51 @@ const FullscreenPlayer = ({
                    </button>
                 </div>
                 <ScrollArea className="flex-1 p-4">
-                   {queue.length > 0 ? (
-                      <div className="space-y-2">
-                         {queue.map((track, idx) => (
-                            <div key={track.id} className="flex items-center gap-4 p-4 rounded-3xl hover:bg-white/5 transition-all cursor-pointer group" onClick={() => onPlayFromQueue?.(track)}>
-                               <span className="text-xs font-black text-primary/40 w-6">{idx + 1}</span>
-                               <img src={track.thumbnail} className="w-14 h-14 rounded-2xl object-cover" />
-                               <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
-                                  <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">{track.channel}</p>
-                               </div>
-                               <button onClick={(e) => { e.stopPropagation(); onRemoveFromQueue?.(track.id); }} className="p-3 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
-                         ))}
+                   {upNextCombined.length > 0 ? (
+                      <div className="space-y-4">
+                         {queue.length > 0 && (
+                           <div>
+                             <p className="px-3 mb-2 text-[10px] font-black text-primary uppercase tracking-[0.3em]">⌛ Queue</p>
+                             <div className="space-y-1">
+                               {queue.map((track, idx) => (
+                                  <div key={`q-${track.id}`} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group" onClick={() => onPlayFromQueue?.(track)}>
+                                     <span className="text-xs font-black text-primary/60 w-6">{idx + 1}</span>
+                                     <img src={track.thumbnail} className="w-12 h-12 rounded-xl object-cover" />
+                                     <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
+                                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{track.channel}</p>
+                                     </div>
+                                     <button onClick={(e) => { e.stopPropagation(); onRemoveFromQueue?.(track.id); }} className="p-2.5 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
+                                        <Trash2 className="w-4 h-4" />
+                                     </button>
+                                  </div>
+                               ))}
+                             </div>
+                           </div>
+                         )}
+                         {upcomingPlaylist.length > 0 && (
+                           <div>
+                             <p className="px-3 mb-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">From Playlist</p>
+                             <div className="space-y-1">
+                               {upcomingPlaylist.filter(t => !queueIds.has(t.id)).map((track, idx) => (
+                                  <div key={`p-${track.id}`} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group" onClick={() => handlePlayFromPlaylist(track)}>
+                                     <span className="text-xs font-black text-muted-foreground/40 w-6">{idx + 1}</span>
+                                     <img src={track.thumbnail} className="w-12 h-12 rounded-xl object-cover" />
+                                     <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
+                                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{track.channel}</p>
+                                     </div>
+                                  </div>
+                               ))}
+                             </div>
+                           </div>
+                         )}
                       </div>
                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full opacity-20">
+                      <div className="flex flex-col items-center justify-center h-full opacity-20 py-20">
                          <Music2 className="w-20 h-20 mb-4" />
-                         <p className="font-black uppercase tracking-widest">Queue Empty</p>
+                         <p className="font-black uppercase tracking-widest">Nothing Up Next</p>
+                         <p className="text-[10px] mt-2 tracking-widest">Add tracks to queue or playlist</p>
                       </div>
                    )}
                 </ScrollArea>
