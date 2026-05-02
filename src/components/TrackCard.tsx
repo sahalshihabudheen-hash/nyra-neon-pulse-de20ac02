@@ -118,18 +118,18 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
           </div>
         </div>
 
-        {/* Top Actions Group (Secondary) */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 translate-x-4 transition-all duration-500">
-          <button onClick={handleDownload} className="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
+        {/* Top Actions Group (Secondary) - always visible on mobile, hover on desktop */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10 opacity-100 md:opacity-0 md:translate-x-4 md:group-hover:opacity-100 md:group-hover:translate-x-0 transition-all duration-500">
+          <button onClick={handleDownload} aria-label="Download" className="w-8 h-8 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 shadow-lg">
             {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={handleShare} className="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
+          <button onClick={handleShare} aria-label="Share" className="w-8 h-8 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 shadow-lg">
             <Share2 className="w-3.5 h-3.5" />
           </button>
           <AddToPlaylistDialog
             track={track}
             trigger={
-              <button className="w-8 h-8 rounded-lg bg-black/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all">
+              <button aria-label="Add to playlist" className="w-8 h-8 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all active:scale-90 shadow-lg">
                 <ListPlus className="w-3.5 h-3.5" />
               </button>
             }
