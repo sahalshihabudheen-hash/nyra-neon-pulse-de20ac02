@@ -319,12 +319,22 @@ const MusicPlayer = ({
 
           {/* Up Next Preview (Cute) */}
           {!isMiniMode && isPlaying && nextUpTrack && (
-            <div className="hidden md:flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/next cursor-pointer animate-in-scale shrink-0 max-w-[220px]">
+            <button
+              type="button"
+              onClick={() => {
+                const isInQueue = queue.some(q => q.id === nextUpTrack.id);
+                if (isInQueue && onPlayFromQueue) onPlayFromQueue(nextUpTrack);
+                else if (onPlayFromPlaylist) onPlayFromPlaylist(nextUpTrack);
+                else onNext();
+              }}
+              className="hidden md:flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/next cursor-pointer animate-in-scale shrink-0 max-w-[220px] text-left"
+              aria-label={`Play next: ${nextUpTrack.title}`}
+            >
               <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-lg">
-                <img 
-                  src={nextUpTrack.thumbnail} 
-                  alt="Next Up" 
-                  className="w-full h-full object-cover group-hover/next:scale-110 transition-transform duration-500" 
+                <img
+                  src={nextUpTrack.thumbnail}
+                  alt="Next Up"
+                  className="w-full h-full object-cover group-hover/next:scale-110 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover/next:bg-black/0 transition-colors" />
               </div>
@@ -336,7 +346,7 @@ const MusicPlayer = ({
                   {nextUpTrack.title}
                 </p>
               </div>
-            </div>
+            </button>
           )}
 
           {/* Side Actions (Desktop) */}
