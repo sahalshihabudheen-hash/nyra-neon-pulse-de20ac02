@@ -96,7 +96,15 @@ const MusicPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const nextUpTrack = queue.length > 0 ? queue[0] : null;
+  const nextUpTrack = (() => {
+    if (queue.length > 0) return queue[0];
+    if (currentTrack && playlist.length > 0) {
+      const idx = playlist.findIndex(t => t.id === currentTrack.id);
+      if (idx !== -1 && idx < playlist.length - 1) return playlist[idx + 1];
+      if (idx !== -1 && loopMode === 'all') return playlist[0];
+    }
+    return null;
+  })();
 
   useEffect(() => {
     if (progressIntervalRef.current) {
