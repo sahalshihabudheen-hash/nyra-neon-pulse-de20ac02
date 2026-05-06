@@ -236,7 +236,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           // Trigger fallback playback if direct URL hasn't returned in time
           if (!usedFallback) {
             usedFallback = true;
-            activeSourceRef.current = 'youtube';
+            setPlaybackSource('youtube');
             const yt = (window as any).YT;
             if (ytApiReady && yt?.Player) {
               createPlayer(videoId);
@@ -267,7 +267,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       if (usedFallback) return;
 
       if (audioUrl && audioRef.current) {
-        activeSourceRef.current = 'background';
+        setPlaybackSource('background');
         if (ytPlayerRef.current) {
           try { ytPlayerRef.current.pauseVideo(); } catch {}
         }
@@ -275,7 +275,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         audioRef.current.play()
           .then(() => setIsPlaying(true))
           .catch(() => {
-            activeSourceRef.current = 'youtube';
+            setPlaybackSource('youtube');
             createPlayer(videoId);
           });
         return;
@@ -286,14 +286,60 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
     if (usedFallback) return;
     // Final fallback to standard YouTube IFrame player
-    activeSourceRef.current = 'youtube';
+    setPlaybackSource('youtube');
     const yt = (window as any).YT;
     if (ytApiReady && yt?.Player) {
       createPlayer(videoId);
     } else {
       toast.error('Player not ready. Please try again.');
     }
-  }, [ytApiReady, createPlayer]);
+  }, [ytApiReady, createPlayer, setPlaybackSource]);
+
+  const forceBackgroundPlayback = useCallback(async (track = currentTrack): Promise<boolean> => {
+    if (!track || !audioRef.current) {
+      toast.error('Play or select a song first');
+      return false;
+    }
+
+    try {
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.pauseVideo(); } catch {}
+      }
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      setUseBackgroundAudioMode(true);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      const data = response.ok ? await response.json() : null;
+      const audioUrl = data?.audioUrl;
+
+      if (!audioUrl) {
+        setPlaybackSource('youtube');
+        toast.error('DJ audio stream unavailable for this song');
+        return false;
+      }
+
+      setCurrentTrack(track);
+      setShowMiniPlayer(true);
+      setPlaybackSource('background');
+      audioRef.current.src = audioUrl;
+      await audioRef.current.play();
+      setIsPlaying(true);
+      return true;
+    } catch (error) {
+      console.warn('Force DJ source failed:', error);
+      setPlaybackSource('youtube');
+      toast.error('Could not start DJ audio stream');
+      return false;
+    }
+  }, [currentTrack, setPlaybackSource]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
