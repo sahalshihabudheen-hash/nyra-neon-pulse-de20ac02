@@ -211,6 +211,48 @@ const DjMode = () => {
           </div>
         )}
 
+        {(results.length > 0 || playlist.length > 0) && (
+          <div className="mb-10 space-y-10">
+            {results.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <Search className="h-5 w-5 text-primary" />
+                  <h2 className="text-2xl font-black uppercase italic tracking-tight">DJ Search Results</h2>
+                </div>
+                <TrackGrid
+                  tracks={results}
+                  currentTrack={currentTrack}
+                  onPlayTrack={(track) => playForDj(track, results)}
+                  onAddToQueue={handleAddToQueue}
+                  isLoading={false}
+                  searchPerformed={true}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={toggleFavorite}
+                />
+              </section>
+            )}
+
+            {playlist.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <ListMusic className="h-5 w-5 text-primary" />
+                  <h2 className="text-2xl font-black uppercase italic tracking-tight">Playlist Deck</h2>
+                </div>
+                <TrackGrid
+                  tracks={playlist}
+                  currentTrack={currentTrack}
+                  onPlayTrack={(track) => playForDj(track, playlist, true)}
+                  onAddToQueue={handleAddToQueue}
+                  isLoading={false}
+                  searchPerformed={true}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={toggleFavorite}
+                />
+              </section>
+            )}
+          </div>
+        )}
+
         {/* Decks */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Deck side="L" gain={state.leftGain} level={levels.left} />
