@@ -539,10 +539,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   return (
     <MusicPlayerContext.Provider value={{
-      currentTrack, isPlaying, useBackgroundAudioMode,
+      currentTrack, isPlaying, useBackgroundAudioMode, activeSource,
       ytPlayerRef, audioRef,
       handlePlayTrack, handlePlayPause, handleNext, handlePrevious,
       handlePlayFromPlaylist, handlePlayFromQueue,
+      forceBackgroundPlayback,
       handleAddToPlaylist, handleAddToQueue,
       handleRemoveFromPlaylist, handleClearPlaylist,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
