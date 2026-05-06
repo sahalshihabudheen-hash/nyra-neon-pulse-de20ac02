@@ -19,6 +19,7 @@ interface MusicPlayerContextType {
   currentTrack: Track | null;
   isPlaying: boolean;
   useBackgroundAudioMode: boolean;
+  activeSource: 'youtube' | 'background' | null;
 
   // Player refs
   ytPlayerRef: React.MutableRefObject<any>;
@@ -31,6 +32,7 @@ interface MusicPlayerContextType {
   handlePrevious: () => void;
   handlePlayFromPlaylist: (track: Track) => void;
   handlePlayFromQueue: (track: Track) => void;
+  forceBackgroundPlayback: (track?: Track) => Promise<boolean>;
   handleAddToPlaylist: (track: Track) => void;
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
@@ -86,10 +88,16 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   // Track which audio source is active to prevent state conflicts
   const activeSourceRef = useRef<'youtube' | 'background' | null>(null);
+  const [activeSource, setActiveSource] = useState<'youtube' | 'background' | null>(null);
 
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
+
+  const setPlaybackSource = useCallback((source: 'youtube' | 'background' | null) => {
+    activeSourceRef.current = source;
+    setActiveSource(source);
+  }, []);
 
   const {
     playlist, addToPlaylist, removeFromPlaylist, clearPlaylist,
