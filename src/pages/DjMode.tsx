@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
@@ -57,7 +57,7 @@ const DjMode = () => {
     if (ready) init();
   };
 
-  const searchDjTracks = async (event?: React.FormEvent) => {
+  const searchDjTracks = async (event?: FormEvent) => {
     event?.preventDefault();
     if (!query.trim()) {
       toast.error('Enter a song or artist');
