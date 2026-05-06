@@ -32,7 +32,7 @@ interface MusicPlayerContextType {
   handlePrevious: () => void;
   handlePlayFromPlaylist: (track: Track) => void;
   handlePlayFromQueue: (track: Track) => void;
-  forceBackgroundPlayback: (track?: Track) => Promise<boolean>;
+  forceBackgroundPlayback: (track?: Track, options?: { trackList?: Track[]; fromPlaylist?: boolean }) => Promise<boolean>;
   handleAddToPlaylist: (track: Track) => void;
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
@@ -295,7 +295,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [ytApiReady, createPlayer, setPlaybackSource]);
 
-  const forceBackgroundPlayback = useCallback(async (track = currentTrack): Promise<boolean> => {
+  const forceBackgroundPlayback = useCallback(async (track = currentTrack, options?: { trackList?: Track[]; fromPlaylist?: boolean }): Promise<boolean> => {
     if (!track || !audioRef.current) {
       toast.error('Play or select a song first');
       return false;
@@ -326,7 +326,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         return false;
       }
 
+      if (options?.trackList) {
+        setTracks(options.trackList);
+        setCurrentTrackIndex(options.trackList.findIndex(t => t.id === track.id));
+      }
       setCurrentTrack(track);
+      setPlayingFromPlaylist(!!options?.fromPlaylist);
+      setLastPlayed(track.id);
+      recordPlay(track);
       setShowMiniPlayer(true);
       setPlaybackSource('background');
       audioRef.current.src = audioUrl;
@@ -339,7 +346,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       toast.error('Could not start DJ audio stream');
       return false;
     }
-  }, [currentTrack, setPlaybackSource]);
+  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
