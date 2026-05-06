@@ -1,17 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
+import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Headphones, Power, RotateCcw, ChevronsLeft, ChevronsRight, Disc3 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Headphones, Power, RotateCcw, ChevronsLeft, ChevronsRight, Disc3, Loader2, ListMusic, Music2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+
+interface Track {
+  id: string;
+  title: string;
+  thumbnail: string;
+  channel: string;
+}
 
 const DjMode = () => {
-  const { currentTrack, isPlaying } = useMusicPlayer();
+  const {
+    currentTrack, isPlaying, activeSource, playlist,
+    forceBackgroundPlayback, handleAddToQueue, isFavorite, toggleFavorite,
+  } = useMusicPlayer();
   const { state, apply, init, getLevels } = useDjAudio();
   const [activeTab, setActiveTab] = useState('dj');
   const [levels, setLevels] = useState({ left: 0, right: 0 });
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Track[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [forcingSource, setForcingSource] = useState(false);
   const rafRef = useRef<number>();
 
   useEffect(() => {
@@ -23,10 +41,50 @@ const DjMode = () => {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [getLevels]);
 
-  const enable = () => {
+  const enable = async () => {
+    setForcingSource(true);
+    const ready = activeSource === 'background' ? true : await forceBackgroundPlayback();
+    setForcingSource(false);
+    if (!ready) return;
     const ok = init();
-    if (!ok) {
-      // Hint user
+    if (!ok) toast.error('DJ engine could not connect to this audio stream');
+  };
+
+  const playForDj = async (track: Track, trackList?: Track[], fromPlaylist = false) => {
+    setForcingSource(true);
+    const ready = await forceBackgroundPlayback(track, { trackList, fromPlaylist });
+    setForcingSource(false);
+    if (ready) init();
+  };
+
+  const searchDjTracks = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (!query.trim()) {
+      toast.error('Enter a song or artist');
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setResults(data);
+      toast.success(`Found ${data.length} DJ tracks`);
+    } catch (error) {
+      console.error('DJ search error:', error);
+      toast.error('Search failed. Try another song.');
+    } finally {
+      setSearching(false);
     }
   };
 
