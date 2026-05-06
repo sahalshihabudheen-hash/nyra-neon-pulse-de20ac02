@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range',
+  'Access-Control-Expose-Headers': 'content-length, content-range, accept-ranges, content-type',
 };
 
 // Cache discovered instances for 10 minutes
@@ -63,6 +64,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const videoId = url.searchParams.get('videoId');
+    const shouldStream = url.searchParams.get('stream') === '1';
 
     if (!videoId) {
       return new Response(
@@ -181,6 +183,36 @@ serve(async (req) => {
         JSON.stringify({ error: 'Could not retrieve audio URL', fallback: true }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    if (shouldStream) {
+      const upstreamHeaders: HeadersInit = {};
+      const range = req.headers.get('range');
+      if (range) upstreamHeaders.Range = range;
+
+      const audioResponse = await fetch(audioUrl, {
+        headers: upstreamHeaders,
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (!audioResponse.ok && audioResponse.status !== 206) {
+        return new Response(
+          JSON.stringify({ error: 'Audio stream unavailable', fallback: true }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const headers = new Headers(corsHeaders);
+      headers.set('Content-Type', audioResponse.headers.get('content-type') || 'audio/mp4');
+      for (const header of ['content-length', 'content-range', 'accept-ranges']) {
+        const value = audioResponse.headers.get(header);
+        if (value) headers.set(header, value);
+      }
+
+      return new Response(audioResponse.body, {
+        status: audioResponse.status,
+        headers,
+      });
     }
 
     return new Response(

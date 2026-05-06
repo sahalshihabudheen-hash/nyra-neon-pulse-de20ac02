@@ -1,17 +1,35 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Sidebar from '@/components/Sidebar';
+import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Headphones, Power, RotateCcw, ChevronsLeft, ChevronsRight, Disc3 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Headphones, Power, RotateCcw, ChevronsLeft, ChevronsRight, Disc3, Loader2, ListMusic, Music2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+
+interface Track {
+  id: string;
+  title: string;
+  thumbnail: string;
+  channel: string;
+}
 
 const DjMode = () => {
-  const { currentTrack, isPlaying } = useMusicPlayer();
+  const {
+    currentTrack, isPlaying, activeSource, playlist,
+    forceBackgroundPlayback, handleAddToQueue, isFavorite, toggleFavorite,
+  } = useMusicPlayer();
   const { state, apply, init, getLevels } = useDjAudio();
   const [activeTab, setActiveTab] = useState('dj');
   const [levels, setLevels] = useState({ left: 0, right: 0 });
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Track[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [forcingSource, setForcingSource] = useState(false);
   const rafRef = useRef<number>();
 
   useEffect(() => {
@@ -23,10 +41,50 @@ const DjMode = () => {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [getLevels]);
 
-  const enable = () => {
+  const enable = async () => {
+    setForcingSource(true);
+    const ready = activeSource === 'background' ? true : await forceBackgroundPlayback();
+    setForcingSource(false);
+    if (!ready) return;
     const ok = init();
-    if (!ok) {
-      // Hint user
+    if (!ok) toast.error('DJ engine could not connect to this audio stream');
+  };
+
+  const playForDj = async (track: Track, trackList?: Track[], fromPlaylist = false) => {
+    setForcingSource(true);
+    const ready = await forceBackgroundPlayback(track, { trackList, fromPlaylist });
+    setForcingSource(false);
+    if (ready) init();
+  };
+
+  const searchDjTracks = async (event?: FormEvent) => {
+    event?.preventDefault();
+    if (!query.trim()) {
+      toast.error('Enter a song or artist');
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      setResults(data);
+      toast.success(`Found ${data.length} DJ tracks`);
+    } catch (error) {
+      console.error('DJ search error:', error);
+      toast.error('Search failed. Try another song.');
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -88,7 +146,7 @@ const DjMode = () => {
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="ml-0 md:ml-64 min-h-screen p-4 md:p-10 pt-20 md:pt-10 pb-44">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-center">
           <div className="p-3 rounded-2xl bg-primary/10 text-primary">
             <Headphones className="w-7 h-7" />
           </div>
@@ -98,21 +156,44 @@ const DjMode = () => {
               Split L/R • EQ • Channel Mix
             </p>
           </div>
+          <Badge
+            variant={activeSource === 'background' ? 'default' : 'outline'}
+            className="w-fit gap-2 px-3 py-1.5 uppercase tracking-widest"
+          >
+            <Music2 className="w-3.5 h-3.5" />
+            {activeSource === 'background' ? 'DJ Source Ready' : activeSource === 'youtube' ? 'YT Source Blocked' : 'No Track'}
+          </Badge>
           <Button
             onClick={state.active ? reset : enable}
             variant={state.active ? 'outline' : 'default'}
+            disabled={forcingSource}
             className="gap-2"
           >
-            {state.active ? <><RotateCcw className="w-4 h-4" /> Reset</> : <><Power className="w-4 h-4" /> Enable DJ</>}
+            {forcingSource ? <><Loader2 className="w-4 h-4 animate-spin" /> Loading DJ</> : state.active ? <><RotateCcw className="w-4 h-4" /> Reset</> : <><Power className="w-4 h-4" /> Enable DJ</>}
           </Button>
         </div>
 
         {!state.active && (
-          <div className="mb-6 p-4 rounded-2xl border border-yellow-500/30 bg-yellow-500/5 text-yellow-200 text-sm">
-            ⚠️ DJ Mode only works on tracks playing through the <strong>background audio stream</strong> (not the YouTube iframe).
-            Click <strong>Enable DJ</strong> while a song is playing. If controls have no effect, the current track is on YouTube — skip to the next track and try again.
+          <div className="mb-6 p-4 rounded-2xl border border-primary/30 bg-primary/5 text-sm text-foreground">
+            DJ Mode will force the splittable audio stream. If a specific YouTube song has no available stream, try another result or playlist track.
           </div>
         )}
+
+        <form onSubmit={searchDjTracks} className="mb-6 flex flex-col gap-3 md:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search songs for DJ Mode"
+              className="pl-10"
+            />
+          </div>
+          <Button type="submit" disabled={searching} className="gap-2">
+            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            Search
+          </Button>
+        </form>
 
         {currentTrack && (
           <div className="mb-8 flex items-center gap-4 p-4 rounded-2xl glass-premium border border-white/10">
@@ -121,6 +202,54 @@ const DjMode = () => {
               <div className="font-bold truncate">{currentTrack.title}</div>
               <div className="text-xs text-muted-foreground truncate">{currentTrack.channel}</div>
             </div>
+            {activeSource !== 'background' && (
+              <Button size="sm" onClick={enable} disabled={forcingSource} className="ml-auto gap-2">
+                {forcingSource ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
+                Force DJ
+              </Button>
+            )}
+          </div>
+        )}
+
+        {(results.length > 0 || playlist.length > 0) && (
+          <div className="mb-10 space-y-10">
+            {results.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <Search className="h-5 w-5 text-primary" />
+                  <h2 className="text-2xl font-black uppercase italic tracking-tight">DJ Search Results</h2>
+                </div>
+                <TrackGrid
+                  tracks={results}
+                  currentTrack={currentTrack}
+                  onPlayTrack={(track) => playForDj(track, results)}
+                  onAddToQueue={handleAddToQueue}
+                  isLoading={false}
+                  searchPerformed={true}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={toggleFavorite}
+                />
+              </section>
+            )}
+
+            {playlist.length > 0 && (
+              <section>
+                <div className="mb-4 flex items-center gap-3">
+                  <ListMusic className="h-5 w-5 text-primary" />
+                  <h2 className="text-2xl font-black uppercase italic tracking-tight">Playlist Deck</h2>
+                </div>
+                <TrackGrid
+                  tracks={playlist}
+                  currentTrack={currentTrack}
+                  onPlayTrack={(track) => playForDj(track, playlist, true)}
+                  onAddToQueue={handleAddToQueue}
+                  isLoading={false}
+                  searchPerformed={true}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={toggleFavorite}
+                />
+              </section>
+            )}
           </div>
         )}
 
