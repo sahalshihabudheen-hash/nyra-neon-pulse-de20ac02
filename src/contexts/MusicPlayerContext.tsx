@@ -330,13 +330,15 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         setTracks(options.trackList);
         setCurrentTrackIndex(options.trackList.findIndex(t => t.id === track.id));
       }
+      const streamUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}&stream=1`;
+
       setCurrentTrack(track);
       setPlayingFromPlaylist(!!options?.fromPlaylist);
       setLastPlayed(track.id);
       recordPlay(track);
       setShowMiniPlayer(true);
       setPlaybackSource('background');
-      audioRef.current.src = audioUrl;
+      audioRef.current.src = streamUrl;
       await audioRef.current.play();
       setIsPlaying(true);
       return true;
