@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2, Zap, Headphones } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2, Zap, Headphones, LayoutPanelRight } from 'lucide-react';
 import { toast } from 'sonner';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,7 @@ import PlaylistDrawer from './PlaylistDrawer';
 import FullscreenPlayer from './FullscreenPlayer';
 import LyricsDrawer from './LyricsDrawer';
 import EqualizerPanel from './EqualizerPanel';
+import NowPlayingPanel from './NowPlayingPanel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
@@ -81,12 +82,11 @@ const MusicPlayer = ({
   const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [playlistOpen, setPlaylistOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
-  const progressRef = useRef<HTMLInputElement>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const formatTime = (seconds: number) => {
@@ -200,14 +200,12 @@ const MusicPlayer = ({
         'fixed bottom-4 left-4 md:left-[272px] right-4 glass-premium border border-white/10 z-40 transition-all duration-700 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group/player',
         isMiniMode ? 'h-16' : 'h-auto py-2 md:py-3'
       )}>
-        {/* Animated Accent Line */}
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
         <div className={cn(
           'h-full px-4 md:px-6 flex items-center',
           isMiniMode ? 'gap-4' : 'flex-col gap-2 md:flex-row md:gap-6'
         )}>
-          {/* Track Info */}
           <div 
             className={cn(
               'flex items-center gap-4 cursor-pointer group/track',
@@ -242,12 +240,6 @@ const MusicPlayer = ({
                     {currentTrack.title}
                   </h3>
                   <p className="text-[11px] font-bold text-muted-foreground/60 truncate uppercase tracking-widest">{currentTrack.channel}</p>
-                  {!isMiniMode && (
-                    <div className="flex items-center gap-2 mt-1.5 opacity-60 group-hover/track:opacity-100 transition-opacity">
-                      <Zap className="w-3 h-3 text-primary animate-pulse" />
-                      <span className="text-[10px] font-bold text-primary/80 uppercase">High Fidelity Audio</span>
-                    </div>
-                  )}
                 </div>
               </>
             ) : (
@@ -258,17 +250,8 @@ const MusicPlayer = ({
                 <p className="text-muted-foreground font-medium text-sm">Pick a vibe to start</p>
               </div>
             )}
-
-            {!isMiniMode && currentTrack && (
-              <div className="hidden md:flex items-center gap-1 ml-auto" onClick={(e) => e.stopPropagation()}>
-                <button onClick={handleShare} className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-primary transition-all rounded-xl hover:bg-white/5">
-                  <Share2 className="w-4 h-4" />
-                </button>
-              </div>
-            )}
           </div>
 
-          {/* Controls Center */}
           <div className={cn(
             'flex flex-col items-center gap-2',
             isMiniMode ? '' : 'flex-1 w-full'
@@ -281,12 +264,10 @@ const MusicPlayer = ({
               <button
                 onClick={onPlayPause}
                 className={cn(
-                  'rounded-2xl flex items-center justify-center transition-all duration-500 active:scale-90 relative group/btn overflow-hidden',
-                  isMiniMode ? 'w-10 h-10' : 'w-14 h-14 shadow-[0_10px_20px_rgba(var(--primary),0.3)]',
+                  'rounded-2xl flex items-center justify-center transition-all duration-500 active:scale-90 relative group/btn overflow-hidden w-14 h-14 shadow-[0_10px_20px_rgba(var(--primary),0.3)]',
                 )}
                 style={{ background: isPlaying ? 'var(--theme-gradient, hsl(var(--primary)))' : 'hsl(var(--primary))' }}
               >
-                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000" />
                 <div className="relative text-primary-foreground">
                   {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
                 </div>
@@ -298,70 +279,27 @@ const MusicPlayer = ({
             </div>
 
             {!isMiniMode && (
-              <div className="w-full max-w-md h-6 mb-[-4px] animate-in-fade opacity-80 overflow-hidden">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
-              </div>
-            )}
-
-            {!isMiniMode && (
               <div className="w-full max-w-2xl flex items-center gap-4 group/progress">
                 <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
-                <StyledProgressBar
-                  progress={progress}
-                  duration={duration}
-                  onSeek={handleSeek}
-                  className="flex-1"
-                />
+                <StyledProgressBar progress={progress} duration={duration} onSeek={handleSeek} className="flex-1" />
                 <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
               </div>
             )}
           </div>
 
-          {/* Up Next Preview (Cute) */}
-          {!isMiniMode && isPlaying && nextUpTrack && (
-            <button
-              type="button"
-              onClick={() => {
-                const isInQueue = queue.some(q => q.id === nextUpTrack.id);
-                if (isInQueue && onPlayFromQueue) onPlayFromQueue(nextUpTrack);
-                else if (onPlayFromPlaylist) onPlayFromPlaylist(nextUpTrack);
-                else onNext();
-              }}
-              className="hidden md:flex items-center gap-3 pl-4 pr-2 py-1.5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group/next cursor-pointer animate-in-scale shrink-0 max-w-[220px] text-left"
-              aria-label={`Play next: ${nextUpTrack.title}`}
-            >
-              <div className="relative w-9 h-9 rounded-lg overflow-hidden shrink-0 shadow-lg">
-                <img
-                  src={nextUpTrack.thumbnail}
-                  alt="Next Up"
-                  className="w-full h-full object-cover group-hover/next:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover/next:bg-black/0 transition-colors" />
-              </div>
-              <div className="flex flex-col min-w-0 overflow-hidden">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary mb-0.5 opacity-80 group-hover/next:opacity-100 transition-opacity flex items-center gap-1">
-                   Up Next <Zap className="w-2.5 h-2.5 fill-current" />
-                </span>
-                <p className="text-[11px] font-bold text-foreground truncate group-hover/next:text-primary transition-colors">
-                  {nextUpTrack.title}
-                </p>
-              </div>
-            </button>
-          )}
-
-          {/* Side Actions (Desktop) */}
           <div className={cn(
             'flex items-center gap-2 justify-end',
             isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-80'
           )}>
             {currentTrack && (
                <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/5 border border-white/5 mr-2">
-
-
-                 <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                 <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Lyrics">
                     <Music2 className="w-4 h-4" />
                  </button>
-                 <button onClick={() => setShowEQ(!showEQ)} className={cn("p-2 rounded-xl transition-all", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                 <button onClick={() => setNowPlayingOpen(!nowPlayingOpen)} className={cn("p-2 rounded-xl transition-all", nowPlayingOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Now Playing View">
+                    <LayoutPanelRight className="w-4 h-4" />
+                 </button>
+                 <button onClick={() => setShowEQ(!showEQ)} className={cn("p-2 rounded-xl transition-all", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Equalizer">
                     <SlidersHorizontal className="w-4 h-4" />
                  </button>
                </div>
@@ -381,7 +319,6 @@ const MusicPlayer = ({
           </div>
         </div>
 
-        {/* Floating EQ Panel */}
         {showEQ && audioRef && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-80 z-50 animate-in-up">
             <div className="glass-premium border border-white/10 p-6 rounded-[2rem] shadow-2xl">
@@ -413,10 +350,9 @@ const MusicPlayer = ({
       />
 
       <LyricsDrawer isOpen={lyricsOpen} onClose={() => setLyricsOpen(false)} />
-
-
+      <NowPlayingPanel isOpen={nowPlayingOpen} onClose={() => setNowPlayingOpen(false)} currentTrack={currentTrack} />
     </>
   );
 };
 
-export default MusicPlayer;
+export default MusicPlayer;
