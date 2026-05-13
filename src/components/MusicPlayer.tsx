@@ -213,7 +213,7 @@ const MusicPlayer = ({
   return (
     <>
       <footer className={cn(
-        'fixed bottom-6 left-6 transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-40',
+        'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-40',
         nowPlayingOpen ? 'right-[380px]' : 'right-6',
         'h-32 py-4 px-8'
       )}>
