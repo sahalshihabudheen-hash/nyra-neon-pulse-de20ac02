@@ -53,7 +53,7 @@ const StyledProgressBar = ({
   // Classic style
   if (style === 'classic') {
     return (
-      <div className={cn("relative h-2 group rounded-full bg-white/10 border border-white/20 overflow-visible", className)}>
+      <div className={cn("relative h-1.5 group rounded-full bg-white/10 border border-white/20 overflow-visible", className)}>
         <div className="absolute inset-0 bg-muted/30 rounded-full" />
         <div
           className="absolute left-0 top-0 h-full rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary))] transition-all"
@@ -62,8 +62,8 @@ const StyledProgressBar = ({
         {rangeInput}
         {showHandle && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
-            style={{ left: `calc(${progressPercent}% - 7px)` }}
+            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-primary shadow-lg border-2 border-white transition-all pointer-events-none"
+            style={{ left: `calc(${progressPercent}% - 5px)` }}
           />
         )}
       </div>
@@ -73,7 +73,7 @@ const StyledProgressBar = ({
   // Wavy style (like the reference image)
   if (style === 'wavy') {
     return (
-      <div className={cn("relative h-6 group overflow-visible", className)}>
+      <div className={cn("relative h-5 group overflow-visible", className)}>
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox="0 0 1000 40"
@@ -106,9 +106,9 @@ const StyledProgressBar = ({
         {/* Handle dot */}
         {showHandle && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary shadow-lg border-2 border-white pointer-events-none z-[5]"
+            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-primary shadow-lg border-2 border-white pointer-events-none z-[5]"
             style={{
-              left: `calc(${progressPercent}% - 8px)`,
+              left: `calc(${progressPercent}% - 6px)`,
               boxShadow: '0 0 10px hsl(var(--primary) / 0.8)',
             }}
           />
@@ -169,7 +169,7 @@ const StyledProgressBar = ({
   // Rounded (thick pill) style
   if (style === 'rounded') {
     return (
-      <div className={cn("relative h-3 group rounded-full bg-white/10 border border-white/10 overflow-visible", className)}>
+      <div className={cn("relative h-1.5 group rounded-full bg-white/10 border border-white/10 overflow-visible", className)}>
         <div
           className="absolute left-0 top-0 h-full rounded-full transition-all"
           style={{
@@ -181,8 +181,8 @@ const StyledProgressBar = ({
         {rangeInput}
         {showHandle && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-primary shadow-lg border-2 border-white pointer-events-none transition-all"
-            style={{ left: `calc(${progressPercent}% - 10px)` }}
+            className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-primary shadow-lg border-2 border-white pointer-events-none transition-all"
+            style={{ left: `calc(${progressPercent}% - 7px)` }}
           />
         )}
       </div>
