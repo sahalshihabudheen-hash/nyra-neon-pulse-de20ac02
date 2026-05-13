@@ -77,13 +77,6 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         toast.success(`🎵 Download started: ${track.title}`);
       }, 2000);
     } catch (error: any) {
-
-      // Auto-cleanup
-      setTimeout(() => {
-        setDownloads(prev => prev.filter(d => d.id !== track.id));
-      }, 5000);
-
-    } catch (error: any) {
       console.error('Download error:', error);
       updateItem(track.id, { status: 'error', progress: 0 });
       toast.error(`Error: ${error.message || 'Failed to download'}`);
@@ -92,6 +85,11 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         setDownloads(prev => prev.filter(d => d.id !== track.id));
       }, 8000);
     }
+    
+    // Auto-cleanup for success case
+    setTimeout(() => {
+      setDownloads(prev => prev.filter(d => d.id !== track.id));
+    }, 15000);
   }, [isDownloading, updateItem]);
 
   const clearCompleted = useCallback(() => {
