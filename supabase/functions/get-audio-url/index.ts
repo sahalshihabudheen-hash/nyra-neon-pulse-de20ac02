@@ -65,6 +65,8 @@ serve(async (req) => {
     const url = new URL(req.url);
     const videoId = url.searchParams.get('videoId');
     const shouldStream = url.searchParams.get('stream') === '1';
+    const shouldDownload = url.searchParams.get('download') === '1';
+    const title = url.searchParams.get('title') || 'audio';
 
     if (!videoId) {
       return new Response(
@@ -185,14 +187,14 @@ serve(async (req) => {
       );
     }
 
-    if (shouldStream) {
+    if (shouldStream || shouldDownload) {
       const upstreamHeaders: HeadersInit = {};
       const range = req.headers.get('range');
       if (range) upstreamHeaders.Range = range;
 
       const audioResponse = await fetch(audioUrl, {
         headers: upstreamHeaders,
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(20000),
       });
 
       if (!audioResponse.ok && audioResponse.status !== 206) {
@@ -204,6 +206,12 @@ serve(async (req) => {
 
       const headers = new Headers(corsHeaders);
       headers.set('Content-Type', audioResponse.headers.get('content-type') || 'audio/mp4');
+      
+      if (shouldDownload) {
+        const safeTitle = title.replace(/[<>:"/\\|?*]/g, '').trim();
+        headers.set('Content-Disposition', `attachment; filename="${safeTitle}.mp3"`);
+      }
+
       for (const header of ['content-length', 'content-range', 'accept-ranges']) {
         const value = audioResponse.headers.get(header);
         if (value) headers.set(header, value);

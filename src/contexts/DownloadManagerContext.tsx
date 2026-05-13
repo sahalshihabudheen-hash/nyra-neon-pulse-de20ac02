@@ -58,78 +58,25 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
     const safeTitle = sanitizeFilename(track.title);
 
     try {
-      updateItem(track.id, { progress: 10 });
+      updateItem(track.id, { status: 'downloading', progress: 50 });
       
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}`,
-        { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
-      );
+      const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}&download=1&title=${encodeURIComponent(track.title)}`;
       
-      if (!response.ok) throw new Error('Failed to fetch audio URL');
-      const data = await response.json();
-
-      if (!data.audioUrl) {
-        throw new Error('No audio URL found');
-      }
-
-      updateItem(track.id, { status: 'downloading', progress: 30 });
-
-      // Method 1: Blob fetch (Best for progress and reliable filenames)
-      try {
-        const audioRes = await fetch(data.audioUrl);
-        if (!audioRes.ok) throw new Error('Direct fetch blocked');
-        
-        const contentLength = audioRes.headers.get('content-length');
-        const reader = audioRes.body?.getReader();
-        
-        if (reader && contentLength) {
-          const total = parseInt(contentLength, 10);
-          let received = 0;
-          const chunks = [];
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            received += value.length;
-            updateItem(track.id, { progress: 30 + Math.round((received / total) * 65) });
-          }
-
-          const blob = new Blob(chunks, { type: 'audio/mpeg' });
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = `${safeTitle}.mp3`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
-          
-          updateItem(track.id, { status: 'done', progress: 100 });
-          toast.success(`🎵 Saved: ${track.title}`);
-        } else {
-          throw new Error('Stream not available');
-        }
-      } catch (e) {
-        // Method 2: Fallback to direct download link
-        console.warn('Blob download failed, falling back to direct link:', e);
-        updateItem(track.id, { progress: 80 });
-        
-        const a = document.createElement('a');
-        a.href = data.audioUrl;
-        a.download = `${safeTitle}.mp3`;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
+      // Use a hidden iframe or direct window location to trigger the download
+      // This is the most reliable way to trigger a "Save As" through a proxy with Content-Disposition
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      // Note: download attribute only works same-origin, but the server header Content-Disposition overrides it anyway
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      
+      setTimeout(() => {
         document.body.removeChild(a);
-        
-        // Give it a bit of time then assume success if it didn't crash
-        setTimeout(() => {
-          updateItem(track.id, { status: 'done', progress: 100 });
-          toast.success(`🎵 Download started for: ${track.title}`);
-        }, 2000);
-      }
+        updateItem(track.id, { status: 'done', progress: 100 });
+        toast.success(`🎵 Download started: ${track.title}`);
+      }, 2000);
+    } catch (error: any) {
 
       // Auto-cleanup
       setTimeout(() => {
