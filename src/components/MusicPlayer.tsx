@@ -213,8 +213,9 @@ const MusicPlayer = ({
   return (
     <>
       <footer className={cn(
-        'fixed bottom-4 left-4 md:left-[272px] right-4 glass-premium border border-white/10 z-40 transition-all duration-700 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group/player',
-        isMiniMode ? 'h-14' : 'h-auto py-2 md:py-3'
+        'fixed bottom-4 left-4 md:left-[272px] transition-all duration-700 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group/player glass-premium border border-white/10 z-40',
+        isMiniMode ? 'h-14' : 'h-auto py-2 md:py-3',
+        nowPlayingOpen ? 'right-[340px] md:right-[360px]' : 'right-4'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         

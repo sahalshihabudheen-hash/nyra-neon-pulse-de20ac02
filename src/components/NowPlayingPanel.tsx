@@ -35,25 +35,16 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, playlistName }: NowPla
 
         <ScrollArea className="flex-1">
           <div className="px-6 pb-24 space-y-8">
-            {/* Video Canvas Area */}
-            <div className="relative aspect-[9/16] w-full rounded-[2rem] overflow-hidden bg-black shadow-2xl group">
+            {/* Video Canvas Area - Larger and Clean */}
+            <div className="relative aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden bg-black shadow-[0_0_50px_rgba(0,0,0,0.5)] group border border-white/5">
                <iframe
-                  className="absolute inset-0 w-full h-full object-cover scale-[1.3]"
+                  className="absolute inset-0 w-full h-full object-cover scale-[1.1]"
                   src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0`}
                   title="Now Playing Video"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
-                
-                {/* Overlay Text */}
-                <div className="absolute bottom-8 left-6 right-6">
-                   <h3 className="text-2xl font-black text-white leading-tight mb-2 italic tracking-tighter uppercase">{currentTrack.title}</h3>
-                   <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-white/80">{currentTrack.channel}</p>
-                      <CheckCircle2 className="w-4 h-4 text-primary fill-primary/20" />
-                   </div>
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
             </div>
 
             {/* Artist Card */}
