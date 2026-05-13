@@ -676,6 +676,20 @@ const Settings = () => {
                   />
                 </div>
               </div>
+
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground text-sm md:text-base">Auto-Mini Player</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">Automatically shrink player when music starts playing</p>
+                  </div>
+                  <Switch
+                    checked={settings.autoMiniPlayer}
+                    onCheckedChange={(checked) => updateSettings({ autoMiniPlayer: checked })}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                </div>
+              </div>
             </div>
           </section>
 

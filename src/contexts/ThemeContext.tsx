@@ -62,6 +62,7 @@ interface AppSettings {
   soundwaveEnabled: boolean;
   autoPlayNext: boolean;
   miniPlayerMode: boolean;
+  autoMiniPlayer: boolean;
   soundwaveShape: SoundwaveShape;
   progressBarStyle: ProgressBarStyle;
 }
@@ -136,6 +137,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       soundwaveEnabled: true,
       autoPlayNext: true,
       miniPlayerMode: false,
+      autoMiniPlayer: true,
       soundwaveShape: 'bars' as SoundwaveShape,
       progressBarStyle: 'classic' as ProgressBarStyle,
     };

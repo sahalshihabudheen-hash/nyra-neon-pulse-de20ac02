@@ -193,29 +193,37 @@ const MusicPlayer = ({
   };
 
   const isMiniMode = settings.miniPlayerMode;
+  const { updateSettings } = useTheme();
+
+  // Auto-mini player logic
+  useEffect(() => {
+    if (isPlaying && settings.autoMiniPlayer && !isMiniMode) {
+      updateSettings({ miniPlayerMode: true });
+    }
+  }, [isPlaying, settings.autoMiniPlayer, updateSettings]);
 
   return (
     <>
       <footer className={cn(
         'fixed bottom-4 left-4 md:left-[272px] right-4 glass-premium border border-white/10 z-40 transition-all duration-700 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group/player',
-        isMiniMode ? 'h-16' : 'h-auto py-2 md:py-3'
+        isMiniMode ? 'h-14' : 'h-auto py-2 md:py-3'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
         <div className={cn(
-          'h-full px-4 md:px-6 flex items-center',
-          isMiniMode ? 'gap-4' : 'flex-col gap-2 md:flex-row md:gap-6'
+          'h-full px-4 md:px-6 flex items-center transition-all duration-500',
+          isMiniMode ? 'gap-3' : 'flex-col gap-2 md:flex-row md:gap-6'
         )}>
           <div 
             className={cn(
-              'flex items-center gap-4 cursor-pointer group/track',
+              'flex items-center gap-3 cursor-pointer group/track transition-all duration-500',
               isMiniMode ? 'flex-1' : 'w-full md:w-80'
             )}
             onClick={() => currentTrack && setIsFullscreen(true)}
           >
             {currentTrack ? (
               <>
-                <div className="relative">
+                <div className="relative shrink-0">
                   <div className={cn(
                     "absolute -inset-1.5 rounded-xl bg-primary/30 blur-md transition-all duration-1000",
                     isPlaying ? "opacity-100 scale-110 glow-pulse" : "opacity-0 scale-100"
@@ -224,92 +232,116 @@ const MusicPlayer = ({
                     src={currentTrack.thumbnail}
                     alt={currentTrack.title}
                     className={cn(
-                      'relative rounded-xl object-cover flex-shrink-0 transition-transform duration-500 group-hover/track:scale-105 shadow-lg',
-                      isMiniMode ? 'w-10 h-10' : 'w-14 h-14'
+                      'relative rounded-lg object-cover flex-shrink-0 transition-all duration-500 group-hover/track:scale-105 shadow-lg',
+                      isMiniMode ? 'w-8 h-8' : 'w-14 h-14'
                     )}
                   />
-                  <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover/track:opacity-100 flex items-center justify-center transition-opacity">
-                    <Maximize2 className="w-5 h-5 text-white" />
-                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className={cn(
                     'font-bold text-foreground truncate group-hover/track:text-primary transition-colors tracking-tight',
-                    isMiniMode ? 'text-sm' : 'text-base'
+                    isMiniMode ? 'text-xs' : 'text-base'
                   )}>
                     {currentTrack.title}
                   </h3>
-                  <p className="text-[11px] font-bold text-muted-foreground/60 truncate uppercase tracking-widest">{currentTrack.channel}</p>
+                  <p className={cn(
+                    "font-bold text-muted-foreground/60 truncate uppercase tracking-widest transition-all",
+                    isMiniMode ? "text-[8px]" : "text-[11px]"
+                  )}>{currentTrack.channel}</p>
                 </div>
               </>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
-                  <Music2 className="w-6 h-6 text-muted-foreground/30" />
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/5">
+                  <Music2 className="w-5 h-5 text-muted-foreground/30" />
                 </div>
-                <p className="text-muted-foreground font-medium text-sm">Pick a vibe to start</p>
+                <p className="text-muted-foreground font-medium text-xs">Pick a vibe</p>
               </div>
             )}
           </div>
-
+          {/* Controls Center */}
           <div className={cn(
-            'flex flex-col items-center gap-2',
-            isMiniMode ? '' : 'flex-1 w-full'
+            'flex flex-col items-center gap-1.5',
+            isMiniMode ? 'flex-1 max-w-md' : 'flex-1 w-full'
           )}>
-            <div className="flex items-center gap-4 md:gap-6">
-              <button onClick={onPrevious} className="text-foreground hover:text-primary transition-all duration-300 active:scale-75">
-                <SkipBack className="w-6 h-6 fill-current" />
+            <div className={cn("flex items-center", isMiniMode ? "gap-4" : "gap-4 md:gap-6")}>
+              <button onClick={onPrevious} className={cn("text-foreground hover:text-primary transition-all duration-300 active:scale-75", isMiniMode && "hidden sm:block")}>
+                <SkipBack className={isMiniMode ? "w-4 h-4 fill-current" : "w-6 h-6 fill-current"} />
               </button>
               
               <button
                 onClick={onPlayPause}
                 className={cn(
-                  'rounded-2xl flex items-center justify-center transition-all duration-500 active:scale-90 relative group/btn overflow-hidden w-14 h-14 shadow-[0_10px_20px_rgba(var(--primary),0.3)]',
+                  'rounded-2xl flex items-center justify-center transition-all duration-500 active:scale-90 relative group/btn overflow-hidden shadow-[0_10px_20px_rgba(var(--primary),0.3)]',
+                  isMiniMode ? 'w-10 h-10' : 'w-14 h-14',
                 )}
                 style={{ background: isPlaying ? 'var(--theme-gradient, hsl(var(--primary)))' : 'hsl(var(--primary))' }}
               >
                 <div className="relative text-primary-foreground">
-                  {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
+                  {isPlaying ? <Pause className={isMiniMode ? "w-4 h-4 fill-current" : "w-6 h-6 fill-current"} /> : <Play className={isMiniMode ? "w-4 h-4 fill-current ml-0.5" : "w-6 h-6 fill-current ml-1"} />}
                 </div>
               </button>
 
-              <button onClick={onNext} className="text-foreground hover:text-primary transition-all duration-300 active:scale-75">
-                <SkipForward className="w-6 h-6 fill-current" />
+              <button onClick={onNext} className={cn("text-foreground hover:text-primary transition-all duration-300 active:scale-75", isMiniMode && "hidden sm:block")}>
+                <SkipForward className={isMiniMode ? "w-4 h-4 fill-current" : "w-6 h-6 fill-current"} />
               </button>
             </div>
 
-            {!isMiniMode && (
-              <div className="w-full max-w-2xl flex items-center gap-4 group/progress">
-                <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
-                <StyledProgressBar progress={progress} duration={duration} onSeek={handleSeek} className="flex-1" />
-                <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
+            {/* Soundwave in Mini Mode */}
+            {isMiniMode && isPlaying && (
+              <div className="w-24 h-3 opacity-60 overflow-hidden">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
               </div>
             )}
+
+            {!isMiniMode && (
+              <div className="w-full max-w-md h-6 mb-[-4px] animate-in-fade opacity-80 overflow-hidden">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
+              </div>
+            )}
+
+            <div className={cn(
+              "w-full flex items-center gap-4 group/progress",
+              isMiniMode ? "max-w-xs" : "max-w-2xl"
+            )}>
+              <span className={cn("font-bold text-muted-foreground tabular-nums text-right", isMiniMode ? "text-[8px] w-6" : "text-[10px] w-10")}>{formatTime(progress)}</span>
+              <StyledProgressBar
+                progress={progress}
+                duration={duration}
+                onSeek={handleSeek}
+                className="flex-1"
+                size={isMiniMode ? "sm" : "md"}
+              />
+              <span className={cn("font-bold text-muted-foreground tabular-nums", isMiniMode ? "text-[8px] w-6" : "text-[10px] w-10")}>{formatTime(duration)}</span>
+            </div>
           </div>
 
           <div className={cn(
-            'flex items-center gap-2 justify-end',
-            isMiniMode ? 'hidden md:flex' : 'hidden md:flex w-80'
+            'flex items-center justify-end transition-all duration-500',
+            isMiniMode ? 'gap-2' : 'gap-2 w-80'
           )}>
             {currentTrack && (
-               <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-white/5 border border-white/5 mr-2">
-                 <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Lyrics">
-                    <Music2 className="w-4 h-4" />
+               <div className={cn(
+                 "flex items-center rounded-2xl bg-white/5 border border-white/5 transition-all",
+                 isMiniMode ? "p-1 gap-1" : "p-1.5 gap-1.5 mr-2"
+               )}>
+                 <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("rounded-xl transition-all", isMiniMode ? "p-1.5" : "p-2", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Lyrics">
+                    <Music2 className={isMiniMode ? "w-3.5 h-3.5" : "w-4 h-4"} />
                  </button>
-                 <button onClick={() => setNowPlayingOpen(!nowPlayingOpen)} className={cn("p-2 rounded-xl transition-all", nowPlayingOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Now Playing View">
-                    <MonitorPlay className="w-4 h-4" />
+                 <button onClick={() => setNowPlayingOpen(!nowPlayingOpen)} className={cn("rounded-xl transition-all", isMiniMode ? "p-1.5" : "p-2", nowPlayingOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Now Playing View">
+                    <MonitorPlay className={isMiniMode ? "w-3.5 h-3.5" : "w-4 h-4"} />
                  </button>
-                 <button onClick={() => setShowEQ(!showEQ)} className={cn("p-2 rounded-xl transition-all", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Equalizer">
-                    <SlidersHorizontal className="w-4 h-4" />
+                 <button onClick={() => setShowEQ(!showEQ)} className={cn("rounded-xl transition-all", isMiniMode ? "p-1.5" : "p-2", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Equalizer">
+                    <SlidersHorizontal className={isMiniMode ? "w-3.5 h-3.5" : "w-4 h-4"} />
                  </button>
                </div>
             )}
 
-            <div className="flex items-center gap-3">
-              <button onClick={toggleMute} className="text-muted-foreground hover:text-primary transition-colors">
+            <div className={cn("flex items-center", isMiniMode ? "gap-2" : "gap-3")}>
+              <button onClick={toggleMute} className={cn("text-muted-foreground hover:text-primary transition-colors", isMiniMode ? "hidden sm:block" : "block")}>
                 {getVolumeIcon()}
               </button>
-              <div className="relative w-20 h-1.5 group/vol">
+              <div className={cn("relative h-1 group/vol", isMiniMode ? "w-12 hidden lg:block" : "w-20")}>
                 <div className="absolute inset-0 rounded-full bg-white/10" />
                 <div className="absolute left-0 top-0 h-full rounded-full bg-primary" style={{ width: `${isMuted ? 0 : volume}%` }} />
                 <input type="range" min="0" max="100" value={isMuted ? 0 : volume} onChange={handleVolumeChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
