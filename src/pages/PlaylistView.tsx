@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import Navbar from '@/components/Navbar';
 import MusicPlayer from '@/components/MusicPlayer';
 import Sidebar from '@/components/Sidebar';
+import PlaylistGridPhoto from '@/components/PlaylistGridPhoto';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -297,32 +298,49 @@ const PlaylistView = () => {
       />
       
       <main className="flex-1 md:ml-64 pt-20 pb-36 px-4 md:px-8">
-        <div className="mb-6">
+        <div className="mb-8 animate-in-up">
           <button
             onClick={() => navigate('/playlists')}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 transition-colors"
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors group"
           >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Playlists
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-bold text-sm uppercase tracking-widest">Back to Playlists</span>
           </button>
           
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold neon-text mb-2">{playlist?.name}</h1>
-              {playlist?.description && (
-                <p className="text-muted-foreground mb-2">{playlist.description}</p>
-              )}
-              <p className="text-muted-foreground">{playlistTracks.length} tracks</p>
+          <div className="flex flex-col md:flex-row items-center md:items-end gap-8">
+            <PlaylistGridPhoto 
+              thumbnails={playlistTracks.map(t => t.thumbnail)} 
+              size="lg"
+            />
+            
+            <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
+              <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-3">Private Playlist</p>
+              <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase italic neon-text mb-4 leading-none">
+                {playlist?.name}
+              </h1>
+              <div className="flex flex-col gap-4">
+                {playlist?.description && (
+                  <p className="text-muted-foreground text-sm font-medium max-w-2xl">{playlist.description}</p>
+                )}
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Music2 className="w-3 h-3 text-primary" />
+                  </div>
+                  <span className="text-foreground font-black uppercase italic tracking-widest">{user?.email?.split('@')[0]}</span>
+                  <span className="text-muted-foreground/40">•</span>
+                  <span className="text-muted-foreground">{playlistTracks.length} tracks</span>
+                </div>
+              </div>
             </div>
             
-            <div className="flex items-center gap-3 flex-wrap">
-              <button
+            <div className="flex items-center gap-4">
+               <button
                 onClick={toggleShuffle}
                 className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                  'w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg',
                   shuffleMode
                     ? 'bg-primary text-primary-foreground neon-glow'
-                    : 'bg-secondary text-muted-foreground hover:text-foreground'
+                    : 'bg-white/5 text-muted-foreground hover:text-foreground border border-white/5'
                 )}
                 title="Shuffle"
               >
@@ -332,10 +350,10 @@ const PlaylistView = () => {
               <button
                 onClick={cycleLoopMode}
                 className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center transition-all',
+                  'w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg',
                   loopMode !== 'off'
                     ? 'bg-primary text-primary-foreground neon-glow'
-                    : 'bg-secondary text-muted-foreground hover:text-foreground'
+                    : 'bg-white/5 text-muted-foreground hover:text-foreground border border-white/5'
                 )}
                 title={`Loop: ${loopMode}`}
               >

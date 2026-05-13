@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog';
+import PlaylistGridPhoto from '@/components/PlaylistGridPhoto';
 import { cn } from '@/lib/utils';
 
 interface Playlist {
@@ -15,6 +16,7 @@ interface Playlist {
   description: string | null;
   created_at: string;
   track_count?: number;
+  thumbnails?: string[];
 }
 
 const PlaylistsManager = () => {
@@ -40,19 +42,20 @@ const PlaylistsManager = () => {
         .from('playlists')
         .select(`
           *,
-          playlist_items(count)
+          playlist_items(track_thumbnail)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const playlistsWithCount = data?.map(p => ({
+      const playlistsWithDetails = data?.map(p => ({
         ...p,
-        track_count: p.playlist_items?.[0]?.count || 0,
+        track_count: p.playlist_items?.length || 0,
+        thumbnails: p.playlist_items?.map((item: any) => item.track_thumbnail) || [],
       })) || [];
 
-      setPlaylists(playlistsWithCount);
+      setPlaylists(playlistsWithDetails);
     } catch (error: any) {
       toast.error('Failed to load playlists');
     } finally {
@@ -125,15 +128,16 @@ const PlaylistsManager = () => {
                 onClick={() => navigate(`/playlist/${playlist.id}`)}
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-16 h-16 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <Music2 className="w-8 h-8 text-primary" />
-                  </div>
+                  <PlaylistGridPhoto 
+                    thumbnails={playlist.thumbnails || []} 
+                    size="sm" 
+                  />
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeletePlaylist(playlist.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20 flex items-center justify-center"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity w-10 h-10 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-white flex items-center justify-center border border-transparent hover:border-destructive/20"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
