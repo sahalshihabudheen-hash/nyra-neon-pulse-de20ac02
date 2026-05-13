@@ -13,10 +13,11 @@ interface NowPlayingPanelProps {
   isOpen: boolean;
   onClose: () => void;
   currentTrack: Track | null;
+  nextTrack?: Track | null;
   playlistName?: string;
 }
 
-const NowPlayingPanel = ({ isOpen, onClose, currentTrack, playlistName }: NowPlayingPanelProps) => {
+const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistName }: NowPlayingPanelProps) => {
   if (!currentTrack) return null;
 
   return (
@@ -84,16 +85,18 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, playlistName }: NowPla
             </div>
 
             {/* Next Up Sneak Peek */}
-            <div className="space-y-4">
-                <h4 className="font-black uppercase tracking-widest text-[10px] text-muted-foreground px-2">Next in Queue</h4>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
-                   <div className="w-12 h-12 rounded-xl bg-primary/10 animate-pulse" />
-                   <div className="flex-1 space-y-2">
-                      <div className="h-3 w-3/4 bg-white/10 rounded-full" />
-                      <div className="h-2 w-1/2 bg-white/5 rounded-full" />
-                   </div>
-                </div>
-            </div>
+            {nextTrack && (
+              <div className="space-y-4">
+                  <h4 className="font-black uppercase tracking-widest text-[10px] text-muted-foreground px-2">Next in Queue</h4>
+                  <div className="flex items-center gap-4 p-4 rounded-3xl bg-white/5 border border-white/5 group/next cursor-pointer hover:bg-white/10 transition-all">
+                    <img src={nextTrack.thumbnail} alt={nextTrack.title} className="w-14 h-14 rounded-xl object-cover shadow-lg group-hover/next:scale-105 transition-transform" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground truncate group-hover/next:text-primary transition-colors">{nextTrack.title}</p>
+                        <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{nextTrack.channel}</p>
+                    </div>
+                  </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>

@@ -214,7 +214,7 @@ const MusicPlayer = ({
     <>
       <footer className={cn(
         'fixed bottom-4 left-4 md:left-[272px] transition-all duration-700 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden group/player glass-premium border border-white/10 z-40',
-        isMiniMode ? 'h-14' : 'h-auto py-2 md:py-3',
+        isMiniMode ? 'h-20' : 'h-auto py-2 md:py-3',
         nowPlayingOpen ? 'right-[340px] md:right-[360px]' : 'right-4'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
@@ -242,7 +242,7 @@ const MusicPlayer = ({
                     alt={currentTrack.title}
                     className={cn(
                       'relative rounded-lg object-cover flex-shrink-0 transition-all duration-500 group-hover/track:scale-105 shadow-lg',
-                      isMiniMode ? 'w-8 h-8' : 'w-14 h-14'
+                      isMiniMode ? 'w-12 h-12' : 'w-14 h-14'
                     )}
                   />
                 </div>
@@ -391,7 +391,12 @@ const MusicPlayer = ({
       />
 
       <LyricsDrawer isOpen={lyricsOpen} onClose={() => setLyricsOpen(false)} />
-      <NowPlayingPanel isOpen={nowPlayingOpen} onClose={() => setNowPlayingOpen(false)} currentTrack={currentTrack} />
+      <NowPlayingPanel 
+        isOpen={nowPlayingOpen} 
+        onClose={() => setNowPlayingOpen(false)} 
+        currentTrack={currentTrack} 
+        nextTrack={nextUpTrack} 
+      />
     </>
   );
 };
