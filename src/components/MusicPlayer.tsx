@@ -215,7 +215,7 @@ const MusicPlayer = ({
       <footer className={cn(
         'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-40',
         nowPlayingOpen ? 'right-[380px]' : 'right-6',
-        'h-32 py-4 px-8'
+        'h-28 py-3 px-8'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
@@ -289,7 +289,7 @@ const MusicPlayer = ({
             </div>
 
             {/* Right: Actions & Volume */}
-            <div className="flex items-center justify-end gap-6 w-80">
+            <div className="flex items-center justify-end gap-6 w-80 -mt-2">
               <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/5">
                 <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                   <Music2 className="w-4 h-4" />
@@ -327,7 +327,7 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex justify-center mt-auto pb-6">
+          <div className="w-full flex justify-center mt-auto pb-8">
             <div className="w-full max-w-md flex items-center gap-4 px-4">
               <span className="text-[9px] font-bold text-muted-foreground tabular-nums w-8 text-right">{formatTime(progress)}</span>
               <StyledProgressBar
