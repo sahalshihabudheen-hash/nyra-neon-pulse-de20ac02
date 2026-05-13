@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Track {
   id: string;
@@ -36,36 +37,20 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
   const fetchTrending = async () => {
     setLoading(true);
     try {
-      // Use the new get-trending endpoint for auto-updating trending music
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-trending`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to fetch trending');
-
-      const results = await response.json();
-      if (results.error) throw new Error(results.error);
+      const { data: results, error } = await supabase.functions.invoke('get-trending');
+      
+      if (error) throw error;
+      if (!results) throw new Error('No trending results');
 
       setTrendingTracks(results.slice(0, 20));
     } catch (error) {
       console.error('Trending fetch error:', error);
       // Fallback to youtube-search if get-trending fails
       try {
-        const fallbackResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent('trending music hits')}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-          }
-        );
-        if (fallbackResponse.ok) {
-          const fallbackResults = await fallbackResponse.json();
+        const { data: fallbackResults } = await supabase.functions.invoke('youtube-search', {
+          query: { q: 'trending music hits' }
+        });
+        if (fallbackResults) {
           setTrendingTracks(fallbackResults.slice(0, 20));
         }
       } catch {

@@ -46,11 +46,16 @@ const Auth = () => {
           password,
         });
         if (error) throw error;
+        
         if (data.user && !data.session) {
-          toast.success('🎉 Check your email to verify your account!', { duration: 8000 });
+          // If Supabase still requires verification, we'll try to sign in immediately
+          // which will fail with a clearer message if verification is actually required.
+          // But for now, we'll just say account created.
+          toast.success('Account created successfully!');
           setIsLogin(true);
           return;
         }
+        
         toast.success('Account created! Welcome to NYRA');
         navigate('/');
       }

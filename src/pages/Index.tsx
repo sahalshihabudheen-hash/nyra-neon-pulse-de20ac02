@@ -75,18 +75,13 @@ const Index = () => {
     setSearchPerformed(true);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(searchQuery)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
-      );
+      const { data: results, error } = await supabase.functions.invoke('youtube-search', {
+        body: { q: searchQuery },
+        query: { q: searchQuery }
+      });
 
-      if (!response.ok) throw new Error('Search failed');
-      const results = await response.json();
-      if (results.error) throw new Error(results.error);
+      if (error) throw error;
+      if (!results) throw new Error('No results found');
 
       setTracks(results);
       toast.success(`Found ${results.length} tracks`);

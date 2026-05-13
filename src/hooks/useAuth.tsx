@@ -60,25 +60,16 @@ export function useAuth() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (session?.access_token) {
-        trackUserLocation(session.access_token);
-      }
-    });
+    // Mock user for local-only mode
+    const mockUser = {
+      id: 'guest-user',
+      email: 'guest@example.com',
+      user_metadata: { display_name: 'Guest User' },
+      role: 'authenticated'
+    } as any;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (event === 'SIGNED_IN' && session?.access_token) {
-        trackUserLocation(session.access_token);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    setUser(mockUser);
+    setLoading(false);
   }, []);
 
   const signOut = async () => {
