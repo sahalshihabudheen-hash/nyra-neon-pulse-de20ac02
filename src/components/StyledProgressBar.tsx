@@ -204,8 +204,8 @@ const StyledProgressBar = ({
 
 // Generate a wavy SVG path
 function generateWavePath(width: number): string {
-  const amplitude = 8;
-  const frequency = 14;
+  const amplitude = 10;
+  const frequency = 12;
   const cy = 20;
   let path = `M 0 ${cy}`;
   for (let x = 0; x <= width; x += 2) {

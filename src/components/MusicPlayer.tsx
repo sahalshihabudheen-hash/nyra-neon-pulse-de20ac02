@@ -327,7 +327,7 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex justify-center mt-auto pb-2">
+          <div className="w-full flex justify-center mt-auto pb-6">
             <div className="w-full max-w-md flex items-center gap-4 px-4">
               <span className="text-[9px] font-bold text-muted-foreground tabular-nums w-8 text-right">{formatTime(progress)}</span>
               <StyledProgressBar
