@@ -327,15 +327,17 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex items-center gap-6 px-32 mb-2">
-            <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
-            <StyledProgressBar
-              progress={progress}
-              duration={duration}
-              onSeek={handleSeek}
-              className="flex-1"
-            />
-            <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
+          <div className="w-full flex justify-center mt-auto pb-2">
+            <div className="w-full max-w-3xl flex items-center gap-6 px-4">
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
+              <StyledProgressBar
+                progress={progress}
+                duration={duration}
+                onSeek={handleSeek}
+                className="flex-1"
+              />
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
+            </div>
           </div>
         </div>
       </footer>
