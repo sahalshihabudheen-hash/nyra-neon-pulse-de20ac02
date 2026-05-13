@@ -132,8 +132,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const [settings, setSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('nyra-settings');
-    return saved ? JSON.parse(saved) : {
+    const defaults = {
       soundwaveEnabled: true,
       autoPlayNext: true,
       miniPlayerMode: false,
@@ -141,6 +140,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       soundwaveShape: 'bars' as SoundwaveShape,
       progressBarStyle: 'classic' as ProgressBarStyle,
     };
+    const saved = localStorage.getItem('nyra-settings');
+    if (!saved) return defaults;
+    try {
+      const parsed = JSON.parse(saved);
+      return { ...defaults, ...parsed };
+    } catch {
+      return defaults;
+    }
   });
 
   useEffect(() => {

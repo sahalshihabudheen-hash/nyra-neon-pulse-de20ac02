@@ -198,11 +198,7 @@ const MusicPlayer = ({
   // Auto-mini player logic - triggers when playing starts or track changes
   useEffect(() => {
     if (isPlaying && settings.autoMiniPlayer && !isMiniMode) {
-      // Delay slightly to ensure smooth transition
-      const timer = setTimeout(() => {
-        updateSettings({ miniPlayerMode: true });
-      }, 100);
-      return () => clearTimeout(timer);
+      updateSettings({ miniPlayerMode: true });
     }
   }, [isPlaying, currentTrack?.id, settings.autoMiniPlayer, isMiniMode, updateSettings]);
 
