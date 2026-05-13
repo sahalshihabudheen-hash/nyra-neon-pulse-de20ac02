@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Track {
   id: string;
@@ -45,11 +44,18 @@ const PersonalizedSection = ({
   const fetchSongs = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-personalized-songs', {
-        query: searchParams
-      });
-      if (error) throw error;
-      if (!data) throw new Error('No data');
+      const params = new URLSearchParams(searchParams);
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-personalized-songs?${params}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error('Failed');
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
       setTracks(data.slice(0, 12));
     } catch (err) {
       console.error('Personalized fetch error:', err);
