@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2, Zap, Headphones, LayoutPanelRight } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Volume1, Repeat, Shuffle, ListPlus, Check, Minus, Plus, Maximize2, Music2, SlidersHorizontal, Download, Loader2, Share2, Zap, Headphones, MonitorPlay } from 'lucide-react';
 import { toast } from 'sonner';
 import SoundwaveVisualizer from './SoundwaveVisualizer';
 import { cn } from '@/lib/utils';
@@ -297,7 +297,7 @@ const MusicPlayer = ({
                     <Music2 className="w-4 h-4" />
                  </button>
                  <button onClick={() => setNowPlayingOpen(!nowPlayingOpen)} className={cn("p-2 rounded-xl transition-all", nowPlayingOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Now Playing View">
-                    <LayoutPanelRight className="w-4 h-4" />
+                    <MonitorPlay className="w-4 h-4" />
                  </button>
                  <button onClick={() => setShowEQ(!showEQ)} className={cn("p-2 rounded-xl transition-all", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")} title="Equalizer">
                     <SlidersHorizontal className="w-4 h-4" />
