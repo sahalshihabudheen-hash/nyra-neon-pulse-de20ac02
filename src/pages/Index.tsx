@@ -125,7 +125,7 @@ const Index = () => {
         />
 
         <main className={cn(
-          "flex-1 pt-24 md:pt-28 pb-48 md:pb-44 px-4 md:px-10 transition-all duration-1000",
+          "flex-1 pt-24 md:pt-28 pb-64 px-4 md:px-10 transition-all duration-1000",
           mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
         )}>
           <GenreOnboarding

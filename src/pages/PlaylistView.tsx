@@ -297,7 +297,7 @@ const PlaylistView = () => {
         onSearch={() => navigate('/')}
       />
       
-      <main className="flex-1 md:ml-64 pt-20 pb-36 px-4 md:px-8">
+      <main className="flex-1 md:ml-64 pt-20 pb-64 px-4 md:px-8">
         <div className="mb-8 animate-in-up">
           <button
             onClick={() => navigate('/playlists')}

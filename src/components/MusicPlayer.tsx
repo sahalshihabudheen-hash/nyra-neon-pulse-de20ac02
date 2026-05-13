@@ -85,7 +85,6 @@ const MusicPlayer = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lyricsOpen, setLyricsOpen] = useState(false);
-  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -195,12 +194,21 @@ const MusicPlayer = ({
   const isMiniMode = settings.miniPlayerMode;
   const { updateSettings } = useTheme();
 
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
+
   // Auto-mini player logic - triggers when playing starts or track changes
   useEffect(() => {
     if (isPlaying && settings.autoMiniPlayer && !isMiniMode) {
       updateSettings({ miniPlayerMode: true });
     }
-  }, [isPlaying, currentTrack?.id, settings.autoMiniPlayer, isMiniMode, updateSettings]);
+    
+    // Auto-open the Now Playing panel (video/artist) when first playing
+    if (isPlaying && !hasAutoOpened && !nowPlayingOpen) {
+      setNowPlayingOpen(true);
+      setHasAutoOpened(true);
+    }
+  }, [isPlaying, currentTrack?.id, settings.autoMiniPlayer, isMiniMode, updateSettings, hasAutoOpened, nowPlayingOpen]);
 
   return (
     <>
