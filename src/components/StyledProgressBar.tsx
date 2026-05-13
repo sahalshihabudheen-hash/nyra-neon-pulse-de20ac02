@@ -53,17 +53,24 @@ const StyledProgressBar = ({
   // Classic style
   if (style === 'classic') {
     return (
-      <div className={cn("relative h-1 group rounded-full bg-white/5 border border-white/10 overflow-visible", className)}>
-        <div className="absolute inset-0 bg-muted/20 rounded-full" />
+      <div className={cn("relative h-2 group rounded-full bg-black/40 border border-white/10 overflow-visible", className)}>
+        <div className="absolute inset-0 bg-white/5 rounded-full" />
         <div
-          className="absolute left-0 top-0 h-full rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))] transition-all"
-          style={{ width: `${progressPercent}%` }}
+          className="absolute left-0 top-0 h-full rounded-full transition-all"
+          style={{ 
+            width: `${progressPercent}%`,
+            background: 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+            boxShadow: '0 0 15px rgba(245, 158, 11, 0.4)'
+          }}
         />
         {rangeInput}
         {showHandle && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary shadow-lg border border-white/50 transition-all pointer-events-none"
-            style={{ left: `calc(${progressPercent}% - 4px)` }}
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-xl border-2 border-primary transition-all pointer-events-none z-20"
+            style={{ 
+              left: `calc(${progressPercent}% - 8px)`,
+              boxShadow: '0 0 10px rgba(0,0,0,0.5)'
+            }}
           />
         )}
       </div>
@@ -73,7 +80,7 @@ const StyledProgressBar = ({
   // Wavy style (like the reference image)
   if (style === 'wavy') {
     return (
-      <div className={cn("relative h-4 group overflow-visible", className)}>
+      <div className={cn("relative h-6 group overflow-visible", className)}>
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox="0 0 1000 40"
@@ -84,7 +91,7 @@ const StyledProgressBar = ({
             d={generateWavePath(1000)}
             fill="none"
             stroke="hsl(var(--muted-foreground) / 0.3)"
-            strokeWidth="3"
+            strokeWidth="5"
             strokeLinecap="round"
           />
           {/* Progress wave */}
@@ -97,7 +104,7 @@ const StyledProgressBar = ({
             d={generateWavePath(1000)}
             fill="none"
             stroke="hsl(var(--primary))"
-            strokeWidth="3"
+            strokeWidth="5"
             strokeLinecap="round"
             clipPath="url(#waveProgressClip)"
             style={{ filter: 'drop-shadow(0 0 6px hsl(var(--primary) / 0.6))' }}
@@ -106,10 +113,10 @@ const StyledProgressBar = ({
         {/* Handle dot */}
         {showHandle && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary shadow-lg border border-white pointer-events-none z-[5]"
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-lg border-2 border-primary pointer-events-none z-[20]"
             style={{
-              left: `calc(${progressPercent}% - 4px)`,
-              boxShadow: '0 0 10px hsl(var(--primary) / 0.8)',
+              left: `calc(${progressPercent}% - 8px)`,
+              boxShadow: '0 0 10px rgba(0,0,0,0.5)',
             }}
           />
         )}
@@ -169,20 +176,23 @@ const StyledProgressBar = ({
   // Rounded (thick pill) style
   if (style === 'rounded') {
     return (
-      <div className={cn("relative h-1 group rounded-full bg-white/5 border border-white/10 overflow-visible", className)}>
+      <div className={cn("relative h-2.5 group rounded-full bg-white/5 border border-white/10 overflow-visible", className)}>
         <div
           className="absolute left-0 top-0 h-full rounded-full transition-all"
           style={{
             width: `${Math.max(progressPercent, 1)}%`,
-            background: `linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))`,
-            boxShadow: '0 0 8px hsl(var(--primary) / 0.5)',
+            background: `linear-gradient(90deg, #f59e0b, #fbbf24)`,
+            boxShadow: '0 0 12px rgba(245, 158, 11, 0.4)',
           }}
         />
         {rangeInput}
         {showHandle && (
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary shadow-lg border border-white pointer-events-none transition-all"
-            style={{ left: `calc(${progressPercent}% - 4px)` }}
+            className="absolute top-1/2 -translate-y-1/2 w-4.5 h-4.5 rounded-full bg-white shadow-lg border-2 border-primary pointer-events-none transition-all"
+            style={{ 
+              left: `calc(${progressPercent}% - 9px)`,
+              boxShadow: '0 0 10px rgba(0,0,0,0.5)'
+            }}
           />
         )}
       </div>
