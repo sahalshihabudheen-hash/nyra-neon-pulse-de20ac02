@@ -268,7 +268,7 @@ const Index = () => {
         </main>
       </div>
 
-      {currentTrack && isPlaying && (
+      {currentTrack && (
         <MusicPlayer
           currentTrack={currentTrack}
           isPlaying={isPlaying}
