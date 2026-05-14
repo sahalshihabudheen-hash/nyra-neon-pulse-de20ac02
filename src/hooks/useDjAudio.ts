@@ -27,7 +27,7 @@ export interface DjState {
 }
 
 export function useDjAudio() {
-  const { audioRef } = useMusicPlayer();
+  const { audioRef, isPlaying } = useMusicPlayer();
   const [state, setState] = useState<DjState>({
     balance: 0, leftGain: 1, rightGain: 1,
     low: 0, mid: 0, high: 0, active: false,
@@ -140,9 +140,10 @@ export function useDjAudio() {
       }
     };
 
+    const isPlayingRef = { current: isPlaying };
+
     const periodicSync = setInterval(() => {
-      if (initedRef.current && isPlaying) {
-        // Force re-wiring and resume to prevent bypass
+      if (initedRef.current && isPlayingRef.current) {
         if (ctx?.state === 'suspended') ctx.resume();
         try { merger?.connect(ctx!.destination); } catch(e) {}
       }
@@ -153,7 +154,7 @@ export function useDjAudio() {
       audioRef.current?.removeEventListener('play', handleSync);
       clearInterval(periodicSync);
     };
-  }, [init, isPlaying]);
+  }, [init]); // Removed isPlaying to prevent re-setup loops
 
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
