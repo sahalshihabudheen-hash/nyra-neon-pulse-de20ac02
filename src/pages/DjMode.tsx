@@ -4,7 +4,8 @@ import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Slider } from '@/components/ui/slider';
-import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic, Wand2, Play, Pause } from 'lucide-react';
+import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic, Wand2, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import MusicPlayer from '@/components/MusicPlayer';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -137,7 +138,15 @@ const DjMode = () => {
     currentTrack, isPlaying, activeSource, playlist, forceBackgroundPlayback, 
     handleAddToQueue, isFavorite, toggleFavorite, 
     useBackgroundAudioOnly, setUseBackgroundAudioOnly,
-    showMiniPlayer, setShowMiniPlayer 
+    showMiniPlayer, setShowMiniPlayer,
+    handlePlayPause, handleNext, handlePrevious,
+    handlePlayFromPlaylist, handlePlayFromQueue,
+    handleAddToPlaylist, handleRemoveFromPlaylist,
+    handleClearPlaylist, reorderPlaylist,
+    ytPlayerRef, audioRef,
+    shuffleMode, toggleShuffle,
+    loopMode, cycleLoopMode,
+    queue, removeFromQueue
   } = useMusicPlayer();
   const { state, apply, init, getLevels, getBassLevel } = useDjAudio();
   const [levels, setLevels] = useState({ left: 0, right: 0 });
@@ -928,8 +937,32 @@ const DjMode = () => {
             ))}
           </div>
         </div>
-
       </div>
+
+      {currentTrack && (
+        <MusicPlayer
+          currentTrack={currentTrack}
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onAddToPlaylist={handleAddToPlaylist}
+          playlist={playlist}
+          onPlayFromPlaylist={handlePlayFromPlaylist}
+          onRemoveFromPlaylist={handleRemoveFromPlaylist}
+          onClearPlaylist={handleClearPlaylist}
+          onReorderPlaylist={reorderPlaylist}
+          ytPlayerRef={ytPlayerRef}
+          audioRef={audioRef}
+          shuffleMode={shuffleMode}
+          onToggleShuffle={toggleShuffle}
+          loopMode={loopMode}
+          onCycleLoopMode={cycleLoopMode}
+          queue={queue}
+          onRemoveFromQueue={removeFromQueue}
+          onPlayFromQueue={handlePlayFromQueue}
+        />
+      )}
     </div>
   );
 };

@@ -47,7 +47,7 @@ const FloatingMiniPlayer = () => {
   const location = useLocation();
 
   // Hide mini player on pages that have their own full player
-  const hasFullPlayer = location.pathname === '/' || location.pathname.startsWith('/playlist/') || location.pathname === '/favorites';
+  const hasFullPlayer = location.pathname === '/' || location.pathname.startsWith('/playlist/') || location.pathname === '/favorites' || location.pathname === '/dj';
 
   const [position, setPosition] = useState(() => ({
     x: Math.max(EDGE_PADDING, window.innerWidth - PLAYER_WIDTH - 24),
