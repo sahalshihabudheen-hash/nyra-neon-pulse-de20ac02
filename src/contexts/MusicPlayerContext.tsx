@@ -226,16 +226,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
     // Race a direct audio URL fetch against a fast timeout so playback starts
     // instantly via YouTube if the edge function is slow.
-    const FAST_START_TIMEOUT_MS = 1200;
+    // Race a direct audio URL fetch against a timeout.
+    // Increased timeout for better reliability on slower connections.
+    const START_TIMEOUT_MS = 2500;
     let usedFallback = false;
 
     try {
       const controller = new AbortController();
       const timeoutPromise = new Promise<null>((resolve) => {
         setTimeout(() => {
-          // Trigger fallback playback if direct URL hasn't returned in time
           if (!usedFallback) {
             usedFallback = true;
+            console.log('Background audio timeout, using YT fallback');
             setPlaybackSource('youtube');
             const yt = (window as any).YT;
             if (ytApiReady && yt?.Player) {
@@ -244,11 +246,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             controller.abort();
           }
           resolve(null);
-        }, FAST_START_TIMEOUT_MS);
+        }, START_TIMEOUT_MS);
       });
 
       const fetchPromise = fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}&stream=1`,
         {
           signal: controller.signal,
           headers: {
@@ -256,14 +258,20 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           },
         }
       ).then(async (response) => {
-        if (!response.ok) return null;
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          console.error('Audio URL fetch failed:', response.status, errData);
+          return null;
+        }
         const data = await response.json();
-        return data?.audioUrl || null;
-      }).catch(() => null);
+        return data?.audioUrl || data?.audioUrl1 || null;
+      }).catch((e) => {
+        console.error('Audio URL fetch error:', e);
+        return null;
+      });
 
       const audioUrl = await Promise.race([fetchPromise, timeoutPromise]);
 
-      // If we already started YT fallback because of timeout, keep it.
       if (usedFallback) return;
 
       if (audioUrl && audioRef.current) {
@@ -272,17 +280,20 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           try { ytPlayerRef.current.pauseVideo(); } catch {}
         }
         audioRef.current.src = audioUrl;
+        audioRef.current.load(); // Ensure new source is loaded
         audioRef.current.play()
           .then(() => setIsPlaying(true))
-          .catch(() => {
+          .catch((e) => {
+            console.warn('Background audio play failed, falling back to YT:', e);
             setPlaybackSource('youtube');
             createPlayer(videoId);
           });
         return;
       }
     } catch (error) {
-      console.warn('Background audio fetch error, using YouTube fallback:', error);
+      console.warn('Background audio flow failed:', error);
     }
+
 
     if (usedFallback) return;
     // Final fallback to standard YouTube IFrame player
