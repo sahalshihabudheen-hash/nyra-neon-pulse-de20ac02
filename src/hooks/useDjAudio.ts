@@ -122,5 +122,22 @@ export function useDjAudio() {
     return (bassL + bassR) / 2;
   };
 
+  // Sync engine on track change or play event
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    const handleSync = () => {
+      // If we've initialized the engine before, make sure it's awake
+      if (initedRef.current) {
+        console.log("DJ Engine: Play-triggered wake-up sync");
+        init();
+        // apply state is handled by the state change useEffect or we can call it here
+      }
+    };
+
+    audioRef.current.addEventListener('play', handleSync);
+    return () => audioRef.current?.removeEventListener('play', handleSync);
+  }, [init]);
+
   return { state, apply, init, getLevels, getBassLevel };
 }

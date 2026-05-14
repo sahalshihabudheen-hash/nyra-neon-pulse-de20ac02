@@ -244,12 +244,12 @@ const MusicPlayer = ({
     <footer className={cn(
         'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-50',
         nowPlayingOpen ? 'right-[380px]' : 'right-6',
-        'h-[130px] py-4 px-8'
+        'h-[150px] py-4 px-8'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
-        <div className="h-full flex flex-col relative z-10">
-          <div className="flex-1 flex items-center justify-between gap-8">
+        <div className="h-full flex flex-col justify-between relative z-10">
+          <div className="flex items-center justify-between gap-8">
             {/* Left: Track Info */}
             <div 
               className="flex items-center gap-3 cursor-pointer group/track min-w-0 md:w-80"
@@ -288,18 +288,23 @@ const MusicPlayer = ({
               )}
             </div>
 
-            {/* Center: Controls */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-4">
-              <div className="flex items-center gap-4 md:gap-8">
+            {/* Center: Controls & Soundwave */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-1 -mt-4">
+              {/* Soundwave Visualizer - centered again but smaller */}
+              <div className="w-32 h-4 opacity-40 overflow-hidden pointer-events-none">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
+              </div>
+              
+              <div className="flex items-center gap-4 md:gap-6">
                 <button 
                   onClick={onPrevious}
                   className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
                 >
-                  <SkipBack className="w-4 h-4 md:w-6 md:h-6 fill-current" />
+                  <SkipBack className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                 </button>
                 <button
                   onClick={onPlayPause}
-                  className="w-12 h-12 md:w-14 md:h-14 rounded-2xl md:rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
+                  className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_25px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
                 >
                   {isPlaying ? <Pause className="w-6 h-6 md:w-7 md:h-7 fill-current" /> : <Play className="w-6 h-6 md:w-7 md:h-7 fill-current ml-1" />}
                 </button>
@@ -307,7 +312,7 @@ const MusicPlayer = ({
                   onClick={onNext}
                   className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
                 >
-                  <SkipForward className="w-4 h-4 md:w-6 md:h-6 fill-current" />
+                  <SkipForward className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                 </button>
               </div>
             </div>
