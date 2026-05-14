@@ -258,13 +258,14 @@ const DjMode = () => {
   const [loadingPlaylists, setLoadingPlaylists] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && showSearch) {
       fetchUserPlaylists();
     }
-  }, [user]);
+  }, [user, showSearch]);
 
   const fetchUserPlaylists = async () => {
     if (!user) return;
+    setLoadingPlaylists(true);
     try {
       const { data, error } = await supabase
         .from('playlists')
@@ -274,6 +275,8 @@ const DjMode = () => {
       if (data) setUserPlaylists(data);
     } catch (err) {
       console.error('Could not fetch playlists', err);
+    } finally {
+      setLoadingPlaylists(false);
     }
   };
 
@@ -504,15 +507,27 @@ const DjMode = () => {
               </div>
             )}
             
-            {userPlaylists.length > 0 && (
-              <div className="mb-6">
-                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-4">Import Your Playlist</p>
+            <div className="mb-6">
+               <div className="flex items-center justify-between mb-4">
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Import Your Playlist</p>
+                 <button onClick={fetchUserPlaylists} className="text-[9px] uppercase font-bold text-primary hover:underline flex items-center gap-1">
+                   <RotateCcw className={cn("w-3 h-3", loadingPlaylists && "animate-spin")} />
+                   Sync
+                 </button>
+               </div>
+               
+               {loadingPlaylists ? (
+                 <div className="flex gap-2 animate-pulse">
+                   {Array.from({ length: 3 }).map((_, i) => (
+                     <div key={i} className="w-32 h-10 rounded-xl bg-white/5" />
+                   ))}
+                 </div>
+               ) : userPlaylists.length > 0 ? (
                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                     {userPlaylists.map(p => (
                        <button 
                          key={p.id} 
                          onClick={() => loadPlaylistTracks(p.id)}
-                         disabled={loadingPlaylists}
                          className="shrink-0 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/50 text-xs font-bold transition-all flex items-center gap-2"
                        >
                          <ListMusic className="w-3.5 h-3.5 text-primary" />
@@ -520,8 +535,10 @@ const DjMode = () => {
                        </button>
                     ))}
                  </div>
-              </div>
-            )}
+               ) : (
+                 <p className="text-[10px] text-muted-foreground italic">No playlists found. Create one in the library to import it here.</p>
+               )}
+            </div>
 
             {loadedPlaylistTracks.length > 0 && (
               <div className="mt-6">
