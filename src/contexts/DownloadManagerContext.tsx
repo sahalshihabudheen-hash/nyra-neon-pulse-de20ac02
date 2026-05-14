@@ -63,11 +63,9 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
       const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}&download=1&title=${encodeURIComponent(track.title)}`;
       
       // Use a hidden link to trigger the download. 
-      // Opening in a new tab for cross-origin downloads often helps browsers decide to download instead of navigate.
       const a = document.createElement('a');
       a.href = downloadUrl;
       a.setAttribute('download', `${safeTitle}.mp3`);
-      a.target = '_blank';
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
@@ -80,6 +78,7 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         updateItem(track.id, { status: 'done', progress: 100 });
         toast.success(`🎵 Download started: ${track.title}`);
       }, 3000);
+
 
     } catch (error: any) {
       console.error('Download error:', error);
