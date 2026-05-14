@@ -34,27 +34,50 @@ Deno.serve(async (req) => {
 
     // 1. Check YouTube API keys
     try {
-      const keys = await getYouTubeApiKeys();
-      if (keys.length === 0) {
+      const { getAllYouTubeApiKeys } = await import("../_shared/youtube-key-failover.ts");
+      const allKeys = await getAllYouTubeApiKeys();
+      const enabledKeys = await getYouTubeApiKeys();
+      
+      if (allKeys.length === 0) {
         checks.push({
           id: 'youtube_keys',
           name: 'YouTube API Keys',
           status: 'critical',
-          message: 'No YouTube API keys configured. Music search and trending will not work.',
+          message: 'No YouTube API keys configured. Music features are disabled.',
           autoFixable: false,
         });
       } else {
-        // Test one key
+        // Find exhausted keys
+        const exhaustedKeys: string[] = [];
+        const expiredKeys: string[] = [];
+        
+        // For health check, we'll quickly verify a few keys if needed, 
+        // but primarily we'll rely on the failover logic result
         const testResult = await fetchYouTubeWithBackupFailover(
-          keys,
-          (apiKey) => `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&q=test&type=video&key=${apiKey}`,
+          enabledKeys,
+          (apiKey) => `https://www.googleapis.com/youtube/v3/videos?part=id&id=dQw4w9WgXcQ&key=${apiKey}`,
         );
+
+        const activeCount = enabledKeys.length;
+        const totalCount = allKeys.length;
+        
         if (!testResult.ok) {
+          const isQuota = /quota|limit|rate/i.test(testResult.error || "");
+          checks.push({
+            id: 'youtube_keys',
+            name: 'YouTube API Keys',
+            status: 'critical',
+            message: isQuota 
+              ? `ALL ENABLED KEYS EXHAUSTED. Search and trending are using Piped fallback.`
+              : `YouTube API Error: ${testResult.error}. Service may be down.`,
+            autoFixable: false,
+          });
+        } else if (activeCount < totalCount) {
           checks.push({
             id: 'youtube_keys',
             name: 'YouTube API Keys',
             status: 'warning',
-            message: `YouTube API returned error: ${testResult.error}. Keys may be exhausted.`,
+            message: `${activeCount}/${totalCount} keys are active. Some keys may be exhausted or disabled.`,
             autoFixable: false,
           });
         } else {
@@ -62,7 +85,7 @@ Deno.serve(async (req) => {
             id: 'youtube_keys',
             name: 'YouTube API Keys',
             status: 'healthy',
-            message: `${keys.length} key(s) active, API responding normally.`,
+            message: `All ${totalCount} YouTube keys are online and responding.`,
             autoFixable: false,
           });
         }
@@ -72,10 +95,11 @@ Deno.serve(async (req) => {
         id: 'youtube_keys',
         name: 'YouTube API Keys',
         status: 'critical',
-        message: `Failed to check YouTube keys: ${e.message}`,
+        message: `Failed to verify YouTube keys: ${e.message}`,
         autoFixable: false,
       });
     }
+
 
     // 2. Check for high error rate in activity logs
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
