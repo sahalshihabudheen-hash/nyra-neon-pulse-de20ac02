@@ -527,6 +527,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   const handleAddToQueue = useCallback((track: Track) => {
     addToQueue(track);
+    toast.success(`⌛ "${track.title.slice(0, 30)}..." added to queue`);
   }, [addToQueue]);
 
   const handleRemoveFromPlaylist = useCallback((trackId: string) => {

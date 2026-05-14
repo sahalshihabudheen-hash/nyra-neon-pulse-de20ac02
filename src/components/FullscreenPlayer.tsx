@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal, Share2, Zap, Heart, Music2, Headphones, Minus, Plus, Volume2, VolumeX } from 'lucide-react';
-
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal, Share2, Music2, Volume2, VolumeX, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import StyledProgressBar from './StyledProgressBar';
@@ -9,6 +8,7 @@ import SoundwaveVisualizer from './SoundwaveVisualizer';
 import EqualizerPanel from './EqualizerPanel';
 import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 interface Track {
@@ -61,13 +61,22 @@ const FullscreenPlayer = ({
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
   const { 
-    playlist, 
+    playlist,
+    queue: ctxQueue,
+    removeFromQueue: ctxRemoveFromQueue,
+    handlePlayFromQueue: ctxPlayFromQueue,
     handlePlayFromPlaylist,
     volume,
     setVolume,
     isMuted,
-    setIsMuted
+    setIsMuted,
   } = useMusicPlayer();
+  const { startDownload, isDownloading } = useDownloadManager();
+
+  // Use context queue (always up-to-date), fall back to prop
+  const activeQueue = ctxQueue.length > 0 ? ctxQueue : queue;
+  const activeRemoveFromQueue = ctxRemoveFromQueue || onRemoveFromQueue;
+  const activePlayFromQueue = ctxPlayFromQueue || onPlayFromQueue;
 
   const [showQueue, setShowQueue] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
@@ -81,15 +90,15 @@ const FullscreenPlayer = ({
     return playlist.slice(idx + 1);
   })();
 
-  const queueIds = new Set(queue.map(t => t.id));
+  const queueIds = new Set(activeQueue.map(t => t.id));
   const upNextCombined: Array<Track & { _source: 'queue' | 'playlist' }> = [
-    ...queue.map(t => ({ ...t, _source: 'queue' as const })),
+    ...activeQueue.map(t => ({ ...t, _source: 'queue' as const })),
     ...upcomingPlaylist.filter(t => !queueIds.has(t.id)).map(t => ({ ...t, _source: 'playlist' as const })),
   ];
 
   const playUpNextItem = (track: Track & { _source: 'queue' | 'playlist' }) => {
     if (track._source === 'queue') {
-      onPlayFromQueue?.(track);
+      activePlayFromQueue?.(track);
     } else {
       handlePlayFromPlaylist(track);
     }
@@ -320,8 +329,18 @@ const FullscreenPlayer = ({
              >
                  <Share2 className="w-4 h-4" />
              </button>
+             {currentTrack && (
+               <button
+                 onClick={() => startDownload(currentTrack)}
+                 className="w-10 h-10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all flex items-center justify-center active:scale-90"
+                 aria-label="Download"
+               >
+                 {isDownloading(currentTrack.id)
+                   ? <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                   : <Download className="w-4 h-4" />}
+               </button>
+             )}
           </div>
-
 
           {/* Compact Up Next Strip */}
           {upNextCombined.length > 0 && (
@@ -365,7 +384,7 @@ const FullscreenPlayer = ({
                       <ListMusic className="w-8 h-8 text-primary" />
                       <div>
                          <h3 className="text-2xl font-black text-foreground uppercase tracking-tighter italic">Up Next</h3>
-                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{queue.length} in Queue · {upcomingPlaylist.length} in Playlist</p>
+                         <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">{activeQueue.length} in Queue · {upcomingPlaylist.length} in Playlist</p>
                       </div>
                    </div>
                    <button onClick={() => setShowQueue(false)} className="w-12 h-12 rounded-2xl hover:bg-white/5 flex items-center justify-center">
@@ -375,19 +394,19 @@ const FullscreenPlayer = ({
                 <ScrollArea className="flex-1 p-4">
                    {upNextCombined.length > 0 ? (
                       <div className="space-y-4">
-                         {queue.length > 0 && (
+                         {activeQueue.length > 0 && (
                            <div>
                              <p className="px-3 mb-2 text-[10px] font-black text-primary uppercase tracking-[0.3em]">⌛ Queue</p>
                              <div className="space-y-1">
-                               {queue.map((track, idx) => (
-                                  <div key={`q-${track.id}`} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group" onClick={() => onPlayFromQueue?.(track)}>
+                               {activeQueue.map((track, idx) => (
+                                  <div key={`q-${track.id}`} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-white/5 transition-all cursor-pointer group" onClick={() => activePlayFromQueue?.(track)}>
                                      <span className="text-xs font-black text-primary/60 w-6">{idx + 1}</span>
                                      <img src={track.thumbnail} className="w-12 h-12 rounded-xl object-cover" />
                                      <div className="flex-1 min-w-0">
                                         <p className="font-bold text-foreground truncate group-hover:text-primary transition-colors">{track.title}</p>
                                         <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest truncate">{track.channel}</p>
                                      </div>
-                                     <button onClick={(e) => { e.stopPropagation(); onRemoveFromQueue?.(track.id); }} className="p-2.5 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
+                                     <button onClick={(e) => { e.stopPropagation(); activeRemoveFromQueue?.(track.id); }} className="p-2.5 rounded-xl hover:bg-destructive/20 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all">
                                         <Trash2 className="w-4 h-4" />
                                      </button>
                                   </div>

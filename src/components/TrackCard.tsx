@@ -34,7 +34,6 @@ const TrackCard = ({ track, isCurrent, isPlaying, onPlay, onAddToQueue, isFavori
     e.stopPropagation();
     if (onAddToQueue) {
       onAddToQueue(track);
-      toast.success('⌛ Added to queue!');
     }
   };
 
