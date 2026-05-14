@@ -269,7 +269,6 @@ const MusicPlayer = ({
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                  <div className="flex-1 min-w-0">
                     <h3 className="text-xs md:text-sm font-black text-foreground truncate group-hover/track:text-primary transition-colors tracking-tight">
                       {currentTrack.title}
                     </h3>
