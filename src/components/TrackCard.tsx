@@ -13,6 +13,7 @@ interface Track {
 
 interface TrackCardProps {
   track: Track;
+  isCurrent: boolean;
   isPlaying: boolean;
   onPlay: (track: Track) => void;
   onAddToQueue?: (track: Track) => void;
@@ -20,7 +21,8 @@ interface TrackCardProps {
   onToggleFavorite?: (track: Track) => Promise<boolean>;
 }
 
-const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false, onToggleFavorite }: TrackCardProps) => {
+const TrackCard = ({ track, isCurrent, isPlaying, onPlay, onAddToQueue, isFavorite = false, onToggleFavorite }: TrackCardProps) => {
+
   const { startDownload, isDownloading } = useDownloadManager();
   const downloading = isDownloading(track.id);
 
@@ -63,9 +65,10 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
     <div
       className={cn(
         'group relative glass-premium rounded-[2rem] overflow-hidden border border-white/5 transition-all duration-500 cursor-pointer shadow-xl hover:shadow-primary/10 hover:-translate-y-1',
-        isPlaying && 'ring-2 ring-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.2)]'
+        isCurrent && 'ring-2 ring-primary/50 shadow-[0_0_30px_rgba(var(--primary),0.2)]'
       )}
       onClick={handleCardClick}
+
     >
       {/* Thumbnail Area */}
       <div className="relative aspect-square overflow-hidden m-2 rounded-[1.5rem]">
@@ -85,15 +88,13 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
               onClick={handlePlayNow}
               className={cn(
                 'w-11 h-11 rounded-full flex items-center justify-center transition-all duration-500 shadow-xl',
-                isPlaying ? 'bg-primary text-primary-foreground neon-glow' : 'bg-primary text-primary-foreground hover:scale-110 active:scale-95'
+                isCurrent && isPlaying ? 'bg-primary text-primary-foreground neon-glow animate-pulse' : 'bg-primary text-primary-foreground hover:scale-110 active:scale-95'
               )}
             >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 fill-current" />
-              ) : (
-                <Play className="w-5 h-5 fill-current ml-0.5" />
-              )}
+              <Play className="w-5 h-5 fill-current ml-0.5" />
             </button>
+
+
 
             {onAddToQueue && (
               <button 
@@ -146,7 +147,7 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
         </div>
 
         {/* Equalizer (playing state) */}
-        {isPlaying && (
+        {isCurrent && isPlaying && (
           <div className="absolute top-3 left-3 flex items-end gap-0.5 h-4 bg-primary/90 rounded-md px-1.5 py-1">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="w-0.5 bg-primary-foreground rounded-full equalizer-bar" style={{ height: '100%' }} />
@@ -162,9 +163,10 @@ const TrackCard = ({ track, isPlaying, onPlay, onAddToQueue, isFavorite = false,
         </h3>
         <div className="flex items-center gap-2 mt-0.5">
           <p className="text-[10px] font-bold text-muted-foreground/60 truncate uppercase tracking-widest flex-1">{track.channel}</p>
-          {isPlaying && <Zap className="w-3 h-3 text-primary animate-pulse" />}
+          {isCurrent && isPlaying && <Zap className="w-3 h-3 text-primary animate-pulse" />}
         </div>
       </div>
+
     </div>
   );
 };

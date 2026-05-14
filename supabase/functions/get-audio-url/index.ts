@@ -233,29 +233,40 @@ serve(async (req) => {
         });
       } catch (error) {
         console.error('Streaming error:', error.message);
-        // Fallback: Return JSON with the URL so the client can try to open it directly
-        return new Response(
-          JSON.stringify({ 
-            error: 'Stream proxy failed, try opening the URL directly', 
-            audioUrl,
-            audioUrl1: audioUrl, // For compatibility with some versions
-            fallback: true 
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        
+        // Fallback: If proxying fails, REDIRECT the browser directly to the audio URL
+        // This is much better than returning JSON as it might still trigger a download or at least play the audio.
+        return new Response(null, {
+          status: 302,
+          headers: {
+            ...corsHeaders,
+            'Location': audioUrl,
+            'X-Fallback-Reason': error.message,
+          }
+        });
       }
     }
 
+    // Default JSON response for non-stream/non-download requests
     return new Response(
-      JSON.stringify({ audioUrl, audioUrl1: audioUrl }),
+      JSON.stringify({ 
+        audioUrl, 
+        audioUrl1: audioUrl,
+        success: true 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Global error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        audioUrl: typeof audioUrl !== 'undefined' ? audioUrl : null 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+
 

@@ -227,16 +227,13 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
                         className={cn(
                           "w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-lg",
                           isTrackPlaying 
-                            ? "bg-primary text-primary-foreground neon-glow" 
+                            ? "bg-primary text-primary-foreground neon-glow animate-pulse" 
                             : "bg-primary text-primary-foreground hover:neon-glow active:scale-95"
                         )}
                       >
-                        {isTrackPlaying ? (
-                          <Pause className="w-5 h-5" fill="currentColor" />
-                        ) : (
-                          <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
-                        )}
+                        <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
                       </button>
+
                       
                       {onAddToQueue && (
                         <button 

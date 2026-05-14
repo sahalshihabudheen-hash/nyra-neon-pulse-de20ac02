@@ -126,15 +126,12 @@ const RecentlyPlayedSection = ({
                         }}
                         className={cn(
                           "w-9 h-9 rounded-full flex items-center justify-center transition-all shadow-lg",
-                          "bg-primary text-primary-foreground hover:scale-110 active:scale-95"
+                          isTrackPlaying ? "bg-primary text-primary-foreground animate-pulse shadow-primary/50" : "bg-primary text-primary-foreground hover:scale-110 active:scale-95"
                         )}
                       >
-                        {isTrackPlaying ? (
-                          <Pause className="w-4 h-4" fill="currentColor" />
-                        ) : (
-                          <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
-                        )}
+                        <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
                       </button>
+
                       
                       {onAddToQueue && (
                         <button 

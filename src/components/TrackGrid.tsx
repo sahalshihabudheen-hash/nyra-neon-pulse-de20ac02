@@ -15,6 +15,7 @@ interface TrackGridProps {
   onPlayTrack: (track: Track) => void;
   onAddToQueue?: (track: Track) => void;
   isLoading: boolean;
+  isPlaying: boolean;
   searchPerformed: boolean;
   isFavorite?: (trackId: string) => boolean;
   onToggleFavorite?: (track: Track) => Promise<boolean>;
@@ -25,11 +26,14 @@ const TrackGrid = ({
   currentTrack, 
   onPlayTrack, 
   onAddToQueue, 
-  isLoading, 
+  isLoading,
+  isPlaying,
   searchPerformed,
   isFavorite,
   onToggleFavorite,
 }: TrackGridProps) => {
+
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
@@ -86,12 +90,14 @@ const TrackGrid = ({
         <TrackCard
           key={track.id}
           track={track}
-          isPlaying={currentTrack?.id === track.id}
+          isCurrent={currentTrack?.id === track.id}
+          isPlaying={isPlaying}
           onPlay={onPlayTrack}
           onAddToQueue={onAddToQueue}
           isFavorite={isFavorite?.(track.id)}
           onToggleFavorite={onToggleFavorite}
         />
+
       ))}
     </div>
   );
