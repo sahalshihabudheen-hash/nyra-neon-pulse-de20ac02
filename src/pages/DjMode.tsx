@@ -346,29 +346,48 @@ const DjMode = () => {
 
   const lastSyncedTrack = useRef<string | null>(null);
 
-  // Sync engine on track change to ensure effects are applied to next song automatically
+  // Sync engine on track change or when audio is ready
   useEffect(() => {
-    // If we are in background audio mode (DJ compatible) and playing
-    if (activeSource === 'background' && isPlaying && currentTrack?.id) {
-      // ONLY sync if it's a NEW track to prevent infinite loops
-      if (currentTrack.id !== lastSyncedTrack.current) {
-        console.log("DJ Engine: Deep Syncing for track", currentTrack?.id);
-        lastSyncedTrack.current = currentTrack.id;
-        try {
-          const ok = reSync();
-          if (ok) {
-            toast.success("DJ Engine Ready", { 
-              duration: 1500,
-              position: 'top-center',
-              id: 'dj-sync-toast'
-            });
-          }
-        } catch (e) {
-          console.error("DJ Sync Error:", e);
+    if (!audioRef.current) return;
+
+    const performSync = () => {
+      if (activeSource === 'background' && isPlaying && currentTrack?.id) {
+        if (currentTrack.id !== lastSyncedTrack.current) {
+          console.log("DJ Engine: Event-Triggered Sync for track", currentTrack?.id);
+          lastSyncedTrack.current = currentTrack.id;
+          
+          // Small delay to ensure browser media pipeline has settled
+          setTimeout(() => {
+            try {
+              const ok = reSync();
+              if (ok) {
+                toast.success("DJ Engine Ready", { 
+                  duration: 1500,
+                  position: 'top-center',
+                  id: 'dj-sync-toast'
+                });
+              }
+            } catch (e) {
+              console.error("DJ Sync Error:", e);
+            }
+          }, 100);
         }
       }
-    }
-  }, [currentTrack?.id, isPlaying, activeSource, reSync]);
+    };
+
+    // Listen for both immediate changes and hardware ready events
+    const audio = audioRef.current;
+    audio.addEventListener('canplay', performSync);
+    audio.addEventListener('playing', performSync);
+    
+    // Also run immediately in case it's already ready
+    performSync();
+
+    return () => {
+      audio.removeEventListener('canplay', performSync);
+      audio.removeEventListener('playing', performSync);
+    };
+  }, [currentTrack?.id, isPlaying, activeSource, reSync, audioRef]);
 
   const enable = async () => {
     setForcing(true);

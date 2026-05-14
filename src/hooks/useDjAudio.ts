@@ -149,13 +149,10 @@ export function useDjAudio() {
   useEffect(() => { stateRef.current = state; }, [state]);
 
   const reSync = useCallback(() => {
-    // Force a complete rebuild of the audio graph
-    console.log("DJ Engine: Nuclear Re-Sync initiated");
+    // Force a re-wiring of the existing audio graph
+    console.log("DJ Engine: Deep Re-Sync initiated");
     initedRef.current = false;
-    if (source) {
-      try { source.disconnect(); } catch(e) {}
-      source = null;
-    }
+    // DO NOT set source = null here! createMediaElementSource can only be called once per element.
     const ok = init();
     if (ok) apply(stateRef.current);
     return ok;
