@@ -288,8 +288,8 @@ const MusicPlayer = ({
               )}
             </div>
 
-            {/* Center: Controls & Soundwave */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-4 flex flex-col items-center gap-1">
+            {/* Center Tier 1: Controls */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-4">
               <div className="flex items-center gap-4 md:gap-8">
                 <button 
                   onClick={onPrevious}
@@ -310,11 +310,11 @@ const MusicPlayer = ({
                   <SkipForward className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                 </button>
               </div>
+            </div>
 
-              {/* Soundwave Visualizer - moved below buttons as requested */}
-              <div className="w-32 h-4 opacity-40 overflow-hidden pointer-events-none mt-1">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
-              </div>
+            {/* Center Tier 2: Soundwave (Air-gapped middle) */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-[76px] w-32 h-4 opacity-40 overflow-hidden pointer-events-none">
+              <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
             </div>
 
             {/* Right: Actions & Volume */}
@@ -356,8 +356,8 @@ const MusicPlayer = ({
 
           </div>
 
-          {/* Bottom: Progress Bar */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-xl flex items-center gap-4 px-4">
+          {/* Center Tier 3: Progress Bar */}
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-xl flex items-center gap-4 px-4">
             <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
             <StyledProgressBar
               progress={progress}
