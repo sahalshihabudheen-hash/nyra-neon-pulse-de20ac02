@@ -344,6 +344,14 @@ const DjMode = () => {
     return () => clearInterval(beatRef.current);
   }, [isPlaying, state.active]);
 
+  // Sync engine on track change to ensure effects are applied to next song automatically
+  useEffect(() => {
+    if (state.active && isPlaying) {
+      init(); 
+      apply(state);
+    }
+  }, [currentTrack?.id, isPlaying, state.active, init, apply]);
+
   const enable = async () => {
     setForcing(true);
     const ready = activeSource === 'background' ? true : await forceBackgroundPlayback();

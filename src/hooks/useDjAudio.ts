@@ -48,10 +48,16 @@ export function useDjAudio() {
   }, []);
 
   const init = useCallback(() => {
-    if (initedRef.current || !audioRef.current) return initedRef.current;
+    if (!audioRef.current) return false;
     try {
       const AC = (window.AudioContext || (window as any).webkitAudioContext);
       if (!ctx) ctx = new AC();
+      
+      // Always try to resume context to handle browser auto-play/gesture policies
+      if (ctx.state === 'suspended') ctx.resume();
+      
+      if (initedRef.current) return true;
+
       if (!source) source = ctx.createMediaElementSource(audioRef.current);
 
       lowEq = ctx.createBiquadFilter(); lowEq.type = 'lowshelf'; lowEq.frequency.value = 200;
