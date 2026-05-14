@@ -161,7 +161,7 @@ const DjMode = () => {
   }, [state]);
 
   useEffect(() => {
-    if (autoDjActive && state.active) {
+    if (autoDjActive && state.active && isPlaying) {
       console.log("Auto DJ: Started Modulation Loop - Speed:", autoDjSpeed);
       const interval = autoDjSpeed === 'rapid' ? 1000 : 3000;
       
@@ -234,7 +234,7 @@ const DjMode = () => {
       clearInterval(autoDjRef.current);
     }
     return () => clearInterval(autoDjRef.current);
-  }, [autoDjActive, state.active, apply, autoDjSpeed]);
+  }, [autoDjActive, state.active, apply, autoDjSpeed, isPlaying]);
 
   const { user } = useAuth();
   const [userPlaylists, setUserPlaylists] = useState<Playlist[]>([]);
@@ -295,7 +295,7 @@ const DjMode = () => {
       setLevels(lvls);
 
       // Smart Bass Logic: Detect thumps and boost bass EQ automatically
-      if (smartBass && state.active) {
+      if (smartBass && state.active && isPlaying) {
         const bassLevel = getBassLevel();
         if (bassLevel > 0.6) { // High bass energy detected
           if (latestStateRef.current.low < 8) {
