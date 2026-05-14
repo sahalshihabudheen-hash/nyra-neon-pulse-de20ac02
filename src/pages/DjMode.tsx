@@ -148,7 +148,7 @@ const DjMode = () => {
     loopMode, cycleLoopMode,
     queue, removeFromQueue
   } = useMusicPlayer();
-  const { state, apply, init, getLevels, getBassLevel } = useDjAudio();
+  const { state, apply, init, reSync, getLevels, getBassLevel } = useDjAudio();
   const [levels, setLevels] = useState({ left: 0, right: 0 });
   const [smartBass, setSmartBass] = useState(false);
   const [query, setQuery] = useState('');
