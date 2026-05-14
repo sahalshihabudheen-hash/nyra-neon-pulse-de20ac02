@@ -73,23 +73,63 @@ const VuMeter = ({ level }: { level: number }) => {
 };
 
 /* ─── EQ Fader ─── */
-const EQFader = ({ label, value, onChange, color = 'primary' }: { label: string; value: number; onChange: (v: number) => void; color?: string }) => (
-  <div className="flex flex-col items-center gap-3">
-    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">{label}</span>
-    <div className="relative flex flex-col items-center" style={{ height: 120 }}>
-      <Slider
-        orientation="vertical"
-        min={-12} max={12} step={0.5}
-        value={[value]}
-        onValueChange={v => onChange(v[0])}
-        className="h-28"
-      />
+const EQFader = ({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) => {
+  const percentage = ((value + 12) / 24) * 100;
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/70">{label}</span>
+      <div className="relative group flex flex-col items-center" style={{ height: 160, width: 40 }}>
+        {/* Fader Slot/Track */}
+        <div className="absolute inset-y-0 w-2 bg-black/40 rounded-full border border-white/5 shadow-inner" />
+        
+        {/* Active Fill Glow */}
+        <div 
+          className="absolute bottom-0 w-2 rounded-full transition-all duration-300"
+          style={{ 
+            height: `${percentage}%`,
+            background: 'linear-gradient(0deg, hsl(var(--primary)), #fff)',
+            boxShadow: '0 0 15px hsl(var(--primary)/0.4)'
+          }}
+        />
+
+        {/* Tactical Tick Marks */}
+        <div className="absolute inset-y-0 left-0 w-1 flex flex-col justify-between py-2 opacity-20">
+          {[...Array(5)].map((_, i) => <div key={i} className="w-full h-[1px] bg-white" />)}
+        </div>
+        <div className="absolute inset-y-0 right-0 w-1 flex flex-col justify-between py-2 opacity-20">
+          {[...Array(5)].map((_, i) => <div key={i} className="w-full h-[1px] bg-white" />)}
+        </div>
+        
+        {/* Fader Knob (Tactile) */}
+        <div 
+          className="absolute left-1/2 -translate-x-1/2 w-10 h-4 rounded-[4px] bg-gradient-to-b from-[#333] to-[#111] border border-white/10 shadow-2xl flex flex-col items-center justify-center gap-0.5 group-hover:border-primary/50 transition-all duration-200 cursor-ns-resize"
+          style={{ bottom: `calc(${percentage}% - 8px)` }}
+        >
+          {/* Knob Grips */}
+          <div className="w-6 h-[1px] bg-white/20" />
+          <div className="w-6 h-[1px] bg-primary/40" />
+          <div className="w-6 h-[1px] bg-white/20" />
+        </div>
+
+        {/* Invisible range input for interaction */}
+        <input 
+          type="range" 
+          min={-12} max={12} step={0.5} 
+          value={value}
+          onChange={e => onChange(+e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-ns-resize w-full h-full" 
+          style={{ WebkitAppearance: 'slider-vertical' }}
+        />
+      </div>
+      <div className="flex flex-col items-center">
+        <span className={cn('text-[11px] font-black tabular-nums transition-colors duration-300', value > 0 ? 'text-primary' : value < 0 ? 'text-red-400' : 'text-muted-foreground')}>
+          {value > 0 ? '+' : ''}{value.toFixed(1)}
+        </span>
+        <span className="text-[8px] font-bold text-muted-foreground/30 uppercase tracking-tighter">dB</span>
+      </div>
     </div>
-    <span className={cn('text-xs font-black tabular-nums', value > 0 ? 'text-primary' : value < 0 ? 'text-red-400' : 'text-muted-foreground')}>
-      {value > 0 ? '+' : ''}{value.toFixed(1)}
-    </span>
-  </div>
-);
+  );
+};
 
 /* ─── Main Component ─── */
 const DjMode = () => {
@@ -118,25 +158,42 @@ const DjMode = () => {
     if (autoDjActive && state.active) {
       autoDjRef.current = setInterval(() => {
         const curr = latestStateRef.current;
-        const mode = Math.floor(Math.random() * 5);
+        const mode = Math.floor(Math.random() * 6);
         let next = { ...curr };
         
-        if (mode === 0) next.balance = Math.max(-1, curr.balance - 0.4);
-        else if (mode === 1) next.balance = Math.min(1, curr.balance + 0.4);
-        else if (mode === 2) next.balance = 0;
-        else if (mode === 3) {
-           next.low = Math.min(12, curr.low + 4);
-           next.leftGain = Math.min(1.5, curr.leftGain + 0.2);
-           next.rightGain = Math.min(1.5, curr.rightGain + 0.2);
-        }
-        else if (mode === 4) {
-           next.low = Math.max(-12, curr.low - 2);
-           next.leftGain = Math.max(0, curr.leftGain - 0.2);
-           next.rightGain = Math.max(0, curr.rightGain - 0.2);
+        if (mode === 0) {
+          next.balance = -1;
+          next.leftGain = 1.2;
+          next.rightGain = 0.4;
+          next.low = 4;
+        } else if (mode === 1) {
+          next.balance = 1;
+          next.rightGain = 1.2;
+          next.leftGain = 0.4;
+          next.low = 4;
+        } else if (mode === 2) {
+          next.balance = 0;
+          next.leftGain = 1;
+          next.rightGain = 1;
+          next.low = 0;
+        } else if (mode === 3) {
+          next.low = 10;
+          next.mid = -2;
+          next.high = -2;
+          next.leftGain = 1.3;
+          next.rightGain = 1.3;
+        } else if (mode === 4) {
+          next.low = -2;
+          next.high = 4;
+          next.leftGain = 0.8;
+          next.rightGain = 0.8;
+        } else if (mode === 5) {
+          next.balance = curr.balance < 0 ? 0.8 : -0.8;
+          next.low = Math.random() > 0.5 ? 6 : -4;
         }
         
         apply(next);
-      }, 2000);
+      }, 2000); // Faster interval for better feel
     } else {
       clearInterval(autoDjRef.current);
     }
@@ -217,9 +274,13 @@ const DjMode = () => {
     setForcing(true);
     const ready = activeSource === 'background' ? true : await forceBackgroundPlayback();
     setForcing(false);
-    if (!ready) return;
+    if (!ready) return false;
     const ok = init();
-    if (!ok) toast.error('DJ engine could not connect — needs audio stream mode');
+    if (!ok) {
+      toast.error('DJ engine could not connect — needs audio stream mode');
+      return false;
+    }
+    return true;
   };
 
   const playForDj = async (track: Track, list?: Track[], fromPlaylist = false) => {
@@ -566,71 +627,52 @@ const DjMode = () => {
         )}
 
         {/* ── Main DJ Console ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr] gap-4 mb-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px_1fr] gap-6 mb-6 items-stretch">
 
           {/* Deck L */}
-          {(['L', 'R'] as const).map((side, i) => {
-            const gain = side === 'L' ? state.leftGain : state.rightGain;
-            const level = side === 'L' ? levels.left : levels.right;
-            return (
-              <div key={side} className={cn(
-                'relative rounded-[2rem] border overflow-hidden p-6 flex flex-col gap-5 transition-all duration-300',
-                state.active && level > 0.3 ? 'border-primary/40' : 'border-white/8',
-                'bg-gradient-to-b from-white/3 to-transparent backdrop-blur-xl'
-              )}
-                style={{
-                  boxShadow: state.active ? `0 0 ${20 + level * 40}px hsl(var(--primary)/${0.05 + level * 0.15})` : 'none'
-                }}>
-
-                {/* Deck label */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
-                    {side === 'L' ? '« ' : ''}Deck {side}{side === 'R' ? ' »' : ''}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    {Array.from({ length: 3 }).map((_, j) => (
-                      <div key={j} className={cn('w-1 h-1 rounded-full', j / 3 < level ? 'bg-primary' : 'bg-white/10')} />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Vinyl */}
-                <div className="flex justify-center py-2">
-                  <Vinyl spinning={isPlaying && state.active} level={level} side={side} />
-                </div>
-
-                {/* VU Meter */}
-                <VuMeter level={level} />
-
-                {/* Channel Volume */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Channel Volume</span>
-                    <span className="text-xs font-black text-primary tabular-nums">{Math.round(gain * 100)}%</span>
-                  </div>
-                  <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
-                    <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
-                      style={{ width: `${(gain / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
-                    <input type="range" min={0} max={150} step={1} value={Math.round(gain * 100)}
-                      onChange={e => apply({ ...state, ...(side === 'L' ? { leftGain: +e.target.value / 100 } : { rightGain: +e.target.value / 100 }) })}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full" />
-                  </div>
-                  {/* +/- buttons */}
-                  <div className="flex gap-2 mt-1">
-                    <button
-                      onClick={() => apply({ ...state, ...(side === 'L' ? { leftGain: Math.max(0, gain - 0.1) } : { rightGain: Math.max(0, gain - 0.1) }) })}
-                      className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">−</button>
-                    <button
-                      onClick={() => apply({ ...state, ...(side === 'L' ? { leftGain: Math.min(1.5, gain + 0.1) } : { rightGain: Math.min(1.5, gain + 0.1) }) })}
-                      className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">+</button>
-                  </div>
-                </div>
+          <div className={cn(
+            'relative rounded-[2rem] border overflow-hidden p-6 flex flex-col gap-5 transition-all duration-300',
+            state.active && levels.left > 0.3 ? 'border-primary/40' : 'border-white/8',
+            'bg-gradient-to-b from-white/3 to-transparent backdrop-blur-xl'
+          )}
+            style={{
+              boxShadow: state.active ? `0 0 ${20 + levels.left * 40}px hsl(var(--primary)/${0.05 + levels.left * 0.15})` : 'none'
+            }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">« Deck L</span>
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className={cn('w-1 h-1 rounded-full', j / 3 < levels.left ? 'bg-primary' : 'bg-white/10')} />
+                ))}
               </div>
-            );
-          })}
+            </div>
+            <div className="flex justify-center py-2">
+              <Vinyl spinning={isPlaying && state.active} level={levels.left} side="L" />
+            </div>
+            <VuMeter level={levels.left} />
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Channel Volume</span>
+                <span className="text-xs font-black text-primary tabular-nums">{Math.round(state.leftGain * 100)}%</span>
+              </div>
+              <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
+                  style={{ width: `${(state.leftGain / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
+                <input type="range" min={0} max={150} step={1} value={Math.round(state.leftGain * 100)}
+                  onChange={e => apply({ ...state, leftGain: +e.target.value / 100 })}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full" />
+              </div>
+              <div className="flex gap-2 mt-1">
+                <button onClick={() => apply({ ...state, leftGain: Math.max(0, state.leftGain - 0.1) })}
+                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">−</button>
+                <button onClick={() => apply({ ...state, leftGain: Math.min(1.5, state.leftGain + 0.1) })}
+                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">+</button>
+              </div>
+            </div>
+          </div>
 
-          {/* ── Center Column: Crossfader + Master ── */}
-          <div className="flex flex-col gap-4 xl:w-64">
+          {/* ── Center Column: Crossfader + Master + Auto DJ ── */}
+          <div className="flex flex-col gap-4">
             {/* Master level */}
             <div className="rounded-2xl border border-white/8 bg-white/3 backdrop-blur-xl p-5 flex flex-col items-center gap-3">
               <Activity className="w-5 h-5 text-primary" />
@@ -641,6 +683,38 @@ const DjMode = () => {
                   style={{ width: `${totalLevel * 100}%` }} />
               </div>
             </div>
+
+            {/* Auto DJ Mode Toggle */}
+            <button
+              onClick={async () => {
+                if (!state.active) {
+                  const ok = await enable();
+                  if (ok) {
+                    setAutoDjActive(true);
+                    toast.success('Auto DJ Mode Activated');
+                  }
+                } else {
+                  const newState = !autoDjActive;
+                  setAutoDjActive(newState);
+                  if (newState) toast.success('Auto DJ Mode Activated');
+                  else toast.info('Auto DJ Mode Disabled');
+                }
+              }}
+              className={cn(
+                'w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex flex-col items-center gap-2 border',
+                autoDjActive 
+                  ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_30px_hsl(var(--primary)/0.4)] scale-[1.02]'
+                  : 'bg-white/5 border-white/10 hover:bg-white/10'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Wand2 className={cn("w-5 h-5", autoDjActive && "animate-spin")} style={{ animationDuration: '3s' }} />
+                <span>Auto DJ Mode</span>
+              </div>
+              <span className="text-[8px] opacity-60">
+                {forcing ? 'INITIALIZING...' : autoDjActive ? 'ACTIVE · MODULATING' : 'READY TO MIX'}
+              </span>
+            </button>
 
             {/* Crossfader */}
             <div className="rounded-2xl border border-white/8 bg-white/3 backdrop-blur-xl p-5 space-y-3">
@@ -665,11 +739,10 @@ const DjMode = () => {
               <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
                 <span>L</span><span>Mix</span><span>R</span>
               </div>
-              {/* Crossfader quick buttons */}
               <div className="flex gap-1.5 pt-1">
                 {[['◄◄ L', -1], ['Center', 0], ['R ►►', 1]].map(([lbl, val]) => (
                   <button key={String(lbl)} onClick={() => apply({ ...state, balance: +val })}
-                    className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-primary/20 hover:text-primary text-[9px] font-black uppercase tracking-widest transition-all active:scale-95">
+                    className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-primary/20 hover:text-primary text-[8px] font-black uppercase tracking-widest transition-all">
                     {lbl}
                   </button>
                 ))}
@@ -686,6 +759,48 @@ const DjMode = () => {
                 <EQFader label="Bass" value={state.low} onChange={v => apply({ ...state, low: v })} />
                 <EQFader label="Mid" value={state.mid} onChange={v => apply({ ...state, mid: v })} />
                 <EQFader label="High" value={state.high} onChange={v => apply({ ...state, high: v })} />
+              </div>
+            </div>
+          </div>
+
+          {/* Deck R */}
+          <div className={cn(
+            'relative rounded-[2rem] border overflow-hidden p-6 flex flex-col gap-5 transition-all duration-300',
+            state.active && levels.right > 0.3 ? 'border-primary/40' : 'border-white/8',
+            'bg-gradient-to-b from-white/3 to-transparent backdrop-blur-xl'
+          )}
+            style={{
+              boxShadow: state.active ? `0 0 ${20 + levels.right * 40}px hsl(var(--primary)/${0.05 + levels.right * 0.15})` : 'none'
+            }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">Deck R »</span>
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className={cn('w-1 h-1 rounded-full', j / 3 < levels.right ? 'bg-primary' : 'bg-white/10')} />
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-center py-2">
+              <Vinyl spinning={isPlaying && state.active} level={levels.right} side="R" />
+            </div>
+            <VuMeter level={levels.right} />
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Channel Volume</span>
+                <span className="text-xs font-black text-primary tabular-nums">{Math.round(state.rightGain * 100)}%</span>
+              </div>
+              <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
+                  style={{ width: `${(state.rightGain / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
+                <input type="range" min={0} max={150} step={1} value={Math.round(state.rightGain * 100)}
+                  onChange={e => apply({ ...state, rightGain: +e.target.value / 100 })}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full" />
+              </div>
+              <div className="flex gap-2 mt-1">
+                <button onClick={() => apply({ ...state, rightGain: Math.max(0, state.rightGain - 0.1) })}
+                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">−</button>
+                <button onClick={() => apply({ ...state, rightGain: Math.min(1.5, state.rightGain + 0.1) })}
+                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">+</button>
               </div>
             </div>
           </div>
