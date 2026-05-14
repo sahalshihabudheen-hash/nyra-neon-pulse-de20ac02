@@ -66,6 +66,8 @@ interface MusicPlayerContextType {
   setVolume: (value: number) => void;
   isMuted: boolean;
   setIsMuted: (value: boolean) => void;
+  useBackgroundAudioOnly: boolean;
+  setUseBackgroundAudioOnly: (v: boolean) => void;
 }
 
 
@@ -85,6 +87,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [tracks, setTracks] = useState<Track[]>([]);
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
   const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
+  const [useBackgroundAudioOnly, setUseBackgroundAudioOnly] = useState(false);
   const [ytApiReady, setYtApiReady] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
@@ -257,14 +260,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     // instantly via YouTube if the edge function is slow.
     // Race a direct audio URL fetch against a timeout.
     // Increased timeout for better reliability on slower connections.
-    const START_TIMEOUT_MS = 2500;
+    const START_TIMEOUT_MS = useBackgroundAudioOnly ? 20000 : 2500;
     let usedFallback = false;
 
     try {
       const controller = new AbortController();
       const timeoutPromise = new Promise<null>((resolve) => {
         setTimeout(() => {
-          if (!usedFallback) {
+          if (!usedFallback && !useBackgroundAudioOnly) {
             usedFallback = true;
             console.log('Background audio timeout, using YT fallback');
             setPlaybackSource('youtube');
@@ -620,6 +623,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       showMiniPlayer, setShowMiniPlayer,
       volume, setVolume,
       isMuted, setIsMuted,
+      useBackgroundAudioOnly, setUseBackgroundAudioOnly,
     }}>
 
       {children}

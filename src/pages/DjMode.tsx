@@ -133,7 +133,11 @@ const EQFader = ({ label, value, onChange }: { label: string; value: number; onC
 
 /* ─── Main Component ─── */
 const DjMode = () => {
-  const { currentTrack, isPlaying, activeSource, playlist, forceBackgroundPlayback, handleAddToQueue, isFavorite, toggleFavorite } = useMusicPlayer();
+  const { 
+    currentTrack, isPlaying, activeSource, playlist, forceBackgroundPlayback, 
+    handleAddToQueue, isFavorite, toggleFavorite, 
+    useBackgroundAudioOnly, setUseBackgroundAudioOnly 
+  } = useMusicPlayer();
   const { state, apply, init, getLevels } = useDjAudio();
   const [levels, setLevels] = useState({ left: 0, right: 0 });
   const [query, setQuery] = useState('');
@@ -307,6 +311,7 @@ const DjMode = () => {
     setForcing(false);
     if (!ready) return false;
     const ok = init();
+    if (ok) setUseBackgroundAudioOnly(true);
     if (!ok) {
       toast.error('DJ engine could not connect — needs audio stream mode');
       return false;
@@ -806,9 +811,20 @@ const DjMode = () => {
 
             {/* EQ */}
             <div className="rounded-2xl border border-white/8 bg-white/3 backdrop-blur-xl p-5 space-y-3 flex-1">
-              <div className="flex items-center gap-2">
-                <Music2 className="w-4 h-4 text-primary" />
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">3-Band EQ</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Music2 className="w-4 h-4 text-primary" />
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">3-Band EQ</span>
+                </div>
+                <button 
+                  onClick={() => setUseBackgroundAudioOnly(v => !v)}
+                  className={cn(
+                    "px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all",
+                    useBackgroundAudioOnly ? "bg-primary text-primary-foreground" : "bg-white/5 text-muted-foreground"
+                  )}
+                >
+                  {useBackgroundAudioOnly ? "No Limit ON" : "No Limit OFF"}
+                </button>
               </div>
               <div className="flex justify-around items-start pt-2">
                 <EQFader label="Bass" value={state.low} onChange={v => apply({ ...state, low: v })} />
