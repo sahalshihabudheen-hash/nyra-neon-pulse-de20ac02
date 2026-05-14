@@ -408,8 +408,8 @@ const DjMode = () => {
 
   const playForDj = async (track: Track, list?: Track[]) => {
     setForcing(true);
-    // We pass fromPlaylist: false because we are loading the list into the primary tracks queue
-    const ready = await forceBackgroundPlayback(track, { trackList: list, fromPlaylist: false });
+    // Loading ONLY the selected track as a single-item list to prevent auto-playing the next one
+    const ready = await forceBackgroundPlayback(track, { trackList: [track], fromPlaylist: false });
     setForcing(false);
     if (ready) init();
     
