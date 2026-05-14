@@ -64,7 +64,7 @@ const FloatingMiniPlayer = () => {
   const hasDragged = useRef(false);
   const playerRef = useRef<HTMLDivElement>(null);
 
-  const shouldShow = Boolean(currentTrack && isPlaying && showMiniPlayer && !hasFullPlayer);
+  const shouldShow = Boolean(currentTrack && showMiniPlayer && !hasFullPlayer);
 
   useEffect(() => {
     if (shouldShow) {
