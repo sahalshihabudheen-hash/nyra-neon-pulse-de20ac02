@@ -55,7 +55,9 @@ serve(async (req) => {
                 title: item.title,
                 thumbnail: item.thumbnail,
                 channel: item.uploaderName || item.channelName,
+                channelId: item.uploaderUrl?.split('/').pop() || item.uploaderUrl || item.channelId,
               }));
+
               console.log(`Found ${pipedResults.length} results via Piped fallback (${instance})`);
               return new Response(JSON.stringify(pipedResults), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -79,7 +81,9 @@ serve(async (req) => {
       title: item.snippet.title,
       thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.default?.url,
       channel: item.snippet.channelTitle,
+      channelId: item.snippet.channelId,
     }));
+
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -112,7 +116,9 @@ serve(async (req) => {
                 title: item.title,
                 thumbnail: item.thumbnail,
                 channel: item.uploaderName || item.channelName,
+                channelId: item.uploaderUrl?.split('/').pop() || item.uploaderUrl || item.channelId,
               }));
+
               return new Response(JSON.stringify(pipedResults), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               });

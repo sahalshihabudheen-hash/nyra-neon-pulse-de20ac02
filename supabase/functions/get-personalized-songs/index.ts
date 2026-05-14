@@ -122,10 +122,11 @@ serve(async (req) => {
             const pipedData = await pipedResponse.json();
             if (pipedData.items && pipedData.items.length > 0) {
               const pipedTracks = pipedData.items.slice(0, 12).map((item: any) => ({
-                id: item.url.split('v=')[1] || item.url.split('/').pop(),
+                id: item.url?.split('v=')[1] || item.url?.split('/').pop() || item.id,
                 title: item.title,
                 thumbnail: item.thumbnail,
-                channel: item.uploaderName,
+                channel: item.uploaderName || item.channelName,
+                channelId: item.uploaderUrl?.split('/').pop() || item.uploaderUrl || item.channelId,
               }));
               console.log(`Found personalized results via Piped fallback (${instance})`);
               return new Response(JSON.stringify(pipedTracks), {
@@ -144,13 +145,14 @@ serve(async (req) => {
       );
     }
 
-
     const tracks = (result.data.items || []).map((item: any) => ({
       id: item.id.videoId,
       title: item.snippet.title,
       thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
       channel: item.snippet.channelTitle,
+      channelId: item.snippet.channelId,
     }));
+
 
     return new Response(JSON.stringify(tracks), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },

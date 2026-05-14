@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal, Share2, Zap, Heart, Music2, Headphones, Minus, Plus, Volume2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Trash2, ChevronDown, X, SlidersHorizontal, Share2, Zap, Heart, Music2, Headphones, Minus, Plus, Volume2, VolumeX } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import StyledProgressBar from './StyledProgressBar';
@@ -59,7 +60,15 @@ const FullscreenPlayer = ({
   audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
-  const { playlist, handlePlayFromPlaylist } = useMusicPlayer();
+  const { 
+    playlist, 
+    handlePlayFromPlaylist,
+    volume,
+    setVolume,
+    isMuted,
+    setIsMuted
+  } = useMusicPlayer();
+
   const [showQueue, setShowQueue] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -268,29 +277,31 @@ const FullscreenPlayer = ({
              </button>
           </div>
 
-          {/* Bottom Quick Actions */}
-          <div className="mt-4 md:mt-5 flex items-center gap-1.5 p-1.5 rounded-2xl glass-premium border border-white/10 backdrop-blur-2xl">
+          {/* Volume Control Section */}
+          <div className="mt-4 md:mt-5 flex items-center gap-4 px-6 py-2 rounded-2xl glass-premium border border-white/10 backdrop-blur-2xl w-full max-w-sm group/v-full">
              <button 
-               onClick={() => audioRef?.current && (audioRef.current.volume = Math.max(0, audioRef.current.volume - 0.1))} 
-               className="w-10 h-10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all flex items-center justify-center active:scale-90"
-               aria-label="Volume down"
+               onClick={() => setIsMuted(!isMuted)} 
+               className="text-primary transition-all active:scale-90"
              >
-                <Minus className="w-4 h-4" />
+                {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 text-muted-foreground" /> : <Volume2 className="w-5 h-5" />}
              </button>
-             <button 
-               onClick={() => audioRef?.current && (audioRef.current.muted = !audioRef.current.muted)} 
-               className="w-10 h-10 rounded-xl hover:bg-white/10 text-primary transition-all flex items-center justify-center active:scale-90"
-               aria-label="Mute"
-             >
-                <Volume2 className="w-5 h-5" />
-             </button>
-             <button 
-               onClick={() => audioRef?.current && (audioRef.current.volume = Math.min(1, audioRef.current.volume + 0.1))} 
-               className="w-10 h-10 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground transition-all flex items-center justify-center active:scale-90"
-               aria-label="Volume up"
-             >
-                <Plus className="w-4 h-4" />
-             </button>
+             <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden relative">
+                <div 
+                  className="absolute inset-y-0 left-0 bg-primary neon-glow-sm transition-all duration-300"
+                  style={{ width: `${isMuted ? 0 : volume}%` }}
+                />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    setVolume(Number(e.target.value));
+                    setIsMuted(false);
+                  }}
+                  className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
+                />
+             </div>
              <div className="w-px h-6 bg-white/10 mx-1" />
              <button 
                onClick={() => setShowEQ(!showEQ)} 
@@ -309,7 +320,8 @@ const FullscreenPlayer = ({
              >
                  <Share2 className="w-4 h-4" />
              </button>
-           </div>
+          </div>
+
 
           {/* Compact Up Next Strip */}
           {upNextCombined.length > 0 && (

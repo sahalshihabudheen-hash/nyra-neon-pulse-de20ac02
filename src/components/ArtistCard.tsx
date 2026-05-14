@@ -1,61 +1,46 @@
 import { Link } from "react-router-dom";
-import { Music } from "lucide-react";
+import { User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ArtistCardProps {
   id: string;
   artistName: string;
-  albumName?: string;
   coverImageUrl?: string | null;
-  songCount?: number;
+  className?: string;
 }
 
-const ArtistCard = ({ id, artistName, albumName, coverImageUrl, songCount = 0 }: ArtistCardProps) => {
+const ArtistCard = ({ id, artistName, coverImageUrl, className }: ArtistCardProps) => {
   return (
     <Link 
       to={`/artist/${id}`}
-      className="group block"
+      className={cn("group block text-center space-y-3", className)}
     >
-      <div className="relative overflow-hidden rounded-xl bg-card/50 border border-border/30 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:border-primary/50 hover:shadow-lg hover:shadow-primary/20">
-        {/* Album Cover */}
-        <div className="aspect-square overflow-hidden">
-          {coverImageUrl ? (
-            <img
-              src={coverImageUrl}
-              alt={`${artistName} - ${albumName}`}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-              <Music className="h-16 w-16 text-primary/50" />
-            </div>
-          )}
-        </div>
+      <div className="relative mx-auto w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-white/5 transition-all duration-500 group-hover:scale-105 group-hover:border-primary shadow-2xl group-hover:shadow-[0_0_30px_rgba(var(--primary),0.3)]">
+        {coverImageUrl ? (
+          <img
+            src={coverImageUrl}
+            alt={artistName}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-white/5">
+            <User className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors" />
+          </div>
+        )}
+        
+        {/* Overlay glow */}
+        <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      </div>
 
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-        {/* Info */}
-        <div className="p-4">
-          <h3 className="font-bold text-lg text-foreground truncate group-hover:text-primary transition-colors">
-            {artistName}
-          </h3>
-          {albumName && (
-            <p className="text-sm text-muted-foreground truncate mt-1">
-              {albumName}
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground/70 mt-2">
-            {songCount} {songCount === 1 ? 'song' : 'songs'}
-          </p>
-        </div>
-
-        {/* Glow effect on hover */}
-        <div className="absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none">
-          <div className="absolute inset-0 rounded-xl shadow-[inset_0_0_20px_rgba(var(--primary),0.1)]" />
-        </div>
+      <div className="px-2">
+        <h3 className="font-black text-sm md:text-base text-foreground truncate group-hover:text-primary transition-colors uppercase tracking-tight italic">
+          {artistName}
+        </h3>
+        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">Artist</p>
       </div>
     </Link>
   );
 };
 
 export default ArtistCard;
+

@@ -85,9 +85,40 @@ const MusicPlayer = ({
   onRemoveFromQueue,
   onPlayFromQueue,
 }: MusicPlayerProps) => {
-  const { settings } = useTheme();
-  const [volume, setVolume] = useState(80);
-  const [isMuted, setIsMuted] = useState(false);
+  const { 
+    settings,
+    updateSettings 
+  } = useTheme();
+
+  const {
+    currentTrack: ctxCurrentTrack,
+    isPlaying: ctxIsPlaying,
+    handlePlayPause: ctxOnPlayPause,
+    handleNext: ctxOnNext,
+    handlePrevious: ctxOnPrevious,
+    handlePlayFromPlaylist,
+    handlePlayFromQueue,
+    handleAddToPlaylist,
+    handleAddToQueue,
+    handleRemoveFromPlaylist,
+    handleClearPlaylist,
+    playlist: ctxPlaylist,
+    queue: ctxQueue,
+    isInPlaylist: ctxIsInPlaylist,
+    removeFromQueue,
+    reorderPlaylist,
+    shuffleMode: ctxShuffleMode,
+    toggleShuffle,
+    loopMode: ctxLoopMode,
+    cycleLoopMode,
+    isFavorite,
+    toggleFavorite,
+    volume,
+    setVolume,
+    isMuted,
+    setIsMuted,
+  } = useMusicPlayer();
+
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -95,8 +126,8 @@ const MusicPlayer = ({
   const [lyricsOpen, setLyricsOpen] = useState(false);
   const [showEQ, setShowEQ] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const formatTime = (seconds: number) => {
+
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -104,11 +135,11 @@ const MusicPlayer = ({
   };
 
   const nextUpTrack = (() => {
-    if (queue.length > 0) return queue[0];
-    if (currentTrack && playlist.length > 0) {
-      const idx = playlist.findIndex(t => t.id === currentTrack.id);
-      if (idx !== -1 && idx < playlist.length - 1) return playlist[idx + 1];
-      if (idx !== -1 && loopMode === 'all') return playlist[0];
+    if (ctxQueue.length > 0) return ctxQueue[0];
+    if (currentTrack && ctxPlaylist.length > 0) {
+      const idx = ctxPlaylist.findIndex(t => t.id === currentTrack.id);
+      if (idx !== -1 && idx < ctxPlaylist.length - 1) return ctxPlaylist[idx + 1];
+      if (idx !== -1 && ctxLoopMode === 'all') return ctxPlaylist[0];
     }
     return null;
   })();
@@ -148,17 +179,7 @@ const MusicPlayer = ({
     setDuration(0);
   }, [currentTrack?.id]);
 
-  useEffect(() => {
-    const actualVolume = isMuted ? 0 : volume;
-    if (audioRef?.current) {
-      audioRef.current.volume = actualVolume / 100;
-    }
-    if (ytPlayerRef?.current) {
-      try {
-        ytPlayerRef.current.setVolume?.(actualVolume);
-      } catch (e) {}
-    }
-  }, [volume, isMuted, ytPlayerRef, audioRef]);
+
 
   const handleSeek = useCallback((value: number) => {
     setProgress(value);

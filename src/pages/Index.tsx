@@ -18,7 +18,9 @@ import { useUserLocation } from '@/hooks/useUserLocation';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { famousSongs } from '@/data/famousSongs';
 import { cn } from '@/lib/utils';
-import { Sparkles, TrendingUp, Compass } from 'lucide-react';
+import { Sparkles, TrendingUp, Compass, Users } from 'lucide-react';
+import FavoriteArtistsSection from '@/components/FavoriteArtistsSection';
+
 
 const Index = () => {
   const navigate = useNavigate();
@@ -154,6 +156,13 @@ const Index = () => {
             )}
 
             {!searchPerformed && (
+              <section className="animate-in-up" style={{ animationDelay: '0.25s' }}>
+                <FavoriteArtistsSection />
+              </section>
+            )}
+
+            {!searchPerformed && (
+
               <section className="animate-in-up" style={{ animationDelay: '0.3s' }}>
                 <div className="flex items-center gap-3 mb-8 group cursor-default">
                   <div className="p-2.5 rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-lg">

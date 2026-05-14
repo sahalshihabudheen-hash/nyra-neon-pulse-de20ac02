@@ -1,12 +1,16 @@
-import { X, CheckCircle2, User, Share2, MoreHorizontal } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, CheckCircle2, User, Share2, MoreHorizontal, Loader2, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from './ui/scroll-area';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Track {
   id: string;
   title: string;
   thumbnail: string;
   channel: string;
+  channelId?: string;
 }
 
 interface NowPlayingPanelProps {
@@ -18,6 +22,109 @@ interface NowPlayingPanelProps {
 }
 
 const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistName }: NowPlayingPanelProps) => {
+  const [artistInfo, setArtistInfo] = useState<{ photo: string; subscribers: string } | null>(null);
+  const [isFollowed, setIsFollowed] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && currentTrack?.channelId) {
+      fetchArtistDetails(currentTrack.channelId);
+      checkIfFollowed(currentTrack.channelId);
+    }
+  }, [isOpen, currentTrack?.channelId]);
+
+  const fetchArtistDetails = async (channelId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-youtube-keys?test_channel=${channelId}`,
+        { headers: { 'Authorization': `Bearer ${session?.access_token}` } }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.channel) {
+          setArtistInfo({
+            photo: data.channel.photo,
+            subscribers: data.channel.subscribers,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching artist details:', err);
+    }
+  };
+
+  const checkIfFollowed = async (channelId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('followed_artists' as any)
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('artist_id', channelId)
+        .single();
+
+      setIsFollowed(!!data);
+    } catch (err) {
+      console.error('Error checking follow status:', err);
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!currentTrack?.channelId) return;
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please login to follow artists');
+        return;
+      }
+
+      if (isFollowed) {
+        const { error } = await supabase
+          .from('followed_artists' as any)
+          .delete()
+          .eq('user_id', user.id)
+          .eq('artist_id', currentTrack.channelId);
+
+        if (!error) {
+          setIsFollowed(false);
+          toast.success(`Unfollowed ${currentTrack.channel}`);
+        }
+      } else {
+        const { error } = await supabase
+          .from('followed_artists' as any)
+          .insert({
+            user_id: user.id,
+            artist_id: currentTrack.channelId,
+            artist_name: currentTrack.channel,
+            artist_photo: artistInfo?.photo || '',
+          });
+
+        if (!error) {
+          setIsFollowed(true);
+          toast.success(`Following ${currentTrack.channel}`);
+        }
+      }
+    } catch (err) {
+      toast.error('Failed to update follow status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShare = () => {
+    if (!currentTrack) return;
+    const shareUrl = `${window.location.origin}/api/og?id=${currentTrack.id}&title=${encodeURIComponent(currentTrack.title)}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success('Share link copied!', {
+      icon: <Share2 className="w-4 h-4 text-primary" />,
+    });
+  };
+
   if (!currentTrack) return null;
 
   return (
@@ -36,7 +143,7 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistNam
 
         <ScrollArea className="flex-1">
           <div className="px-6 pb-24 space-y-8">
-            {/* Video Canvas Area - Larger and Clean */}
+            {/* Video Canvas Area */}
             <div className="relative aspect-[4/5] w-full rounded-[2.5rem] overflow-hidden bg-black shadow-[0_0_50px_rgba(0,0,0,0.5)] group border border-white/5">
                <iframe
                   className="absolute inset-0 w-full h-full object-cover scale-[1.1]"
@@ -53,7 +160,7 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistNam
                <div className="flex items-center justify-between">
                   <h4 className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">About the artist</h4>
                   <div className="flex gap-2">
-                    <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                    <button onClick={handleShare} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
                         <Share2 className="w-3.5 h-3.5" />
                     </button>
                     <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
@@ -63,15 +170,21 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistNam
                </div>
 
                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary/20 overflow-hidden">
-                     <User className="w-8 h-8 text-primary" />
+                  <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary/20 overflow-hidden shrink-0">
+                     {artistInfo?.photo ? (
+                       <img src={artistInfo.photo} alt={currentTrack.channel} className="w-full h-full object-cover" />
+                     ) : (
+                       <User className="w-8 h-8 text-primary" />
+                     )}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                       <p className="font-black uppercase tracking-tight text-lg italic">{currentTrack.channel}</p>
-                       <CheckCircle2 className="w-4 h-4 text-primary" />
+                       <p className="font-black uppercase tracking-tight text-lg italic truncate">{currentTrack.channel}</p>
+                       <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
                     </div>
-                    <p className="text-xs font-bold text-muted-foreground">10,928,952 monthly listeners</p>
+                    <p className="text-xs font-bold text-muted-foreground">
+                      {artistInfo?.subscribers ? `${artistInfo.subscribers} subscribers` : 'Trending Artist'}
+                    </p>
                   </div>
                </div>
 
@@ -79,8 +192,26 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistNam
                   {currentTrack.channel} is a trending artist known for high-fidelity beats and modern production styles. Discover more of their work in your recommended tracks.
                </p>
 
-               <button className="w-full py-3 rounded-xl border border-white/10 font-black uppercase tracking-widest text-[10px] hover:bg-white/5 transition-all active:scale-95">
-                  Follow Artist
+               <button 
+                onClick={handleFollow}
+                disabled={loading}
+                className={cn(
+                  "w-full py-3 rounded-xl border font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 flex items-center justify-center gap-2",
+                  isFollowed 
+                    ? "bg-primary text-primary-foreground border-primary" 
+                    : "border-white/10 hover:bg-white/5"
+                )}
+               >
+                  {loading ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : isFollowed ? (
+                    <>
+                      <Heart className="w-3 h-3 fill-current" />
+                      Following
+                    </>
+                  ) : (
+                    "Follow Artist"
+                  )}
                </button>
             </div>
 
@@ -105,3 +236,4 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistNam
 };
 
 export default NowPlayingPanel;
+

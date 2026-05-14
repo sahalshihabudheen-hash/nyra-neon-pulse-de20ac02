@@ -60,7 +60,14 @@ interface MusicPlayerContextType {
   // Mini player visibility
   showMiniPlayer: boolean;
   setShowMiniPlayer: React.Dispatch<React.SetStateAction<boolean>>;
+
+  // Volume state
+  volume: number;
+  setVolume: (value: number) => void;
+  isMuted: boolean;
+  setIsMuted: (value: boolean) => void;
 }
+
 
 const MusicPlayerContext = createContext<MusicPlayerContextType | null>(null);
 
@@ -83,6 +90,28 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
     return (localStorage.getItem('nyra-loop-mode') as 'off' | 'all' | 'one') || 'off';
   });
+  const [volume, setVolume] = useState(() => {
+    const saved = localStorage.getItem('nyra-volume');
+    return saved ? parseInt(saved, 10) : 80;
+  });
+  const [isMuted, setIsMuted] = useState(() => {
+    return localStorage.getItem('nyra-muted') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('nyra-volume', volume.toString());
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume / 100;
+    }
+    if (ytPlayerRef.current && ytPlayerRef.current.setVolume) {
+      ytPlayerRef.current.setVolume(isMuted ? 0 : volume);
+    }
+  }, [volume, isMuted]);
+
+  useEffect(() => {
+    localStorage.setItem('nyra-muted', isMuted.toString());
+  }, [isMuted]);
+
 
 
 
@@ -572,7 +601,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       isFavorite, toggleFavorite,
       tracks, setTracks,
       showMiniPlayer, setShowMiniPlayer,
+      volume, setVolume,
+      isMuted, setIsMuted,
     }}>
+
       {children}
       <div
         id="youtube-player-container"

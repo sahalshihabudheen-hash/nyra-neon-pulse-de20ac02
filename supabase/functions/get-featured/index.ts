@@ -87,10 +87,11 @@ serve(async (req) => {
               const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
               const item = pipedData.items[dayOfYear % pipedData.items.length];
               const featured = {
-                id: item.url.split('v=')[1] || item.url.split('/').pop(),
+                id: item.url?.split('v=')[1] || item.url?.split('/').pop() || item.id,
                 title: item.title,
                 thumbnail: item.thumbnail,
-                channel: item.uploaderName,
+                channel: item.uploaderName || item.channelName,
+                channelId: item.uploaderUrl?.split('/').pop() || item.uploaderUrl || item.channelId,
               };
               console.log(`Found featured result via Piped fallback (${instance})`);
               return new Response(JSON.stringify(featured), {
@@ -109,7 +110,6 @@ serve(async (req) => {
       );
     }
 
-
     const itemIndex = dayOfYear % result.data.items.length;
     const item = result.data.items[itemIndex];
 
@@ -118,7 +118,9 @@ serve(async (req) => {
       title: item.snippet.title,
       thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.maxres?.url || item.snippet.thumbnails?.medium?.url,
       channel: item.snippet.channelTitle,
+      channelId: item.snippet.channelId,
     };
+
 
     return new Response(JSON.stringify(featured), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
