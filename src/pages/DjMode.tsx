@@ -339,9 +339,10 @@ const DjMode = () => {
     return true;
   };
 
-  const playForDj = async (track: Track, list?: Track[], fromPlaylist = false) => {
+  const playForDj = async (track: Track, list?: Track[]) => {
     setForcing(true);
-    const ready = await forceBackgroundPlayback(track, { trackList: list, fromPlaylist });
+    // We pass fromPlaylist: false because we are loading the list into the primary tracks queue
+    const ready = await forceBackgroundPlayback(track, { trackList: list, fromPlaylist: false });
     setForcing(false);
     if (ready) init();
     
@@ -533,7 +534,7 @@ const DjMode = () => {
                             loading="lazy"
                           />
                           <button
-                            onClick={() => playForDj(track, loadedPlaylistTracks, true)}
+                            onClick={() => playForDj(track, loadedPlaylistTracks)}
                             className={cn(
                               "absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px] transition-all",
                               currentTrack?.id === track.id ? "opacity-100" : "opacity-0 group-hover/art:opacity-100"
