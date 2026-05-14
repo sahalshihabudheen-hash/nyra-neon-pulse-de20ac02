@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { TrendingUp, Play, ListPlus, ChevronLeft, ChevronRight, Heart, Pause, Flame } from 'lucide-react';
+import { TrendingUp, Play, ListPlus, ChevronLeft, ChevronRight, Heart, Pause, Flame, Download } from 'lucide-react';
+
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
+
 
 interface Track {
   id: string;
@@ -23,6 +26,8 @@ interface TrendingSectionProps {
 
 const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, isFavorite, onToggleFavorite }: TrendingSectionProps) => {
   const { gradient } = useTheme();
+  const { startDownload } = useDownloadManager();
+
   const [trendingTracks, setTrendingTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -264,8 +269,20 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
                           <Heart className="w-4 h-4" fill={isFavorite?.(track.id) ? 'currentColor' : 'none'} />
                         </button>
                       )}
+                      
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startDownload({ id: track.id, title: track.title, thumbnail: track.thumbnail });
+                        }}
+                        className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/30 transition-colors active:scale-95"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
+
                   
                   {/* Playing indicator */}
                   {isTrackPlaying && (

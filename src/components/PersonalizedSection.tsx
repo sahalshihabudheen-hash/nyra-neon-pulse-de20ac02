@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Heart, ListPlus, ChevronLeft, ChevronRight, MapPin, Music2 } from 'lucide-react';
+import { Play, Pause, Heart, ListPlus, ChevronLeft, ChevronRight, MapPin, Music2, Download } from 'lucide-react';
+
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
+
 
 interface Track {
   id: string;
@@ -31,6 +34,8 @@ const PersonalizedSection = ({
   onAddToQueue, isFavorite, onToggleFavorite,
 }: PersonalizedSectionProps) => {
   const { gradient } = useTheme();
+  const { startDownload } = useDownloadManager();
+
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -184,8 +189,19 @@ const PersonalizedSection = ({
                           <Heart className="w-4 h-4" fill={isFavorite?.(track.id) ? 'currentColor' : 'none'} />
                         </button>
                       )}
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          startDownload({ id: track.id, title: track.title, thumbnail: track.thumbnail }); 
+                        }}
+                        className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/30 transition-colors active:scale-95"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
+
                   {isTrackPlaying && (
                     <div className="absolute top-3 left-3 flex items-end gap-0.5 h-4 bg-primary/90 rounded-lg px-2 py-1">
                       {[...Array(4)].map((_, i) => <div key={i} className="w-1 bg-primary-foreground rounded-full equalizer-bar" style={{ height: '100%' }} />)}

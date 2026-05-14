@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Clock, Play, Pause, ListPlus, Heart } from 'lucide-react';
+import { Clock, Play, Pause, ListPlus, Heart, Download } from 'lucide-react';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
+
 
 interface Track {
   id: string;
@@ -31,6 +34,8 @@ const RecentlyPlayedSection = ({
   onToggleFavorite
 }: RecentlyPlayedSectionProps) => {
   const { user } = useAuth();
+  const { startDownload } = useDownloadManager();
+
   const [recentTracks, setRecentTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -162,8 +167,20 @@ const RecentlyPlayedSection = ({
                           <Heart className="w-3.5 h-3.5" fill={isFavorite?.(track.id) ? 'currentColor' : 'none'} />
                         </button>
                       )}
+
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startDownload({ id: track.id, title: track.title, thumbnail: track.thumbnail });
+                        }}
+                        className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm text-white flex items-center justify-center hover:bg-white/30 transition-all active:scale-95"
+                        title="Download"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
+
                   
                   {/* Equalizer (playing state) */}
                   {isTrackPlaying && (
