@@ -272,9 +272,15 @@ const MusicPlayer = ({
                     <h3 className="text-xs md:text-sm font-black text-foreground truncate group-hover/track:text-primary transition-colors tracking-tight">
                       {currentTrack.title}
                     </h3>
-                    <p className="text-[8px] md:text-[10px] font-black text-muted-foreground/60 truncate uppercase tracking-widest mt-0.5">
-                      {currentTrack.channel}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[8px] md:text-[10px] font-black text-muted-foreground/60 truncate uppercase tracking-widest mt-0.5">
+                        {currentTrack.channel}
+                      </p>
+                      {/* Soundwave moved here to prevent center jumbling */}
+                      <div className="hidden lg:block w-12 h-3 opacity-40 pointer-events-none">
+                        <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
+                      </div>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -288,32 +294,27 @@ const MusicPlayer = ({
               )}
             </div>
 
-            {/* Center: Controls & Soundwave */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-2">
-              <div className="flex items-center gap-4 md:gap-6">
+            {/* Center: Controls */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="flex items-center gap-4 md:gap-8">
                 <button 
                   onClick={onPrevious}
                   className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
                 >
-                  <SkipBack className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                  <SkipBack className="w-4 h-4 md:w-6 md:h-6 fill-current" />
                 </button>
                 <button
                   onClick={onPlayPause}
-                  className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-3xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
                 >
-                  {isPlaying ? <Pause className="w-5 h-5 md:w-6 md:h-6 fill-current" /> : <Play className="w-5 h-5 md:w-6 md:h-6 fill-current ml-1" />}
+                  {isPlaying ? <Pause className="w-6 h-6 md:w-8 md:h-8 fill-current" /> : <Play className="w-6 h-6 md:w-8 md:h-8 fill-current ml-1" />}
                 </button>
                 <button 
                   onClick={onNext}
                   className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
                 >
-                  <SkipForward className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                  <SkipForward className="w-4 h-4 md:w-6 md:h-6 fill-current" />
                 </button>
-              </div>
-
-              {/* Soundwave Visualizer */}
-              <div className="hidden md:block w-48 h-5 opacity-40 overflow-hidden pointer-events-none">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
               </div>
             </div>
 
@@ -357,16 +358,16 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex justify-center pb-2">
-            <div className="w-full max-w-md flex items-center gap-4 px-4">
-              <span className="text-[9px] font-bold text-muted-foreground tabular-nums w-8 text-right">{formatTime(progress)}</span>
+          <div className="w-full flex justify-center pb-4">
+            <div className="w-full max-w-xl flex items-center gap-6 px-4">
+              <span className="text-[10px] font-black text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
               <StyledProgressBar
                 progress={progress}
                 duration={duration}
                 onSeek={handleSeek}
                 className="flex-1"
               />
-              <span className="text-[9px] font-bold text-muted-foreground tabular-nums w-8">{formatTime(duration)}</span>
+              <span className="text-[10px] font-black text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
             </div>
           </div>
         </div>

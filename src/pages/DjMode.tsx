@@ -346,11 +346,13 @@ const DjMode = () => {
 
   // Sync engine on track change to ensure effects are applied to next song automatically
   useEffect(() => {
-    if (state.active && isPlaying) {
-      init(); 
-      apply(state);
+    // If we are in background audio mode (DJ compatible) and playing
+    if (activeSource === 'background' && isPlaying) {
+      console.log("DJ Engine: Deep Syncing for track", currentTrack?.id);
+      const ready = init(); 
+      if (ready) apply(state);
     }
-  }, [currentTrack?.id, isPlaying, state.active, init, apply]);
+  }, [currentTrack?.id, isPlaying, activeSource, state.active, init, apply]);
 
   const enable = async () => {
     setForcing(true);
