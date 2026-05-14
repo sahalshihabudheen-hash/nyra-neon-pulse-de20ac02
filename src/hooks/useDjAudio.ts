@@ -137,13 +137,23 @@ export function useDjAudio() {
       if (initedRef.current) {
         console.log("DJ Engine: Play-triggered wake-up sync");
         init();
-        // apply state is handled by the state change useEffect or we can call it here
       }
     };
 
+    const periodicSync = setInterval(() => {
+      if (initedRef.current && isPlaying) {
+        // Force re-wiring and resume to prevent bypass
+        if (ctx?.state === 'suspended') ctx.resume();
+        try { merger?.connect(ctx!.destination); } catch(e) {}
+      }
+    }, 2000);
+
     audioRef.current.addEventListener('play', handleSync);
-    return () => audioRef.current?.removeEventListener('play', handleSync);
-  }, [init]);
+    return () => {
+      audioRef.current?.removeEventListener('play', handleSync);
+      clearInterval(periodicSync);
+    };
+  }, [init, isPlaying]);
 
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);

@@ -312,8 +312,8 @@ const MusicPlayer = ({
               </div>
             </div>
 
-            {/* Center Tier 2: Soundwave (Air-gapped middle) */}
-            <div className="absolute left-1/2 -translate-x-1/2 top-[76px] w-32 h-4 opacity-40 overflow-hidden pointer-events-none">
+            {/* Center Tier 2: Soundwave (Raised higher for air-gap) */}
+            <div className="absolute left-1/2 -translate-x-1/2 top-[70px] w-32 h-6 opacity-40 overflow-hidden pointer-events-none">
               <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
             </div>
 
