@@ -67,7 +67,7 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const videoId = url.searchParams.get('videoId');
+    let videoId = url.searchParams.get('videoId');
     const shouldStream = url.searchParams.get('stream') === '1';
     const shouldDownload = url.searchParams.get('download') === '1';
     const title = url.searchParams.get('title') || 'audio';
@@ -78,6 +78,18 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Clean videoId in case it's a full URL
+    if (videoId.includes('v=')) {
+      videoId = videoId.split('v=')[1].split('&')[0];
+    } else if (videoId.includes('youtu.be/')) {
+      videoId = videoId.split('youtu.be/')[1].split('?')[0];
+    } else if (videoId.includes('shorts/')) {
+      videoId = videoId.split('shorts/')[1].split('?')[0];
+    }
+    
+    // Ensure videoId is trimmed and clean
+    videoId = videoId.trim().substring(0, 11);
 
     let audioUrl = null;
     let lastError = null;
@@ -100,12 +112,6 @@ serve(async (req) => {
           continue;
         }
 
-        const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-          console.log(`Piped ${instance} returned non-JSON: ${contentType}`);
-          continue;
-        }
-
         const data = await response.json();
 
         if (data.audioStreams && data.audioStreams.length > 0) {
@@ -115,7 +121,7 @@ serve(async (req) => {
             .sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0));
 
           const mp4Stream = sorted.find((s: any) =>
-            s.mimeType?.includes('audio/mp4') || s.format === 'M4A'
+            s.mimeType?.includes('audio/mp4') || s.format === 'M4A' || s.codec === 'opus'
           );
           audioUrl = mp4Stream?.url || sorted[0]?.url;
 

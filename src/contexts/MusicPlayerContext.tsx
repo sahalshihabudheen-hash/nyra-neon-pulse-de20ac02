@@ -378,14 +378,26 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       recordPlay(track);
       setShowMiniPlayer(true);
       setPlaybackSource('background');
+      
+      // Load the stream URL
       audioRef.current.src = streamUrl;
-      await audioRef.current.play();
-      setIsPlaying(true);
+      audioRef.current.load();
+      
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (playError) {
+        console.warn('DJ audio play() failed (likely autoplay policy):', playError);
+        // Don't completely fail DJ setup just because auto-play was blocked
+        setIsPlaying(false);
+        toast.info('DJ Mode ready. Press Play to start audio.');
+      }
+      
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.warn('Force DJ source failed:', error);
       setPlaybackSource('youtube');
-      toast.error('Could not start DJ audio stream');
+      toast.error(`Could not start DJ audio stream: ${error?.message || 'Network error'}`);
       return false;
     }
   }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource]);

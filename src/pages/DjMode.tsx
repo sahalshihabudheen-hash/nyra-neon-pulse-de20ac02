@@ -4,7 +4,7 @@ import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Slider } from '@/components/ui/slider';
-import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic } from 'lucide-react';
+import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic, Wand2, Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -104,6 +104,44 @@ const DjMode = () => {
   const rafRef = useRef<number>();
   const [beat, setBeat] = useState(false);
   const beatRef = useRef<ReturnType<typeof setInterval>>();
+
+  // Auto DJ State
+  const [autoDjActive, setAutoDjActive] = useState(false);
+  const autoDjRef = useRef<ReturnType<typeof setInterval>>();
+  const latestStateRef = useRef(state);
+  
+  useEffect(() => {
+    latestStateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    if (autoDjActive && state.active) {
+      autoDjRef.current = setInterval(() => {
+        const curr = latestStateRef.current;
+        const mode = Math.floor(Math.random() * 5);
+        let next = { ...curr };
+        
+        if (mode === 0) next.balance = Math.max(-1, curr.balance - 0.4);
+        else if (mode === 1) next.balance = Math.min(1, curr.balance + 0.4);
+        else if (mode === 2) next.balance = 0;
+        else if (mode === 3) {
+           next.low = Math.min(12, curr.low + 4);
+           next.leftGain = Math.min(1.5, curr.leftGain + 0.2);
+           next.rightGain = Math.min(1.5, curr.rightGain + 0.2);
+        }
+        else if (mode === 4) {
+           next.low = Math.max(-12, curr.low - 2);
+           next.leftGain = Math.max(0, curr.leftGain - 0.2);
+           next.rightGain = Math.max(0, curr.rightGain - 0.2);
+        }
+        
+        apply(next);
+      }, 2000);
+    } else {
+      clearInterval(autoDjRef.current);
+    }
+    return () => clearInterval(autoDjRef.current);
+  }, [autoDjActive, state.active, apply]);
 
   const { user } = useAuth();
   const [userPlaylists, setUserPlaylists] = useState<Playlist[]>([]);
@@ -263,6 +301,20 @@ const DjMode = () => {
             <div className={cn('w-3 h-3 rounded-full transition-all duration-200', beat ? 'bg-primary shadow-[0_0_15px_hsl(var(--primary))]' : 'bg-primary/30')} />
           )}
           <div className="flex gap-2">
+            {state.active && (
+              <button
+                onClick={() => setAutoDjActive(a => !a)}
+                className={cn(
+                  'px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2',
+                  autoDjActive 
+                    ? 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)] hover:scale-105'
+                    : 'border border-white/10 bg-white/5 hover:bg-white/10'
+                )}
+              >
+                <Wand2 className={cn("w-4 h-4", autoDjActive && "animate-pulse")} />
+                Auto DJ
+              </button>
+            )}
             <button
               onClick={() => setShowSearch(s => !s)}
               className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
@@ -340,18 +392,142 @@ const DjMode = () => {
                   <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Imported Playlist Deck</p>
                   <button onClick={() => setLoadedPlaylistTracks([])} className="text-[10px] uppercase font-bold text-muted-foreground hover:text-white">Clear</button>
                 </div>
-                <TrackGrid tracks={loadedPlaylistTracks} currentTrack={currentTrack} isPlaying={isPlaying}
-                  onPlayTrack={t => playForDj(t, loadedPlaylistTracks, true)} onAddToQueue={handleAddToQueue}
-                  isLoading={false} searchPerformed isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+                <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-3">
+                    {loadedPlaylistTracks.map((track) => (
+                      <div
+                        key={track.id}
+                        className={cn(
+                          'w-full flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 group relative overflow-hidden',
+                          currentTrack?.id === track.id
+                            ? 'bg-primary/10 border border-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.1)]'
+                            : 'glass-premium border border-white/5 hover:bg-white/10 hover:border-white/10'
+                        )}
+                      >
+                        {currentTrack?.id === track.id && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary animate-pulse" />
+                        )}
+
+                        <div className="relative shrink-0 group/art">
+                          <img
+                            src={track.thumbnail}
+                            alt={track.title}
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover shadow-lg transition-transform duration-500 group-hover/art:scale-110"
+                            loading="lazy"
+                          />
+                          <button
+                            onClick={() => playForDj(track, loadedPlaylistTracks, true)}
+                            className={cn(
+                              "absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px] transition-all",
+                              currentTrack?.id === track.id ? "opacity-100" : "opacity-0 group-hover/art:opacity-100"
+                            )}
+                          >
+                            {currentTrack?.id === track.id && isPlaying ? (
+                              <Pause className="w-5 h-5 text-primary fill-current" />
+                            ) : (
+                              <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            'font-bold truncate text-sm md:text-base tracking-tight transition-colors',
+                            currentTrack?.id === track.id ? 'text-primary italic' : 'text-foreground'
+                          )}>
+                            {track.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] truncate">{track.channel}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               handleAddToQueue(track);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-black text-[10px] uppercase tracking-widest transition-all active:scale-90"
+                          >
+                            Queue
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
             {playlist.length > 0 && loadedPlaylistTracks.length === 0 && (
               <div className="mt-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-4">Up Next Queue Deck</p>
-                <TrackGrid tracks={playlist} currentTrack={currentTrack} isPlaying={isPlaying}
-                  onPlayTrack={t => playForDj(t, playlist, true)} onAddToQueue={handleAddToQueue}
-                  isLoading={false} searchPerformed isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+                <div className="h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="space-y-3">
+                    {playlist.map((track) => (
+                      <div
+                        key={track.id}
+                        className={cn(
+                          'w-full flex items-center gap-4 p-3 rounded-2xl transition-all duration-500 group relative overflow-hidden',
+                          currentTrack?.id === track.id
+                            ? 'bg-primary/10 border border-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.1)]'
+                            : 'glass-premium border border-white/5 hover:bg-white/10 hover:border-white/10'
+                        )}
+                      >
+                        {currentTrack?.id === track.id && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary animate-pulse" />
+                        )}
+
+                        <div className="relative shrink-0 group/art">
+                          <img
+                            src={track.thumbnail}
+                            alt={track.title}
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover shadow-lg transition-transform duration-500 group-hover/art:scale-110"
+                            loading="lazy"
+                          />
+                          <button
+                            onClick={() => playForDj(track, playlist, true)}
+                            className={cn(
+                              "absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px] transition-all",
+                              currentTrack?.id === track.id ? "opacity-100" : "opacity-0 group-hover/art:opacity-100"
+                            )}
+                          >
+                            {currentTrack?.id === track.id && isPlaying ? (
+                              <Pause className="w-5 h-5 text-primary fill-current" />
+                            ) : (
+                              <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            'font-bold truncate text-sm md:text-base tracking-tight transition-colors',
+                            currentTrack?.id === track.id ? 'text-primary italic' : 'text-foreground'
+                          )}>
+                            {track.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] truncate">{track.channel}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={(e) => {
+                               e.stopPropagation();
+                               handleAddToQueue(track);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground font-black text-[10px] uppercase tracking-widest transition-all active:scale-90"
+                          >
+                            Queue
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
