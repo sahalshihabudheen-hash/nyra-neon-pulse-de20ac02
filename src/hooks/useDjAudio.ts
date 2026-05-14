@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 // Singleton AudioContext + nodes attached to the shared <audio> element.
@@ -34,8 +34,21 @@ export function useDjAudio() {
   });
   const initedRef = useRef(false);
 
-  const init = () => {
-    if (initedRef.current || !audioRef.current) return false;
+  const apply = useCallback((next: DjState) => {
+    setState(next);
+    if (!initedRef.current) return;
+    // Balance overlays the per-channel gain
+    const balL = next.balance <= 0 ? 1 : 1 - next.balance;
+    const balR = next.balance >= 0 ? 1 : 1 + next.balance;
+    if (gainL) gainL.gain.value = next.leftGain * balL;
+    if (gainR) gainR.gain.value = next.rightGain * balR;
+    if (lowEq) lowEq.gain.value = next.low;
+    if (midEq) midEq.gain.value = next.mid;
+    if (highEq) highEq.gain.value = next.high;
+  }, []);
+
+  const init = useCallback(() => {
+    if (initedRef.current || !audioRef.current) return initedRef.current;
     try {
       const AC = (window.AudioContext || (window as any).webkitAudioContext);
       if (!ctx) ctx = new AC();
@@ -71,27 +84,7 @@ export function useDjAudio() {
       console.warn('DJ init failed (likely YouTube iframe source):', err);
       return false;
     }
-  };
-
-  useEffect(() => {
-    // Try to resume context on user gesture
-    const resume = () => { ctx?.resume?.(); };
-    window.addEventListener('click', resume, { once: true });
-    return () => window.removeEventListener('click', resume);
-  }, []);
-
-  const apply = (next: DjState) => {
-    setState(next);
-    if (!initedRef.current) return;
-    // Balance overlays the per-channel gain
-    const balL = next.balance <= 0 ? 1 : 1 - next.balance;
-    const balR = next.balance >= 0 ? 1 : 1 + next.balance;
-    if (gainL) gainL.gain.value = next.leftGain * balL;
-    if (gainR) gainR.gain.value = next.rightGain * balR;
-    if (lowEq) lowEq.gain.value = next.low;
-    if (midEq) midEq.gain.value = next.mid;
-    if (highEq) highEq.gain.value = next.high;
-  };
+  }, [audioRef]);
 
   const getLevels = (): { left: number; right: number } => {
     if (!analyserL || !analyserR) return { left: 0, right: 0 };

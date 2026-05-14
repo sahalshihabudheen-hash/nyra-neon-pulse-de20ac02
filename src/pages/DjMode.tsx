@@ -156,45 +156,53 @@ const DjMode = () => {
 
   useEffect(() => {
     if (autoDjActive && state.active) {
+      console.log("Auto DJ: Started Modulation Loop");
       autoDjRef.current = setInterval(() => {
         const curr = latestStateRef.current;
         const mode = Math.floor(Math.random() * 6);
         let next = { ...curr };
         
-        if (mode === 0) {
-          next.balance = -1;
+        console.log("Auto DJ: Modulating with mode", mode);
+
+        if (mode === 0) { // Deep Bass Focus
+          next.balance = -0.5;
           next.leftGain = 1.2;
-          next.rightGain = 0.4;
-          next.low = 4;
-        } else if (mode === 1) {
-          next.balance = 1;
-          next.rightGain = 1.2;
-          next.leftGain = 0.4;
-          next.low = 4;
-        } else if (mode === 2) {
-          next.balance = 0;
-          next.leftGain = 1;
-          next.rightGain = 1;
-          next.low = 0;
-        } else if (mode === 3) {
+          next.rightGain = 0.6;
           next.low = 10;
-          next.mid = -2;
+          next.mid = -4;
           next.high = -2;
-          next.leftGain = 1.3;
+        } else if (mode === 1) { // High Energy Right
+          next.balance = 0.8;
           next.rightGain = 1.3;
-        } else if (mode === 4) {
-          next.low = -2;
+          next.leftGain = 0.3;
+          next.low = 6;
+          next.high = 8;
+        } else if (mode === 2) { // Minimal Vocal
+          next.low = -6;
+          next.mid = 8;
           next.high = 4;
+          next.balance = 0;
+        } else if (mode === 3) { // Heavy Club
+          next.low = 12;
+          next.mid = -2;
+          next.high = 6;
+          next.leftGain = 1.1;
+          next.rightGain = 1.1;
+        } else if (mode === 4) { // Chill Out
+          next.low = 4;
+          next.mid = -4;
+          next.high = -6;
           next.leftGain = 0.8;
           next.rightGain = 0.8;
-        } else if (mode === 5) {
-          next.balance = curr.balance < 0 ? 0.8 : -0.8;
-          next.low = Math.random() > 0.5 ? 6 : -4;
+        } else if (mode === 5) { // Rapid Pan
+          next.balance = curr.balance < 0 ? 0.9 : -0.9;
+          next.low = 8;
         }
         
         apply(next);
-      }, 2000); // Faster interval for better feel
+      }, 2000);
     } else {
+      if (autoDjRef.current) console.log("Auto DJ: Stopped");
       clearInterval(autoDjRef.current);
     }
     return () => clearInterval(autoDjRef.current);
@@ -352,7 +360,7 @@ const DjMode = () => {
             <h1 className="text-5xl font-black tracking-tighter uppercase italic" style={{
               background: 'linear-gradient(135deg, hsl(var(--primary)), #fff, hsl(var(--primary)))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>DJ Mode</h1>
+            }}>DJ Mode <span className="text-[10px] opacity-20 not-italic">v2.1</span></h1>
             <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/50 mt-1">
               {state.active ? '● LIVE · AUDIO ENGINE ACTIVE' : '○ OFFLINE · ENABLE TO START'}
             </p>
