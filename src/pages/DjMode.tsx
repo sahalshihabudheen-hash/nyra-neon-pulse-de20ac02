@@ -4,11 +4,18 @@ import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Slider } from '@/components/ui/slider';
-import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp } from 'lucide-react';
+import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Track { id: string; title: string; thumbnail: string; channel: string; }
+
+interface Playlist {
+  id: string;
+  name: string;
+}
 
 /* ─── Spinning Vinyl ─── */
 const Vinyl = ({ spinning, level, side }: { spinning: boolean; level: number; side: 'L' | 'R' }) => (
@@ -98,6 +105,59 @@ const DjMode = () => {
   const [beat, setBeat] = useState(false);
   const beatRef = useRef<ReturnType<typeof setInterval>>();
 
+  const { user } = useAuth();
+  const [userPlaylists, setUserPlaylists] = useState<Playlist[]>([]);
+  const [loadedPlaylistTracks, setLoadedPlaylistTracks] = useState<Track[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchUserPlaylists();
+    }
+  }, [user]);
+
+  const fetchUserPlaylists = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('playlists')
+        .select('id, name')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (data) setUserPlaylists(data);
+    } catch (err) {
+      console.error('Could not fetch playlists', err);
+    }
+  };
+
+  const loadPlaylistTracks = async (playlistId: string) => {
+    setLoadingPlaylists(true);
+    try {
+      const { data, error } = await supabase
+        .from('playlist_items')
+        .select('*')
+        .eq('playlist_id', playlistId)
+        .order('position', { ascending: true });
+        
+      if (error) throw error;
+      
+      if (data) {
+        const tracks: Track[] = data.map(item => ({
+          id: item.track_id,
+          title: item.track_title,
+          thumbnail: item.track_thumbnail || '',
+          channel: item.track_channel || 'Unknown',
+        }));
+        setLoadedPlaylistTracks(tracks);
+        toast.success(`Loaded ${tracks.length} tracks`);
+      }
+    } catch (err) {
+      toast.error('Failed to load playlist tracks');
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
   useEffect(() => {
     const tick = () => { setLevels(getLevels()); rafRef.current = requestAnimationFrame(tick); };
     rafRef.current = requestAnimationFrame(tick);
@@ -129,6 +189,10 @@ const DjMode = () => {
     const ready = await forceBackgroundPlayback(track, { trackList: list, fromPlaylist });
     setForcing(false);
     if (ready) init();
+    
+    // Auto-hide search when playing from results
+    setShowSearch(false);
+    setResults([]);
   };
 
   const searchTracks = async (e?: FormEvent) => {
@@ -243,13 +307,48 @@ const DjMode = () => {
               </button>
             </form>
             {results.length > 0 && (
-              <TrackGrid tracks={results} currentTrack={currentTrack} isPlaying={isPlaying}
-                onPlayTrack={t => playForDj(t, results)} onAddToQueue={handleAddToQueue}
-                isLoading={false} searchPerformed isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+              <div className="mb-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-4">Search Results</p>
+                <TrackGrid tracks={results} currentTrack={currentTrack} isPlaying={isPlaying}
+                  onPlayTrack={t => playForDj(t, results)} onAddToQueue={handleAddToQueue}
+                  isLoading={false} searchPerformed isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+              </div>
             )}
-            {playlist.length > 0 && (
+            
+            {userPlaylists.length > 0 && (
+              <div className="mb-6">
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-4">Import Your Playlist</p>
+                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    {userPlaylists.map(p => (
+                       <button 
+                         key={p.id} 
+                         onClick={() => loadPlaylistTracks(p.id)}
+                         disabled={loadingPlaylists}
+                         className="shrink-0 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-primary/50 text-xs font-bold transition-all flex items-center gap-2"
+                       >
+                         <ListMusic className="w-3.5 h-3.5 text-primary" />
+                         {p.name}
+                       </button>
+                    ))}
+                 </div>
+              </div>
+            )}
+
+            {loadedPlaylistTracks.length > 0 && (
               <div className="mt-6">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-4">Playlist Deck</p>
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Imported Playlist Deck</p>
+                  <button onClick={() => setLoadedPlaylistTracks([])} className="text-[10px] uppercase font-bold text-muted-foreground hover:text-white">Clear</button>
+                </div>
+                <TrackGrid tracks={loadedPlaylistTracks} currentTrack={currentTrack} isPlaying={isPlaying}
+                  onPlayTrack={t => playForDj(t, loadedPlaylistTracks, true)} onAddToQueue={handleAddToQueue}
+                  isLoading={false} searchPerformed isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+              </div>
+            )}
+
+            {playlist.length > 0 && loadedPlaylistTracks.length === 0 && (
+              <div className="mt-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground mb-4">Up Next Queue Deck</p>
                 <TrackGrid tracks={playlist} currentTrack={currentTrack} isPlaying={isPlaying}
                   onPlayTrack={t => playForDj(t, playlist, true)} onAddToQueue={handleAddToQueue}
                   isLoading={false} searchPerformed isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
