@@ -344,18 +344,28 @@ const DjMode = () => {
     return () => clearInterval(beatRef.current);
   }, [isPlaying, state.active]);
 
+  const lastSyncedTrack = useRef<string | null>(null);
+
   // Sync engine on track change to ensure effects are applied to next song automatically
   useEffect(() => {
     // If we are in background audio mode (DJ compatible) and playing
     if (activeSource === 'background' && isPlaying && currentTrack?.id) {
-      console.log("DJ Engine: Deep Syncing for track", currentTrack?.id);
-      const ok = reSync();
-      if (ok) {
-        toast.success("DJ Engine Ready", { 
-          duration: 1500,
-          position: 'top-center',
-          id: 'dj-sync-toast' // prevent duplicate toasts
-        });
+      // ONLY sync if it's a NEW track to prevent infinite loops
+      if (currentTrack.id !== lastSyncedTrack.current) {
+        console.log("DJ Engine: Deep Syncing for track", currentTrack?.id);
+        lastSyncedTrack.current = currentTrack.id;
+        try {
+          const ok = reSync();
+          if (ok) {
+            toast.success("DJ Engine Ready", { 
+              duration: 1500,
+              position: 'top-center',
+              id: 'dj-sync-toast'
+            });
+          }
+        } catch (e) {
+          console.error("DJ Sync Error:", e);
+        }
       }
     }
   }, [currentTrack?.id, isPlaying, activeSource, reSync]);
