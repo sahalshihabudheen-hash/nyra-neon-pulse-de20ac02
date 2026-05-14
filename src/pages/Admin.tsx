@@ -1753,8 +1753,9 @@ const Admin = () => {
                         <p className="text-2xl font-bold text-yellow-500">
                           {youtubeKeys.filter(k => k.status === 'quota_exceeded').length}
                         </p>
-                        <p className="text-xs text-muted-foreground">Quota Exceeded</p>
+                        <p className="text-xs text-yellow-500 font-bold uppercase tracking-tight">Limit Finished</p>
                       </div>
+
                       <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
                         <p className="text-2xl font-bold text-destructive">
                           {youtubeKeys.filter(k => k.status === 'error' || k.status === 'expired').length}
@@ -1811,6 +1812,12 @@ const Admin = () => {
                                     Standby
                                   </span>
                                 )}
+                                {isQuota && (
+                                  <span className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-bold border border-yellow-500/30 whitespace-nowrap">
+                                    ⚠️ QUOTA EXHAUSTED
+                                  </span>
+                                )}
+
                               </div>
                               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                                 <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium whitespace-nowrap ${
@@ -1824,7 +1831,8 @@ const Admin = () => {
                                     ? 'bg-yellow-500/20 text-yellow-500'
                                     : 'bg-destructive/20 text-destructive'
                                 }`}>
-                                  {isStandby ? 'Online' : keyInfo.message}
+                                  {isStandby ? 'Online' : isQuota ? 'Quota Finished' : keyInfo.message}
+
                                 </span>
                                 <Switch
                                   checked={isEnabled}
