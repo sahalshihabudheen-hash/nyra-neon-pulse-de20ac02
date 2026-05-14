@@ -191,7 +191,20 @@ serve(async (req) => {
       );
     }
 
-    if (shouldStream || shouldDownload || url.searchParams.has('download')) {
+    // Return JSON for streaming (playback) requests
+    if (shouldStream) {
+      return new Response(
+        JSON.stringify({ 
+          audioUrl, 
+          audioUrl1: audioUrl,
+          success: true 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (shouldDownload || url.searchParams.has('download')) {
+
       const upstreamHeaders: HeadersInit = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       };
