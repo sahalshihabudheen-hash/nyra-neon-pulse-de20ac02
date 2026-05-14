@@ -242,14 +242,14 @@ const MusicPlayer = ({
   return (
     <>
     <footer className={cn(
-        'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-40',
+        'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[3rem] shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden group/player glass-premium border border-white/10 z-50',
         nowPlayingOpen ? 'right-[380px]' : 'right-6',
-        'h-[180px] py-6 px-8'
+        'h-[200px] py-8 px-10'
       )}>
-        <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary to-transparent opacity-30 group-hover/player:opacity-100 transition-opacity" />
         
-        <div className="h-full grid grid-rows-[1fr_auto] gap-4 relative z-10">
-          <div className="flex items-center justify-between gap-8">
+        <div className="h-full grid grid-rows-[1fr_auto] gap-8 relative z-10">
+          <div className="flex items-center justify-between gap-12">
             {/* Left: Track Info */}
             <div 
               className="flex items-center gap-3 cursor-pointer group/track min-w-0 md:w-80"
@@ -296,24 +296,24 @@ const MusicPlayer = ({
 
             {/* Center: Controls */}
             <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="flex items-center gap-4 md:gap-8">
+              <div className="flex items-center gap-6 md:gap-12">
                 <button 
                   onClick={onPrevious}
                   className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
                 >
-                  <SkipBack className="w-4 h-4 md:w-6 md:h-6 fill-current" />
+                  <SkipBack className="w-5 h-5 md:w-8 md:h-8 fill-current" />
                 </button>
                 <button
                   onClick={onPlayPause}
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-3xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_30px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
+                  className="w-14 h-14 md:w-20 md:h-20 rounded-2xl md:rounded-[2rem] bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_40px_rgba(var(--primary),0.5)] hover:scale-110 active:scale-95 transition-all neon-glow"
                 >
-                  {isPlaying ? <Pause className="w-6 h-6 md:w-8 md:h-8 fill-current" /> : <Play className="w-6 h-6 md:w-8 md:h-8 fill-current ml-1" />}
+                  {isPlaying ? <Pause className="w-8 h-8 md:w-10 md:h-10 fill-current" /> : <Play className="w-8 h-8 md:w-10 md:h-10 fill-current ml-2" />}
                 </button>
                 <button 
                   onClick={onNext}
                   className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
                 >
-                  <SkipForward className="w-4 h-4 md:w-6 md:h-6 fill-current" />
+                  <SkipForward className="w-5 h-5 md:w-8 md:h-8 fill-current" />
                 </button>
               </div>
             </div>
@@ -358,16 +358,16 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex justify-center pb-2">
-            <div className="w-full max-w-xl flex items-center gap-6 px-4">
-              <span className="text-[10px] font-black text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
+          <div className="w-full flex justify-center pb-6">
+            <div className="w-full max-w-2xl flex items-center gap-8 px-6">
+              <span className="text-xs font-black text-muted-foreground tabular-nums w-12 text-right">{formatTime(progress)}</span>
               <StyledProgressBar
                 progress={progress}
                 duration={duration}
                 onSeek={handleSeek}
-                className="flex-1"
+                className="flex-1 h-3"
               />
-              <span className="text-[10px] font-black text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
+              <span className="text-xs font-black text-muted-foreground tabular-nums w-12">{formatTime(duration)}</span>
             </div>
           </div>
         </div>
