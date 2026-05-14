@@ -156,6 +156,10 @@ const DjMode = () => {
   const [searching, setSearching] = useState(false);
   const [forcing, setForcing] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  
+  const effectiveGainL = state.leftGain * (state.balance <= 0 ? 1 : 1 - state.balance);
+  const effectiveGainR = state.rightGain * (state.balance >= 0 ? 1 : 1 + state.balance);
+
   const rafRef = useRef<number>();
   const [beat, setBeat] = useState(false);
   const beatRef = useRef<ReturnType<typeof setInterval>>();
@@ -227,14 +231,16 @@ const DjMode = () => {
           next.high = 12;
           next.leftGain = 1.2;
           next.rightGain = 1.2;
-        } else if (mode === 8) { // Left isolate
+        } else if (mode === 8) { // Hard Left Transition
           next.balance = -1;
+          next.leftGain = 1.2;
+          next.rightGain = 0;
           next.low = 4;
-          next.high = 4;
-        } else if (mode === 9) { // Right isolate
+        } else if (mode === 9) { // Hard Right Transition
           next.balance = 1;
+          next.rightGain = 1.2;
+          next.leftGain = 0;
           next.low = 4;
-          next.high = 4;
         }
         
         apply(next);
@@ -723,11 +729,13 @@ const DjMode = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Channel Volume</span>
-                <span className="text-xs font-black text-primary tabular-nums">{Math.round(state.leftGain * 100)}%</span>
+                <span className={cn("text-xs font-black tabular-nums transition-colors", effectiveGainL > 0 ? "text-primary" : "text-red-500/50")}>
+                  {Math.round(effectiveGainL * 100)}%
+                </span>
               </div>
               <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
                 <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
-                  style={{ width: `${(state.leftGain / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
+                  style={{ width: `${(effectiveGainL / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
                 <input type="range" min={0} max={150} step={1} value={Math.round(state.leftGain * 100)}
                   onChange={e => apply({ ...state, leftGain: +e.target.value / 100 })}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full" />
@@ -906,11 +914,13 @@ const DjMode = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Channel Volume</span>
-                <span className="text-xs font-black text-primary tabular-nums">{Math.round(state.rightGain * 100)}%</span>
+                <span className={cn("text-xs font-black tabular-nums transition-colors", effectiveGainR > 0 ? "text-primary" : "text-red-500/50")}>
+                  {Math.round(effectiveGainR * 100)}%
+                </span>
               </div>
               <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
                 <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
-                  style={{ width: `${(state.rightGain / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
+                  style={{ width: `${(effectiveGainR / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
                 <input type="range" min={0} max={150} step={1} value={Math.round(state.rightGain * 100)}
                   onChange={e => apply({ ...state, rightGain: +e.target.value / 100 })}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full" />
