@@ -147,6 +147,7 @@ const DjMode = () => {
 
   // Auto DJ State
   const [autoDjActive, setAutoDjActive] = useState(false);
+  const [autoDjSpeed, setAutoDjSpeed] = useState<'normal' | 'rapid'>('normal');
   const autoDjRef = useRef<ReturnType<typeof setInterval>>();
   const latestStateRef = useRef(state);
   
@@ -156,10 +157,13 @@ const DjMode = () => {
 
   useEffect(() => {
     if (autoDjActive && state.active) {
-      console.log("Auto DJ: Started Modulation Loop");
+      console.log("Auto DJ: Started Modulation Loop - Speed:", autoDjSpeed);
+      const interval = autoDjSpeed === 'rapid' ? 1000 : 3000;
+      
       autoDjRef.current = setInterval(() => {
         const curr = latestStateRef.current;
-        const mode = Math.floor(Math.random() * 6);
+        // More modes for more randomness (0 to 9)
+        const mode = Math.floor(Math.random() * 10);
         let next = { ...curr };
         
         console.log("Auto DJ: Modulating with mode", mode);
@@ -197,16 +201,35 @@ const DjMode = () => {
         } else if (mode === 5) { // Rapid Pan
           next.balance = curr.balance < 0 ? 0.9 : -0.9;
           next.low = 8;
+        } else if (mode === 6) { // Mid Boost Solo
+          next.low = -2;
+          next.mid = 10;
+          next.high = 0;
+          next.balance = 0;
+        } else if (mode === 7) { // High Pass Filter feel
+          next.low = -12;
+          next.mid = -4;
+          next.high = 12;
+          next.leftGain = 1.2;
+          next.rightGain = 1.2;
+        } else if (mode === 8) { // Left isolate
+          next.balance = -1;
+          next.low = 4;
+          next.high = 4;
+        } else if (mode === 9) { // Right isolate
+          next.balance = 1;
+          next.low = 4;
+          next.high = 4;
         }
         
         apply(next);
-      }, 2000);
+      }, interval);
     } else {
       if (autoDjRef.current) console.log("Auto DJ: Stopped");
       clearInterval(autoDjRef.current);
     }
     return () => clearInterval(autoDjRef.current);
-  }, [autoDjActive, state.active, apply]);
+  }, [autoDjActive, state.active, apply, autoDjSpeed]);
 
   const { user } = useAuth();
   const [userPlaylists, setUserPlaylists] = useState<Playlist[]>([]);
@@ -693,36 +716,60 @@ const DjMode = () => {
             </div>
 
             {/* Auto DJ Mode Toggle */}
-            <button
-              onClick={async () => {
-                if (!state.active) {
-                  const ok = await enable();
-                  if (ok) {
-                    setAutoDjActive(true);
-                    toast.success('Auto DJ Mode Activated');
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={async () => {
+                  if (!state.active) {
+                    const ok = await enable();
+                    if (ok) {
+                      setAutoDjActive(true);
+                      toast.success('Auto DJ Mode Activated');
+                    }
+                  } else {
+                    const newState = !autoDjActive;
+                    setAutoDjActive(newState);
+                    if (newState) toast.success('Auto DJ Mode Activated');
+                    else toast.info('Auto DJ Mode Disabled');
                   }
-                } else {
-                  const newState = !autoDjActive;
-                  setAutoDjActive(newState);
-                  if (newState) toast.success('Auto DJ Mode Activated');
-                  else toast.info('Auto DJ Mode Disabled');
-                }
-              }}
-              className={cn(
-                'w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex flex-col items-center gap-2 border',
-                autoDjActive 
-                  ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_30px_hsl(var(--primary)/0.4)] scale-[1.02]'
-                  : 'bg-white/5 border-white/10 hover:bg-white/10'
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <Wand2 className={cn("w-5 h-5", autoDjActive && "animate-spin")} style={{ animationDuration: '3s' }} />
-                <span>Auto DJ Mode</span>
+                }}
+                className={cn(
+                  'w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all flex flex-col items-center gap-2 border',
+                  autoDjActive 
+                    ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_30px_hsl(var(--primary)/0.4)] scale-[1.02]'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Wand2 className={cn("w-5 h-5", autoDjActive && "animate-spin")} style={{ animationDuration: '3s' }} />
+                  <span>Auto DJ Mode</span>
+                </div>
+                <span className="text-[8px] opacity-60">
+                  {forcing ? 'INITIALIZING...' : autoDjActive ? 'ACTIVE · MODULATING' : 'READY TO MIX'}
+                </span>
+              </button>
+
+              {/* Speed Control */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setAutoDjSpeed('normal')}
+                  className={cn(
+                    "py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                    autoDjSpeed === 'normal' ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-transparent text-muted-foreground hover:text-white"
+                  )}
+                >
+                  Smooth
+                </button>
+                <button
+                  onClick={() => setAutoDjSpeed('rapid')}
+                  className={cn(
+                    "py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                    autoDjSpeed === 'rapid' ? "bg-primary/20 border-primary/40 text-primary" : "bg-transparent border-transparent text-muted-foreground hover:text-white"
+                  )}
+                >
+                  Rapid Mix
+                </button>
               </div>
-              <span className="text-[8px] opacity-60">
-                {forcing ? 'INITIALIZING...' : autoDjActive ? 'ACTIVE · MODULATING' : 'READY TO MIX'}
-              </span>
-            </button>
+            </div>
 
             {/* Crossfader */}
             <div className="rounded-2xl border border-white/8 bg-white/3 backdrop-blur-xl p-5 space-y-3">
