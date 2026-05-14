@@ -17,11 +17,19 @@ const DownloadButton = ({ track }: { track: { id: string; title: string; thumbna
   const { startDownload, isDownloading } = useDownloadManager();
   const loading = isDownloading(track.id);
   return (
-    <button onClick={() => startDownload(track)} className="w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-primary transition-all duration-300 rounded-xl hover:bg-white/5 active:scale-90" title="Download">
-      {loading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Download className="w-4 h-4" />}
+    <button 
+      onClick={() => startDownload(track)} 
+      className={cn(
+        "p-2 rounded-xl transition-all",
+        loading ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+      )} 
+      title="Download"
+    >
+      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
     </button>
   );
 };
+
 
 interface Track {
   id: string;
@@ -300,7 +308,9 @@ const MusicPlayer = ({
                 <button onClick={() => setShowEQ(!showEQ)} className={cn("p-2 rounded-xl transition-all", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                   <SlidersHorizontal className="w-4 h-4" />
                 </button>
+                {currentTrack && <DownloadButton track={currentTrack} />}
               </div>
+
 
               <div className="flex items-center gap-3 w-32 group/volume">
                 <button onClick={toggleMute} className="text-muted-foreground hover:text-primary transition-colors">
@@ -322,8 +332,8 @@ const MusicPlayer = ({
                 </div>
               </div>
 
-              {currentTrack && <DownloadButton track={currentTrack} />}
-            </div>
+              </div>
+
           </div>
 
           {/* Bottom: Progress Bar */}
