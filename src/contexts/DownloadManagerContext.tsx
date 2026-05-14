@@ -62,22 +62,23 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
       
       const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}&download=1&title=${encodeURIComponent(track.title)}`;
       
-      // Use a hidden link to trigger the download. 
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.setAttribute('download', `${safeTitle}.mp3`);
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
+      // Use an iframe to trigger the download. This prevents the browser from 
+      // navigating away from the current page if the server returns JSON or a redirect.
+      let iframe = document.getElementById('download-iframe') as HTMLIFrameElement;
+      if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'download-iframe';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+      }
+      iframe.src = downloadUrl;
       
-      // We give it a bit more time to ensure the browser has registered the click
+      // We give it a bit more time to ensure the browser has started the download
       setTimeout(() => {
-        if (document.body.contains(a)) {
-          document.body.removeChild(a);
-        }
         updateItem(track.id, { status: 'done', progress: 100 });
         toast.success(`🎵 Download started: ${track.title}`);
       }, 3000);
+
 
 
     } catch (error: any) {
