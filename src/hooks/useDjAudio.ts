@@ -53,19 +53,20 @@ export function useDjAudio() {
       const AC = (window.AudioContext || (window as any).webkitAudioContext);
       if (!ctx) ctx = new AC();
       
-      // Always try to resume context to handle browser auto-play/gesture policies
       if (ctx.state === 'suspended') ctx.resume();
       
-      // Safety check: if source exists but is not for our current audio element, recreate it
-      if (source && (source as any).mediaElement !== audioRef.current) {
-        source.disconnect();
-        source = null;
-        initedRef.current = false;
+      // If the media element changed or source was lost, we must rebuild the source link
+      if (!source || (source as any).mediaElement !== audioRef.current) {
+        if (source) source.disconnect();
+        source = ctx.createMediaElementSource(audioRef.current);
+        initedRef.current = false; // Force re-wiring of the chain
       }
 
-      if (initedRef.current) return true;
-
-      if (!source) source = ctx.createMediaElementSource(audioRef.current);
+      if (initedRef.current) {
+        // Even if inited, ensure we are connected to destination
+        try { merger?.connect(ctx.destination); } catch(e) {}
+        return true;
+      }
 
       lowEq = ctx.createBiquadFilter(); lowEq.type = 'lowshelf'; lowEq.frequency.value = 200;
       midEq = ctx.createBiquadFilter(); midEq.type = 'peaking'; midEq.frequency.value = 1000; midEq.Q.value = 1;
@@ -94,7 +95,7 @@ export function useDjAudio() {
       setState(s => ({ ...s, active: true }));
       return true;
     } catch (err) {
-      console.warn('DJ init failed (likely YouTube iframe source):', err);
+      console.warn('DJ init failed:', err);
       return false;
     }
   }, [audioRef]);
