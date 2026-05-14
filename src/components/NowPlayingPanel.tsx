@@ -172,7 +172,7 @@ const NowPlayingPanel = ({ isOpen, onClose, currentTrack, nextTrack, playlistNam
 
   const handleViewArtist = () => {
     if (currentTrack?.channelId) {
-      navigate(`/artist/${currentTrack.channelId}`);
+      navigate(`/yt-artist/${currentTrack.channelId}`);
       onClose();
     }
   };

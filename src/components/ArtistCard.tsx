@@ -12,7 +12,7 @@ interface ArtistCardProps {
 const ArtistCard = ({ id, artistName, coverImageUrl, className }: ArtistCardProps) => {
   return (
     <Link 
-      to={`/artist/${id}`}
+      to={`/yt-artist/${id}`}
       className={cn("group block text-center space-y-3", className)}
     >
       <div className="relative mx-auto w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-white/5 transition-all duration-500 group-hover:scale-105 group-hover:border-primary shadow-2xl group-hover:shadow-[0_0_30px_rgba(var(--primary),0.3)]">
