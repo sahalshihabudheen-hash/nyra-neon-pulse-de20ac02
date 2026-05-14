@@ -183,6 +183,47 @@ serve(async (req) => {
       }
     }
 
+    // Fallback to Cobalt API (Highly reliable for downloads)
+    if (!audioUrl) {
+      console.log('Trying Cobalt fallback...');
+      const cobaltInstances = [
+        'https://api.cobalt.tools',
+        'https://cobalt.api.unblockvideos.com',
+      ];
+
+      for (const instance of cobaltInstances) {
+        try {
+          const response = await fetch(instance, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              url: `https://www.youtube.com/watch?v=${videoId}`,
+              videoQuality: '720', // Doesn't matter for audio
+              downloadMode: 'audio',
+              audioFormat: 'mp3',
+            }),
+            signal: AbortSignal.timeout(10000),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.url) {
+              audioUrl = data.url;
+              console.log(`Got audio URL from Cobalt: ${instance}`);
+              break;
+            }
+          }
+        } catch (error) {
+          console.log(`Cobalt ${instance} failed:`, error.message);
+          continue;
+        }
+      }
+    }
+
+
     if (!audioUrl) {
       console.error('Failed to get audio URL from all instances:', lastError?.message || lastError);
       return new Response(
@@ -192,6 +233,7 @@ serve(async (req) => {
     }
 
     // Return JSON for streaming (playback) requests
+
     if (shouldStream) {
       return new Response(
         JSON.stringify({ 
