@@ -242,109 +242,109 @@ const MusicPlayer = ({
   return (
     <>
     <footer className={cn(
-        'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-50',
-        nowPlayingOpen ? 'right-[380px]' : 'right-6',
-        'h-[170px] py-4 px-8'
+        'fixed bottom-4 left-4 right-4 md:bottom-6 md:left-[272px] transition-all duration-700 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-50',
+        nowPlayingOpen ? 'md:right-[380px]' : 'md:right-6',
+        'h-[140px] md:h-[170px] py-2 md:py-4 px-4 md:px-8'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
-        <div className="h-full flex items-center justify-between relative z-10">
-          {/* Left: Track Info */}
+        <div className="h-full flex items-center justify-between relative z-10 gap-2 md:gap-8">
+          {/* Left: Track Info (Responsive Width) */}
           <div 
-            className="flex items-center gap-3 cursor-pointer group/track min-w-0 md:w-80"
+            className="flex items-center gap-2 md:gap-3 cursor-pointer group/track min-w-0 w-[35%] md:w-80"
             onClick={() => currentTrack && setIsFullscreen(true)}
           >
             {currentTrack ? (
               <>
                 <div className="relative shrink-0">
                   <div className={cn(
-                    "absolute -inset-1.5 rounded-xl bg-primary/30 blur-md transition-all duration-1000",
+                    "absolute -inset-1 rounded-lg md:-inset-1.5 md:rounded-xl bg-primary/30 blur-md transition-all duration-1000",
                     isPlaying ? "opacity-100 scale-110 glow-pulse" : "opacity-0 scale-100"
                   )} />
                   <img
                     src={currentTrack.thumbnail}
                     alt={currentTrack.title}
-                    className="relative w-12 h-12 md:w-16 md:h-16 rounded-xl object-cover shadow-2xl transition-transform duration-500 group-hover/track:scale-105"
+                    className="relative w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-xl object-cover shadow-2xl transition-transform duration-500 group-hover/track:scale-105"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xs md:text-sm font-black text-foreground truncate group-hover/track:text-primary transition-colors tracking-tight">
+                  <h3 className="text-[10px] md:text-sm font-black text-foreground truncate group-hover/track:text-primary transition-colors tracking-tight">
                     {currentTrack.title}
                   </h3>
-                  <p className="text-[8px] md:text-[10px] font-black text-muted-foreground/60 truncate uppercase tracking-widest mt-0.5">
+                  <p className="text-[7px] md:text-[10px] font-black text-muted-foreground/60 truncate uppercase tracking-widest mt-0.5">
                     {currentTrack.channel}
                   </p>
                 </div>
               </>
             ) : (
-              <div className="flex items-center gap-4 opacity-40">
-                <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/5" />
-                <div className="space-y-2">
-                  <div className="h-3 w-24 bg-white/10 rounded-full" />
-                  <div className="h-2 w-16 bg-white/5 rounded-full" />
+              <div className="flex items-center gap-2 opacity-40">
+                <div className="w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-xl bg-white/5 border border-white/5" />
+                <div className="space-y-1 md:space-y-2">
+                  <div className="h-2 w-16 md:h-3 md:w-24 bg-white/10 rounded-full" />
+                  <div className="h-1.5 w-12 md:h-2 md:w-16 bg-white/5 rounded-full" />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Center Tier: Clean Vertical Stack */}
-          <div className="absolute left-1/2 -translate-x-1/2 inset-y-0 flex flex-col items-center justify-between py-4 w-full max-w-xl">
+          {/* Center Tier: Responsive Vertical Stack */}
+          <div className="absolute left-1/2 -translate-x-1/2 inset-y-0 flex flex-col items-center justify-between py-3 md:py-4 w-[30%] md:w-full md:max-w-xl z-20">
             {/* Controls (Top) */}
-            <div className="flex items-center gap-4 md:gap-8">
+            <div className="flex items-center gap-3 md:gap-8">
               <button 
                 onClick={onPrevious}
-                className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
+                className="text-muted-foreground hover:text-foreground transition-all active:scale-90 hidden sm:block"
               >
                 <SkipBack className="w-4 h-4 md:w-5 md:h-5 fill-current" />
               </button>
               <button
                 onClick={onPlayPause}
-                className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_25px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
+                className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
               >
-                {isPlaying ? <Pause className="w-6 h-6 md:w-7 md:h-7 fill-current" /> : <Play className="w-6 h-6 md:w-7 md:h-7 fill-current ml-1" />}
+                {isPlaying ? <Pause className="w-5 h-5 md:w-7 md:h-7 fill-current" /> : <Play className="w-5 h-5 md:w-7 md:h-7 fill-current ml-0.5 md:ml-1" />}
               </button>
               <button 
                 onClick={onNext}
-                className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
+                className="text-muted-foreground hover:text-foreground transition-all active:scale-90 hidden sm:block"
               >
                 <SkipForward className="w-4 h-4 md:w-5 md:h-5 fill-current" />
               </button>
             </div>
 
             {/* Soundwave (Middle) */}
-            <div className="w-32 h-6 opacity-40 overflow-hidden pointer-events-none">
+            <div className="w-20 md:w-32 h-4 md:h-6 opacity-40 overflow-hidden pointer-events-none">
               <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
             </div>
 
-            {/* Progress Bar (Bottom) */}
-            <div className="w-full flex items-center gap-4 px-4">
-              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
+            {/* Progress Bar (Bottom) - Responsive width */}
+            <div className="w-[280%] sm:w-[200%] md:w-full flex items-center gap-2 md:gap-4 px-2 md:px-4">
+              <span className="text-[8px] md:text-[10px] font-bold text-muted-foreground tabular-nums w-8 md:w-10 text-right">{formatTime(progress)}</span>
               <StyledProgressBar
                 progress={progress}
                 duration={duration}
                 onSeek={handleSeek}
                 className="flex-1"
               />
-              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
+              <span className="text-[8px] md:text-[10px] font-bold text-muted-foreground tabular-nums w-8 md:w-10">{formatTime(duration)}</span>
             </div>
           </div>
 
-          {/* Right: Actions & Volume */}
-          <div className="flex-1 flex items-center justify-end gap-2 md:gap-6">
-            <div className="flex items-center gap-1 md:gap-2 p-1 md:p-1.5 rounded-xl md:rounded-2xl bg-white/5 border border-white/5">
-              <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
-                <Music2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+          {/* Right: Actions & Volume (Mobile Friendly) */}
+          <div className="flex-1 flex items-center justify-end gap-1 md:gap-6 w-[35%] md:w-auto">
+            <div className="flex items-center gap-1 p-1 md:p-1.5 rounded-lg md:rounded-2xl bg-white/5 border border-white/5">
+              <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                <Music2 className="w-3 h-3 md:w-4 md:h-4" />
               </button>
-              <button onClick={() => setNowPlayingOpen(!nowPlayingOpen)} className={cn("p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all", nowPlayingOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
-                <MonitorPlay className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <button onClick={() => setNowPlayingOpen(!nowPlayingOpen)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all", nowPlayingOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+                <MonitorPlay className="w-3 h-3 md:w-4 md:h-4" />
               </button>
-              <button onClick={() => setShowEQ(!showEQ)} className={cn("p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all hidden md:flex", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+              <button onClick={() => setShowEQ(!showEQ)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all hidden md:flex", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
-              {currentTrack && <div className="hidden sm:block"><DownloadButton track={currentTrack} /></div>}
+              {currentTrack && <DownloadButton track={currentTrack} />}
             </div>
 
-            <div className="hidden md:flex items-center gap-3 w-32 group/volume shrink-0">
+            <div className="hidden sm:flex items-center gap-2 md:gap-3 w-20 md:w-32 group/volume shrink-0">
               <button onClick={toggleMute} className="text-muted-foreground hover:text-primary transition-colors">
                 {getVolumeIcon()}
               </button>
