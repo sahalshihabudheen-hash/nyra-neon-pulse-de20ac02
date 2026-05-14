@@ -316,9 +316,16 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         audioRef.current.play()
           .then(() => setIsPlaying(true))
           .catch((e) => {
-            console.warn('Background audio play failed, falling back to YT:', e);
+            console.warn('Background audio play failed:', e);
+            if (useBackgroundAudioOnly) {
+              toast.error('DJ Audio failed to resume. Tap anywhere to continue.');
+              return;
+            }
             setPlaybackSource('youtube');
-            createPlayer(videoId);
+            const yt = (window as any).YT;
+            if (ytApiReady && yt?.Player) {
+              createPlayer(videoId);
+            }
           });
         return;
       }
@@ -327,7 +334,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
 
 
-    if (usedFallback) return;
+    if (usedFallback || useBackgroundAudioOnly) return;
     // Final fallback to standard YouTube IFrame player
     setPlaybackSource('youtube');
     const yt = (window as any).YT;
