@@ -29,10 +29,10 @@ async function getWorkingPipedInstances(): Promise<string[]> {
     
     // Filter for instances with good uptime and API access, sort by uptime
     const working = instances
-      .filter((i: any) => i.api_url && i.uptime_24h >= 90)
+      .filter((i: any) => i.api_url && i.uptime_24h >= 85)
       .sort((a: any, b: any) => (b.uptime_24h || 0) - (a.uptime_24h || 0))
       .map((i: any) => i.api_url)
-      .slice(0, 8);
+      .slice(0, 12);
 
     if (working.length > 0) {
       cachedInstances = working;
@@ -52,9 +52,13 @@ async function getWorkingPipedInstances(): Promise<string[]> {
       'https://api-piped.mha.fi',
       'https://pipedapi.astreapp.it',
       'https://pipedapi.adminforge.de',
+      'https://pipedapi.qdi.fi',
+      'https://pipedapi.official-esc.it',
+      'https://pipedapi.leptons.xyz',
     ];
   }
 }
+
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -188,51 +192,70 @@ serve(async (req) => {
     }
 
     if (shouldStream || shouldDownload || url.searchParams.has('download')) {
-      const upstreamHeaders: HeadersInit = {};
+      const upstreamHeaders: HeadersInit = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      };
       const range = req.headers.get('range');
       if (range) upstreamHeaders.Range = range;
 
-      const audioResponse = await fetch(audioUrl, {
-        headers: upstreamHeaders,
-        signal: AbortSignal.timeout(25000),
-      });
+      try {
+        const audioResponse = await fetch(audioUrl, {
+          headers: upstreamHeaders,
+          signal: AbortSignal.timeout(30000),
+        });
 
-      if (!audioResponse.ok && audioResponse.status !== 206) {
+        if (!audioResponse.ok && audioResponse.status !== 206) {
+          console.error(`Upstream fetch failed: ${audioResponse.status} ${audioResponse.statusText}`);
+          throw new Error('Upstream audio stream unavailable');
+        }
+
+        const headers = new Headers(corsHeaders);
+        const upstreamContentType = audioResponse.headers.get('content-type');
+        
+        headers.set('Content-Type', upstreamContentType || 'audio/mpeg');
+        
+        if (shouldDownload || url.searchParams.has('download')) {
+          const safeTitle = title.replace(/[<>:"/\\|?*]/g, '').trim();
+          headers.set('Content-Disposition', `attachment; filename="${safeTitle}.mp3"`);
+          headers.set('Content-Type', 'audio/mpeg');
+          // Disable caching for downloads to ensure they trigger every time
+          headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+
+        for (const header of ['content-length', 'content-range', 'accept-ranges']) {
+          const value = audioResponse.headers.get(header);
+          if (value) headers.set(header, value);
+        }
+
+        return new Response(audioResponse.body, {
+          status: audioResponse.status,
+          headers,
+        });
+      } catch (error) {
+        console.error('Streaming error:', error.message);
+        // Fallback: Return JSON with the URL so the client can try to open it directly
         return new Response(
-          JSON.stringify({ error: 'Audio stream unavailable', fallback: true }),
-          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            error: 'Stream proxy failed, try opening the URL directly', 
+            audioUrl,
+            audioUrl1: audioUrl, // For compatibility with some versions
+            fallback: true 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      const headers = new Headers(corsHeaders);
-      headers.set('Content-Type', audioResponse.headers.get('content-type') || 'audio/mp4');
-      
-      if (shouldDownload || url.searchParams.has('download')) {
-        const safeTitle = title.replace(/[<>:"/\\|?*]/g, '').trim();
-        headers.set('Content-Disposition', `attachment; filename="${safeTitle}.mp3"`);
-        headers.set('Content-Type', 'audio/mpeg');
-      }
-
-      for (const header of ['content-length', 'content-range', 'accept-ranges']) {
-        const value = audioResponse.headers.get(header);
-        if (value) headers.set(header, value);
-      }
-
-      return new Response(audioResponse.body, {
-        status: audioResponse.status,
-        headers,
-      });
     }
 
     return new Response(
-      JSON.stringify({ audioUrl }),
+      JSON.stringify({ audioUrl, audioUrl1: audioUrl }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Global error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', fallback: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+

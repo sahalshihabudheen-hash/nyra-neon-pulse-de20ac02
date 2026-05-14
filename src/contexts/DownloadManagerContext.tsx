@@ -62,20 +62,25 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
       
       const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}&download=1&title=${encodeURIComponent(track.title)}`;
       
-      // Use a hidden iframe or direct window location to trigger the download
-      // This is the most reliable way to trigger a "Save As" through a proxy with Content-Disposition
+      // Use a hidden link to trigger the download. 
+      // Opening in a new tab for cross-origin downloads often helps browsers decide to download instead of navigate.
       const a = document.createElement('a');
       a.href = downloadUrl;
-      // Note: download attribute only works same-origin, but the server header Content-Disposition overrides it anyway
+      a.setAttribute('download', `${safeTitle}.mp3`);
+      a.target = '_blank';
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       
+      // We give it a bit more time to ensure the browser has registered the click
       setTimeout(() => {
-        document.body.removeChild(a);
+        if (document.body.contains(a)) {
+          document.body.removeChild(a);
+        }
         updateItem(track.id, { status: 'done', progress: 100 });
         toast.success(`🎵 Download started: ${track.title}`);
-      }, 2000);
+      }, 3000);
+
     } catch (error: any) {
       console.error('Download error:', error);
       updateItem(track.id, { status: 'error', progress: 0 });
