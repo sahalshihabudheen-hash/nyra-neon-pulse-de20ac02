@@ -529,7 +529,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setPlayingFromPlaylist(false);
     setLastPlayed(prevTrack.id);
     playWithBackgroundAudio(prevTrack.id);
-  }, [currentTrackIndex, tracks, playWithBackgroundAudio, playingFromPlaylist, currentTrack, getPreviousTrack, setLastPlayed]);
+  }, [currentTrackIndex, tracks, playWithBackgroundAudio, playingFromPlaylist, currentTrack, getPreviousTrack, setLastPlayed, handleNext]);
+
+  useEffect(() => {
+    handleNextRef.current = handleNext;
+  }, [handleNext]);
 
   const handleAddToPlaylist = useCallback((track: Track) => {
     if (isInPlaylist(track.id)) { toast.info('Track already in playlist'); return; }
