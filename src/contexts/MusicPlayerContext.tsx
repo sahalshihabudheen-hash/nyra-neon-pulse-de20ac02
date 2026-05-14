@@ -165,6 +165,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }, []);
 
 
+    // Sync loop mode with audio element
+    useEffect(() => {
+      if (audioRef.current) {
+        audioRef.current.loop = loopMode === 'one';
+      }
+    }, [loopMode]);
 
   // Audio event listeners
   useEffect(() => {
@@ -172,6 +178,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     if (!audio) return;
 
     const handleEnded = () => {
+      if (loopMode === 'one') {
+        // Native loop handles it, but just in case
+        return;
+      }
       if (settings.autoPlayNext && handleNextRef.current) {
         handleNextRef.current();
       } else {
