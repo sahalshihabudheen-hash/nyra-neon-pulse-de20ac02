@@ -347,12 +347,18 @@ const DjMode = () => {
   // Sync engine on track change to ensure effects are applied to next song automatically
   useEffect(() => {
     // If we are in background audio mode (DJ compatible) and playing
-    if (activeSource === 'background' && isPlaying) {
+    if (activeSource === 'background' && isPlaying && currentTrack?.id) {
       console.log("DJ Engine: Deep Syncing for track", currentTrack?.id);
-      const ready = init(); 
-      if (ready) apply(state);
+      const ok = reSync();
+      if (ok) {
+        toast.success("DJ Engine Ready", { 
+          duration: 1500,
+          position: 'top-center',
+          id: 'dj-sync-toast' // prevent duplicate toasts
+        });
+      }
     }
-  }, [currentTrack?.id, isPlaying, activeSource, state.active, init, apply]);
+  }, [currentTrack?.id, isPlaying, activeSource, reSync]);
 
   const enable = async () => {
     setForcing(true);

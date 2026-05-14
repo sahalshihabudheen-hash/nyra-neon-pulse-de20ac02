@@ -140,5 +140,18 @@ export function useDjAudio() {
     return () => audioRef.current?.removeEventListener('play', handleSync);
   }, [init]);
 
-  return { state, apply, init, getLevels, getBassLevel };
+  const reSync = useCallback(() => {
+    // Force a complete rebuild of the audio graph
+    console.log("DJ Engine: Nuclear Re-Sync initiated");
+    initedRef.current = false;
+    if (source) {
+      try { source.disconnect(); } catch(e) {}
+      source = null;
+    }
+    const ok = init();
+    if (ok) apply(state);
+    return ok;
+  }, [init, apply, state]);
+
+  return { state, apply, init, reSync, getLevels, getBassLevel };
 }
