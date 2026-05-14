@@ -221,7 +221,7 @@ const MusicPlayer = ({
   };
 
   const isMiniMode = settings.miniPlayerMode;
-  const { updateSettings } = useTheme();
+
 
   const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
