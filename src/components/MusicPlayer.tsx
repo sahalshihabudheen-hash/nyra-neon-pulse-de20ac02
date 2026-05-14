@@ -289,13 +289,8 @@ const MusicPlayer = ({
             </div>
 
             {/* Center: Controls & Soundwave */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-1 -mt-4">
-              {/* Soundwave Visualizer - centered again but smaller */}
-              <div className="w-32 h-4 opacity-40 overflow-hidden pointer-events-none">
-                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
-              </div>
-              
-              <div className="flex items-center gap-4 md:gap-6">
+            <div className="absolute left-1/2 -translate-x-1/2 top-4 flex flex-col items-center gap-1">
+              <div className="flex items-center gap-4 md:gap-8">
                 <button 
                   onClick={onPrevious}
                   className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
@@ -314,6 +309,11 @@ const MusicPlayer = ({
                 >
                   <SkipForward className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                 </button>
+              </div>
+
+              {/* Soundwave Visualizer - moved below buttons as requested */}
+              <div className="w-32 h-4 opacity-40 overflow-hidden pointer-events-none mt-1">
+                <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
               </div>
             </div>
 
@@ -357,17 +357,15 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex justify-center pb-2">
-            <div className="w-full max-w-xl flex items-center gap-4 px-4">
-              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
-              <StyledProgressBar
-                progress={progress}
-                duration={duration}
-                onSeek={handleSeek}
-                className="flex-1"
-              />
-              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
-            </div>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-full max-w-xl flex items-center gap-4 px-4">
+            <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
+            <StyledProgressBar
+              progress={progress}
+              duration={duration}
+              onSeek={handleSeek}
+              className="flex-1"
+            />
+            <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-10">{formatTime(duration)}</span>
           </div>
         </div>
       </footer>
