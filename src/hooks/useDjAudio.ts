@@ -140,6 +140,9 @@ export function useDjAudio() {
     return () => audioRef.current?.removeEventListener('play', handleSync);
   }, [init]);
 
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
   const reSync = useCallback(() => {
     // Force a complete rebuild of the audio graph
     console.log("DJ Engine: Nuclear Re-Sync initiated");
@@ -149,9 +152,9 @@ export function useDjAudio() {
       source = null;
     }
     const ok = init();
-    if (ok) apply(state);
+    if (ok) apply(stateRef.current);
     return ok;
-  }, [init, apply, state]);
+  }, [init, apply]); // removed state dependency to prevent infinite loop
 
   return { state, apply, init, reSync, getLevels, getBassLevel };
 }
