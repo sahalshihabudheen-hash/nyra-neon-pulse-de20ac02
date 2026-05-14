@@ -31,17 +31,50 @@ serve(async (req) => {
     const result = await fetchTrendingTracks();
 
     if (!result.ok) {
+      console.warn('YouTube Trending API failed, trying Piped fallback...');
+      const now = new Date();
+      const month = now.toLocaleString('en-US', { month: 'long' });
+      const year = now.getFullYear();
+      const searchQuery = `trending music ${month} ${year} hits`;
+
+      const pipedInstances = [
+        'https://pipedapi.kavin.rocks',
+        'https://api.piped.private.coffee',
+        'https://piped-api.hostux.net',
+        'https://pipedapi.cl7.it',
+        'https://api-piped.mha.fi',
+      ];
+
+      for (const instance of pipedInstances) {
+        try {
+          const pipedUrl = `${instance}/search?q=${encodeURIComponent(searchQuery)}&filter=videos`;
+          const pipedResponse = await fetch(pipedUrl, { signal: AbortSignal.timeout(5000) });
+          if (pipedResponse.ok) {
+            const pipedData = await pipedResponse.json();
+            if (pipedData.items && pipedData.items.length > 0) {
+              const pipedTracks = pipedData.items.map((item: any) => ({
+                id: item.url.split('v=')[1] || item.url.split('/').pop(),
+                title: item.title,
+                thumbnail: item.thumbnail,
+                channel: item.uploaderName,
+              }));
+              console.log(`Found trending results via Piped fallback (${instance})`);
+              return new Response(JSON.stringify(pipedTracks), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          }
+        } catch (e) {
+          console.error(`Piped fallback trending failed for ${instance}:`, e.message);
+        }
+      }
+
       return new Response(
         JSON.stringify({ error: result.error }),
         { status: result.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!result.data.items || result.data.items.length === 0) {
-      return new Response(JSON.stringify([]), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const tracks = result.data.items.map((item: any) => ({
       id: item.id.videoId,

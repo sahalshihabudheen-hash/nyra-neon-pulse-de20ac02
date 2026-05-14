@@ -105,11 +105,45 @@ serve(async (req) => {
     );
 
     if (!result.ok) {
+      console.warn('YouTube Personalized API failed, trying Piped fallback...');
+      const pipedInstances = [
+        'https://pipedapi.kavin.rocks',
+        'https://api.piped.private.coffee',
+        'https://piped-api.hostux.net',
+        'https://pipedapi.cl7.it',
+        'https://api-piped.mha.fi',
+      ];
+
+      for (const instance of pipedInstances) {
+        try {
+          const pipedUrl = `${instance}/search?q=${encodeURIComponent(searchQuery)}&filter=videos`;
+          const pipedResponse = await fetch(pipedUrl, { signal: AbortSignal.timeout(5000) });
+          if (pipedResponse.ok) {
+            const pipedData = await pipedResponse.json();
+            if (pipedData.items && pipedData.items.length > 0) {
+              const pipedTracks = pipedData.items.slice(0, 12).map((item: any) => ({
+                id: item.url.split('v=')[1] || item.url.split('/').pop(),
+                title: item.title,
+                thumbnail: item.thumbnail,
+                channel: item.uploaderName,
+              }));
+              console.log(`Found personalized results via Piped fallback (${instance})`);
+              return new Response(JSON.stringify(pipedTracks), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          }
+        } catch (e) {
+          console.error(`Piped fallback personalized failed for ${instance}:`, e.message);
+        }
+      }
+
       return new Response(
         JSON.stringify({ error: result.error }),
         { status: result.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     const tracks = (result.data.items || []).map((item: any) => ({
       id: item.id.videoId,

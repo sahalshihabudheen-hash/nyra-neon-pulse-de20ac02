@@ -68,17 +68,47 @@ serve(async (req) => {
     );
 
     if (!result.ok) {
+      console.warn('YouTube Featured API failed, trying Piped fallback...');
+      const pipedInstances = [
+        'https://pipedapi.kavin.rocks',
+        'https://api.piped.private.coffee',
+        'https://piped-api.hostux.net',
+        'https://pipedapi.cl7.it',
+        'https://api-piped.mha.fi',
+      ];
+
+      for (const instance of pipedInstances) {
+        try {
+          const pipedUrl = `${instance}/search?q=${encodeURIComponent(searchQuery)}&filter=videos`;
+          const pipedResponse = await fetch(pipedUrl, { signal: AbortSignal.timeout(5000) });
+          if (pipedResponse.ok) {
+            const pipedData = await pipedResponse.json();
+            if (pipedData.items && pipedData.items.length > 0) {
+              const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+              const item = pipedData.items[dayOfYear % pipedData.items.length];
+              const featured = {
+                id: item.url.split('v=')[1] || item.url.split('/').pop(),
+                title: item.title,
+                thumbnail: item.thumbnail,
+                channel: item.uploaderName,
+              };
+              console.log(`Found featured result via Piped fallback (${instance})`);
+              return new Response(JSON.stringify(featured), {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
+          }
+        } catch (e) {
+          console.error(`Piped fallback featured failed for ${instance}:`, e.message);
+        }
+      }
+
       return new Response(
         JSON.stringify({ error: result.error }),
         { status: result.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!result.data.items || result.data.items.length === 0) {
-      return new Response(JSON.stringify(null), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const itemIndex = dayOfYear % result.data.items.length;
     const item = result.data.items[itemIndex];
