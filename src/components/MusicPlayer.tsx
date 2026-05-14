@@ -241,10 +241,10 @@ const MusicPlayer = ({
 
   return (
     <>
-      <footer className={cn(
+    <footer className={cn(
         'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-40',
         nowPlayingOpen ? 'right-[380px]' : 'right-6',
-        'h-36 py-4 px-8'
+        'h-[150px] py-4 px-8'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
@@ -289,7 +289,7 @@ const MusicPlayer = ({
             </div>
 
             {/* Center: Controls & Soundwave */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-2">
+            <div className="flex-1 flex flex-col items-center justify-center gap-1 -mt-2">
               <div className="flex items-center gap-6">
                 <button 
                   onClick={onPrevious}
@@ -312,7 +312,7 @@ const MusicPlayer = ({
               </div>
 
               {/* Soundwave Visualizer */}
-              <div className="w-48 h-6 opacity-60 overflow-hidden">
+              <div className="w-48 h-5 opacity-40 overflow-hidden pointer-events-none">
                 <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
               </div>
             </div>
@@ -357,7 +357,7 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex justify-center mt-auto pb-8">
+          <div className="w-full flex justify-center mb-2">
             <div className="w-full max-w-md flex items-center gap-4 px-4">
               <span className="text-[9px] font-bold text-muted-foreground tabular-nums w-8 text-right">{formatTime(progress)}</span>
               <StyledProgressBar
