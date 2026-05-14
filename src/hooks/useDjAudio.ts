@@ -57,38 +57,43 @@ export function useDjAudio() {
       
       // If the media element changed or source was lost, we must rebuild the source link
       if (!source || (source as any).mediaElement !== audioRef.current) {
-        if (source) source.disconnect();
+        if (source) try { source.disconnect(); } catch(e) {}
         source = ctx.createMediaElementSource(audioRef.current);
-        initedRef.current = false; // Force re-wiring of the chain
+        initedRef.current = false; // Trigger re-wiring
       }
 
-      if (initedRef.current) {
-        // Even if inited, ensure we are connected to destination
-        try { merger?.connect(ctx.destination); } catch(e) {}
+      // If we already have a functional chain, just ensure it's connected
+      if (merger && initedRef.current) {
+        try { merger.connect(ctx.destination); } catch(e) {}
         return true;
       }
 
-      lowEq = ctx.createBiquadFilter(); lowEq.type = 'lowshelf'; lowEq.frequency.value = 200;
-      midEq = ctx.createBiquadFilter(); midEq.type = 'peaking'; midEq.frequency.value = 1000; midEq.Q.value = 1;
-      highEq = ctx.createBiquadFilter(); highEq.type = 'highshelf'; highEq.frequency.value = 3000;
+      // Only create nodes if they don't exist (True Singleton)
+      if (!lowEq) {
+        lowEq = ctx.createBiquadFilter(); lowEq.type = 'lowshelf'; lowEq.frequency.value = 200;
+        midEq = ctx.createBiquadFilter(); midEq.type = 'peaking'; midEq.frequency.value = 1000; midEq.Q.value = 1;
+        highEq = ctx.createBiquadFilter(); highEq.type = 'highshelf'; highEq.frequency.value = 3000;
 
-      splitter = ctx.createChannelSplitter(2);
-      gainL = ctx.createGain(); gainR = ctx.createGain();
-      analyserL = ctx.createAnalyser(); analyserL.fftSize = 256;
-      analyserR = ctx.createAnalyser(); analyserR.fftSize = 256;
-      merger = ctx.createChannelMerger(2);
+        splitter = ctx.createChannelSplitter(2);
+        gainL = ctx.createGain(); gainR = ctx.createGain();
+        analyserL = ctx.createAnalyser(); analyserL.fftSize = 256;
+        analyserR = ctx.createAnalyser(); analyserR.fftSize = 256;
+        merger = ctx.createChannelMerger(2);
 
-      // Wire: source -> low -> mid -> high -> splitter -> [L gain -> analyser, R gain -> analyser] -> merger -> destination
+        // Wire nodes (internal chain stays connected once created)
+        lowEq.connect(midEq);
+        midEq.connect(highEq);
+        highEq.connect(splitter);
+        splitter.connect(gainL, 0);
+        splitter.connect(gainR, 1);
+        gainL.connect(analyserL);
+        gainR.connect(analyserR);
+        analyserL.connect(merger, 0, 0);
+        analyserR.connect(merger, 0, 1);
+      }
+
+      // Always reconnect source to start of chain and merger to destination
       source.connect(lowEq);
-      lowEq.connect(midEq);
-      midEq.connect(highEq);
-      highEq.connect(splitter);
-      splitter.connect(gainL, 0);
-      splitter.connect(gainR, 1);
-      gainL.connect(analyserL);
-      gainR.connect(analyserR);
-      analyserL.connect(merger, 0, 0);
-      analyserR.connect(merger, 0, 1);
       merger.connect(ctx.destination);
 
       initedRef.current = true;
