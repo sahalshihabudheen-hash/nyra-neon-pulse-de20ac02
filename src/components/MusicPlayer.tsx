@@ -244,12 +244,12 @@ const MusicPlayer = ({
     <footer className={cn(
         'fixed bottom-6 left-6 md:left-[272px] transition-all duration-700 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-40',
         nowPlayingOpen ? 'right-[380px]' : 'right-6',
-        'h-[160px] py-5 px-8'
+        'h-[180px] py-6 px-8'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
-        <div className="h-full flex flex-col justify-between relative z-10">
-          <div className="flex items-center justify-between gap-8 mt-2">
+        <div className="h-full grid grid-rows-[1fr_auto] gap-4 relative z-10">
+          <div className="flex items-center justify-between gap-8">
             {/* Left: Track Info */}
             <div 
               className="flex items-center gap-3 cursor-pointer group/track min-w-0 md:w-80"
@@ -358,7 +358,7 @@ const MusicPlayer = ({
           </div>
 
           {/* Bottom: Progress Bar */}
-          <div className="w-full flex justify-center pb-4">
+          <div className="w-full flex justify-center pb-2">
             <div className="w-full max-w-xl flex items-center gap-6 px-4">
               <span className="text-[10px] font-black text-muted-foreground tabular-nums w-10 text-right">{formatTime(progress)}</span>
               <StyledProgressBar

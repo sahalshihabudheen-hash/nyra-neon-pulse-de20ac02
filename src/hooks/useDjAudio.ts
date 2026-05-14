@@ -56,6 +56,13 @@ export function useDjAudio() {
       // Always try to resume context to handle browser auto-play/gesture policies
       if (ctx.state === 'suspended') ctx.resume();
       
+      // Safety check: if source exists but is not for our current audio element, recreate it
+      if (source && (source as any).mediaElement !== audioRef.current) {
+        source.disconnect();
+        source = null;
+        initedRef.current = false;
+      }
+
       if (initedRef.current) return true;
 
       if (!source) source = ctx.createMediaElementSource(audioRef.current);
