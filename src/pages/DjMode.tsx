@@ -136,7 +136,8 @@ const DjMode = () => {
   const { 
     currentTrack, isPlaying, activeSource, playlist, forceBackgroundPlayback, 
     handleAddToQueue, isFavorite, toggleFavorite, 
-    useBackgroundAudioOnly, setUseBackgroundAudioOnly 
+    useBackgroundAudioOnly, setUseBackgroundAudioOnly,
+    showMiniPlayer, setShowMiniPlayer 
   } = useMusicPlayer();
   const { state, apply, init, getLevels, getBassLevel } = useDjAudio();
   const [levels, setLevels] = useState({ left: 0, right: 0 });
@@ -331,7 +332,10 @@ const DjMode = () => {
     setForcing(false);
     if (!ready) return false;
     const ok = init();
-    if (ok) setUseBackgroundAudioOnly(true);
+    if (ok) {
+      setUseBackgroundAudioOnly(true);
+      setShowMiniPlayer(true);
+    }
     if (!ok) {
       toast.error('DJ engine could not connect — needs audio stream mode');
       return false;
