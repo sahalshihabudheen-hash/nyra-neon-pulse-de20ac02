@@ -297,7 +297,7 @@ const MusicPlayer = ({
             </div>
 
             {/* Right: Actions & Volume */}
-            <div className="flex items-center justify-end gap-6 w-80 -mt-2">
+            <div className="flex-1 flex items-center justify-end gap-6 -mt-2">
               <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/5">
                 <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-2 rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                   <Music2 className="w-4 h-4" />
@@ -311,8 +311,7 @@ const MusicPlayer = ({
                 {currentTrack && <DownloadButton track={currentTrack} />}
               </div>
 
-
-              <div className="flex items-center gap-3 w-32 group/volume">
+              <div className="flex items-center gap-3 w-32 group/volume shrink-0">
                 <button onClick={toggleMute} className="text-muted-foreground hover:text-primary transition-colors">
                   {getVolumeIcon()}
                 </button>
@@ -331,8 +330,8 @@ const MusicPlayer = ({
                   />
                 </div>
               </div>
+            </div>
 
-              </div>
 
           </div>
 
