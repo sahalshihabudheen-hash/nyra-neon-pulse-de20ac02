@@ -96,5 +96,18 @@ export function useDjAudio() {
     return { left: avg(dataL), right: avg(dataR) };
   };
 
-  return { state, apply, init, getLevels };
+  const getBassLevel = (): number => {
+    if (!analyserL || !analyserR) return 0;
+    const dataL = new Uint8Array(analyserL.frequencyBinCount);
+    const dataR = new Uint8Array(analyserR.frequencyBinCount);
+    analyserL.getByteFrequencyData(dataL);
+    analyserR.getByteFrequencyData(dataR);
+    
+    // Look at first 2-3 bins for bass (up to ~400Hz)
+    const bassL = (dataL[0] + dataL[1] + dataL[2]) / 3 / 255;
+    const bassR = (dataR[0] + dataR[1] + dataR[2]) / 3 / 255;
+    return (bassL + bassR) / 2;
+  };
+
+  return { state, apply, init, getLevels, getBassLevel };
 }

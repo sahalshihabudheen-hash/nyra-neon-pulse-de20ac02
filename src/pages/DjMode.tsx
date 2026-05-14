@@ -138,8 +138,9 @@ const DjMode = () => {
     handleAddToQueue, isFavorite, toggleFavorite, 
     useBackgroundAudioOnly, setUseBackgroundAudioOnly 
   } = useMusicPlayer();
-  const { state, apply, init, getLevels } = useDjAudio();
+  const { state, apply, init, getLevels, getBassLevel } = useDjAudio();
   const [levels, setLevels] = useState({ left: 0, right: 0 });
+  const [smartBass, setSmartBass] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Track[]>([]);
   const [searching, setSearching] = useState(false);
@@ -289,10 +290,29 @@ const DjMode = () => {
   };
 
   useEffect(() => {
-    const tick = () => { setLevels(getLevels()); rafRef.current = requestAnimationFrame(tick); };
+    const tick = () => {
+      const lvls = getLevels();
+      setLevels(lvls);
+
+      // Smart Bass Logic: Detect thumps and boost bass EQ automatically
+      if (smartBass && state.active) {
+        const bassLevel = getBassLevel();
+        if (bassLevel > 0.6) { // High bass energy detected
+          if (latestStateRef.current.low < 8) {
+            apply({ ...latestStateRef.current, low: 10 });
+          }
+        } else if (bassLevel < 0.3) { // Bass dropped
+          if (latestStateRef.current.low > 2) {
+            apply({ ...latestStateRef.current, low: 0 });
+          }
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [getLevels]);
+  }, [getLevels, smartBass, state.active, apply, getBassLevel]);
 
   // Beat pulse for BPM indicator
   useEffect(() => {
@@ -774,6 +794,20 @@ const DjMode = () => {
                   Rapid Mix
                 </button>
               </div>
+
+              {/* Smart Bass Toggle */}
+              <button 
+                onClick={() => setSmartBass(v => !v)}
+                className={cn(
+                  "w-full py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-2",
+                  smartBass 
+                    ? "bg-primary text-primary-foreground border-primary shadow-[0_0_20px_hsl(var(--primary)/0.3)]" 
+                    : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <Zap className={cn("w-3.5 h-3.5", smartBass && "animate-pulse")} />
+                {smartBass ? "Smart Bass Active" : "Enable Smart Bass"}
+              </button>
             </div>
 
             {/* Crossfader */}
@@ -819,8 +853,8 @@ const DjMode = () => {
                 <button 
                   onClick={() => setUseBackgroundAudioOnly(v => !v)}
                   className={cn(
-                    "px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all",
-                    useBackgroundAudioOnly ? "bg-primary text-primary-foreground" : "bg-white/5 text-muted-foreground"
+                    "px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-tighter transition-all border",
+                    useBackgroundAudioOnly ? "bg-primary border-primary text-primary-foreground" : "bg-white/5 border-white/10 text-muted-foreground"
                   )}
                 >
                   {useBackgroundAudioOnly ? "No Limit ON" : "No Limit OFF"}

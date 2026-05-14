@@ -189,12 +189,13 @@ serve(async (req) => {
       }
     }
 
-    // Fallback to Cobalt API (Highly reliable for downloads)
+    // Fallback to Cobalt API (Highly reliable for both downloads and streaming)
     if (!audioUrl) {
       console.log('Trying Cobalt fallback...');
       const cobaltInstances = [
         'https://api.cobalt.tools',
         'https://cobalt.api.unblockvideos.com',
+        'https://api.v0.cobalt.tools',
       ];
 
       for (const instance of cobaltInstances) {
@@ -207,11 +208,11 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               url: `https://www.youtube.com/watch?v=${videoId}`,
-              videoQuality: '720', // Doesn't matter for audio
+              videoQuality: '720',
               downloadMode: 'audio',
               audioFormat: 'mp3',
             }),
-            signal: AbortSignal.timeout(10000),
+            signal: AbortSignal.timeout(12000),
           });
 
           if (response.ok) {
@@ -227,6 +228,13 @@ serve(async (req) => {
           continue;
         }
       }
+    }
+
+    // Final desperate fallback: Direct Piped redirect if we can't find a direct stream URL
+    // Some instances might have a proxy working even if the API metadata fails
+    if (!audioUrl && pipedInstances.length > 0) {
+      audioUrl = `${pipedInstances[0]}/proxy/otfp?url=https://www.youtube.com/watch?v=${videoId}`;
+      console.log('Using Piped proxy redirect as last resort');
     }
 
 
