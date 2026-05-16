@@ -167,6 +167,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const [rgbHue, setRgbHue] = useState(0);
+  const [rgbSat, setRgbSat] = useState(100);
+  const [rgbLight, setRgbLight] = useState(50);
 
   // RGB Animation Loop
   useEffect(() => {
@@ -179,9 +181,20 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       const deltaTime = time - lastTime;
       lastTime = time;
 
-      setRgbHue(prevHue => {
-        const deltaHue = (settings.rgbConfig.speed * deltaTime) / 50;
-        return (prevHue + deltaHue) % 360;
+      const speedFactor = settings.rgbConfig.speed * deltaTime;
+
+      setRgbHue(prev => (prev + speedFactor / 50) % 360);
+      
+      // Cycle saturation for "all colors including white"
+      setRgbSat(prev => {
+        const next = prev + (Math.sin(time / 2000) * speedFactor / 100);
+        return Math.max(0, Math.min(100, next));
+      });
+
+      // Lightness pulse for "crazy" effect
+      setRgbLight(prev => {
+        const pulse = 50 + Math.sin(time / 1000) * 15;
+        return pulse;
       });
 
       animationFrameId = requestAnimationFrame(animate);
@@ -199,7 +212,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     let primaryHsl: string;
     
     if (settings.rgbConfig.enabled) {
-      primaryHsl = `${Math.round(rgbHue)} 100% 50%`;
+      primaryHsl = `${Math.round(rgbHue)} ${Math.round(rgbSat)}% ${Math.round(rgbLight)}%`;
     } else if (gradient.enabled) {
       primaryHsl = hexToHsl(gradient.startColor);
     } else if (currentTheme === 'custom') {
@@ -229,10 +242,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     // Apply gradient if enabled
     if (settings.rgbConfig.enabled && settings.rgbConfig.isGradient) {
-      const secondaryHue = (rgbHue + 60) % 360;
+      const secondaryHue = (rgbHue + 90) % 360;
+      const secondarySat = 100 - rgbSat; // Inverse saturation for crazy contrast
       document.documentElement.style.setProperty(
         '--theme-gradient',
-        `linear-gradient(135deg, hsl(${rgbHue}, 100%, 50%), hsl(${secondaryHue}, 100%, 50%))`
+        `linear-gradient(135deg, hsl(${rgbHue}, ${rgbSat}%, ${rgbLight}%), hsl(${secondaryHue}, ${secondarySat}%, ${rgbLight}%))`
       );
     } else if (gradient.enabled) {
       document.documentElement.style.setProperty(
@@ -253,7 +267,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     } else {
       document.body.style.backgroundImage = '';
     }
-  }, [currentTheme, customColor, gradient, settings.rgbConfig, rgbHue]);
+  }, [currentTheme, customColor, gradient, settings.rgbConfig, rgbHue, rgbSat, rgbLight]);
 
   useEffect(() => {
     localStorage.setItem('nyra-settings', JSON.stringify(settings));
