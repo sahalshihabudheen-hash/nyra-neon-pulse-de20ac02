@@ -9,8 +9,7 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
-// Use a smaller, higher-quality list of instances to stay within Vercel's execution limits
-const RELIABLE_PIPED = [
+const PIPED_INSTANCES = [
   'https://pipedapi.kavin.rocks',
   'https://api.piped.private.coffee',
   'https://piped-api.hostux.net',
@@ -20,33 +19,66 @@ const RELIABLE_PIPED = [
   'https://pipedapi.adminforge.de',
 ];
 
-const RELIABLE_COBALT = [
+const INVIDIOUS_INSTANCES = [
+  'https://inv.nadeko.net',
+  'https://invidious.nerdvpn.de',
+  'https://invidious.flokinet.to',
+  'https://yewtu.be',
+  'https://iv.melmac.space',
+];
+
+const COBALT_INSTANCES = [
   'https://api.cobalt.tools',
   'https://cobalt.api.unblockvideos.com',
   'https://api.v0.cobalt.tools',
+  'https://cobalt.instavids.net/api',
 ];
 
-async function fetchPiped(instance: string, videoId: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${instance}/streams/${videoId}`, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return (data.audioStreams || []).sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0]?.url || null;
-  } catch { return null; }
-}
+async function fetchStream(videoId: string): Promise<string | null> {
+  // 1. Try Cobalt (Fastest & most reliable for high-quality audio)
+  for (const inst of COBALT_INSTANCES) {
+    try {
+      const res = await fetch(inst, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}`, videoQuality: '720', downloadMode: 'audio', audioFormat: 'mp3' }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) return data.url;
+      }
+    } catch {}
+  }
 
-async function fetchCobalt(instance: string, videoId: string): Promise<string | null> {
-  try {
-    const res = await fetch(instance, {
-      method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}`, videoQuality: '720', downloadMode: 'audio', audioFormat: 'mp3' }),
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.url || null;
-  } catch { return null; }
+  // 2. Parallel race Piped instances
+  const pipedPromises = PIPED_INSTANCES.slice(0, 4).map(async (inst) => {
+    try {
+      const res = await fetch(`${inst}/streams/${videoId}`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return (data.audioStreams || []).sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0]?.url || null;
+    } catch { return null; }
+  });
+
+  // 3. Parallel race Invidious instances
+  const invidiousPromises = INVIDIOUS_INSTANCES.slice(0, 3).map(async (inst) => {
+    try {
+      const res = await fetch(`${inst}/api/v1/videos/${videoId}`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const format = (data.adaptiveFormats || []).find((f: any) => f.type?.startsWith('audio/'));
+      return format?.url || null;
+    } catch { return null; }
+  });
+
+  const results = await Promise.all([...pipedPromises, ...invidiousPromises]);
+  const found = results.find(url => !!url);
+  if (found) return found;
+
+  // 4. Last resort: Direct Piped Proxy Redirect
+  // Some instances can proxy directly even if the API metadata fails
+  return `${PIPED_INSTANCES[0]}/proxy/otfp?url=https://www.youtube.com/watch?v=${videoId}`;
 }
 
 async function proxyStream(req: Request, url: string, download: boolean, title: string) {
@@ -84,33 +116,16 @@ export default async function handler(req: Request) {
 
     if (!videoId) return new Response(JSON.stringify({ error: 'Video ID required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     
-    // Normalize Video ID
     const match = videoId.match(/(?:v=|\/|embed\/|shorts\/|^)([a-zA-Z0-9_-]{11})/);
     if (match) videoId = match[1];
     videoId = videoId.trim().substring(0, 11);
 
-    // Parallel attempt: Try Cobalt first as it's generally more reliable for extraction
-    // Then fall back to racing Piped instances
-    let audioUrl = await fetchCobalt(RELIABLE_COBALT[0], videoId);
-    
-    if (!audioUrl) {
-      // Race the top 3 Piped instances for speed
-      const pipedPromises = RELIABLE_PIPED.slice(0, 3).map(inst => fetchPiped(inst, videoId));
-      const cobaltPromises = RELIABLE_COBALT.slice(1).map(inst => fetchCobalt(inst, videoId));
-      
-      const results = await Promise.all([...pipedPromises, ...cobaltPromises]);
-      audioUrl = results.find(url => !!url) || null;
-    }
-
-    if (!audioUrl) {
-      // Last ditch effort: Try remaining Piped instances
-      const remainingPiped = RELIABLE_PIPED.slice(3).map(inst => fetchPiped(inst, videoId));
-      const results = await Promise.all(remainingPiped);
-      audioUrl = results.find(url => !!url) || null;
-    }
+    const audioUrl = await fetchStream(videoId);
 
     if (audioUrl) {
       if (shouldStream || shouldDownload) {
+        // If the URL is already a piped proxy URL, we can just redirect to it or proxy it again
+        // But to be safe and ensure CORS, we proxy it here.
         const proxyRes = await proxyStream(req, audioUrl, shouldDownload, title);
         if (proxyRes) return proxyRes;
       } else {
