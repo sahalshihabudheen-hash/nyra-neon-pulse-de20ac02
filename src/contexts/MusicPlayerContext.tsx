@@ -57,6 +57,10 @@ interface MusicPlayerContextType {
   tracks: Track[];
   setTracks: React.Dispatch<React.SetStateAction<Track[]>>;
 
+  // Panel state
+  nowPlayingOpen: boolean;
+  setNowPlayingOpen: React.Dispatch<React.SetStateAction<boolean>>;
+
   // Mini player visibility
   showMiniPlayer: boolean;
   setShowMiniPlayer: React.Dispatch<React.SetStateAction<boolean>>;
@@ -162,6 +166,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     queue, addToQueue, removeFromQueue, clearQueue,
     getNextFromQueue, shuffleMode, toggleShuffle, setLastPlayed,
   } = useQueue();
+
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
   const { recordPlay } = useListeningHistory();
@@ -653,6 +659,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
       shuffleMode, toggleShuffle,
       loopMode, cycleLoopMode,
+      nowPlayingOpen, setNowPlayingOpen,
       isFavorite, toggleFavorite,
       tracks, setTracks,
       showMiniPlayer, setShowMiniPlayer,

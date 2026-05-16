@@ -116,7 +116,10 @@ const MusicPlayer = ({
     volume,
     setVolume,
     isMuted,
+    isMuted,
     setIsMuted,
+    nowPlayingOpen,
+    setNowPlayingOpen,
   } = useMusicPlayer();
 
   const [progress, setProgress] = useState(0);
@@ -127,7 +130,6 @@ const MusicPlayer = ({
   const [showEQ, setShowEQ] = useState(false);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const formatTime = (seconds: number) => {
-
     if (!seconds || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -179,8 +181,6 @@ const MusicPlayer = ({
     setDuration(0);
   }, [currentTrack?.id]);
 
-
-
   const handleSeek = useCallback((value: number) => {
     setProgress(value);
     if (audioRef?.current && audioRef.current.src) {
@@ -221,9 +221,6 @@ const MusicPlayer = ({
   };
 
   const isMiniMode = settings.miniPlayerMode;
-
-
-  const [nowPlayingOpen, setNowPlayingOpen] = useState(false);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
 
   // Auto-mini player logic - triggers when playing starts or track changes
@@ -237,7 +234,7 @@ const MusicPlayer = ({
       setNowPlayingOpen(true);
       setHasAutoOpened(true);
     }
-  }, [isPlaying, currentTrack?.id, settings.autoMiniPlayer, isMiniMode, updateSettings, hasAutoOpened, nowPlayingOpen]);
+  }, [isPlaying, currentTrack?.id, settings.autoMiniPlayer, isMiniMode, updateSettings, hasAutoOpened, nowPlayingOpen, setNowPlayingOpen]);
 
   return (
     <>

@@ -462,7 +462,10 @@ const DjMode = () => {
 
       <Sidebar activeTab="dj" onTabChange={() => {}} />
 
-      <div className="relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pb-32">
+      <div className={cn(
+        "relative z-10 ml-0 md:ml-64 min-h-screen p-4 md:p-8 pb-32 transition-all duration-500",
+        nowPlayingOpen && "xl:pr-[380px]"
+      )}>
 
         {/* ── Header ── */}
         <div className="flex items-center gap-4 mb-8">
