@@ -60,7 +60,7 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
     try {
       updateItem(track.id, { status: 'downloading', progress: 50 });
       
-      const downloadUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}&download=1&title=${encodeURIComponent(track.title)}`;
+      const downloadUrl = `/api/get-audio-url?videoId=${track.id}&download=1&title=${encodeURIComponent(track.title)}`;
       
       // Use an iframe to trigger the download. This prevents the browser from 
       // navigating away from the current page if the server returns JSON or a redirect.

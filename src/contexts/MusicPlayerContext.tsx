@@ -292,13 +292,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       });
 
       const fetchPromise = fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}&stream=1`,
-        {
-          signal: controller.signal,
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
+        `/api/get-audio-url?videoId=${videoId}&stream=1`
       ).then(async (response) => {
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
@@ -322,7 +316,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           try { ytPlayerRef.current.pauseVideo(); } catch {}
         }
         // Force use of the CORS-compliant stream proxy
-        const proxyStreamUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}&stream=1`;
+        const proxyStreamUrl = `/api/get-audio-url?videoId=${videoId}&stream=1`;
         audioRef.current.src = proxyStreamUrl;
         audioRef.current.load(); // Ensure new source is loaded
         audioRef.current.play()
@@ -372,12 +366,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setUseBackgroundAudioMode(true);
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
+        `/api/get-audio-url?videoId=${track.id}`
       );
       const data = response.ok ? await response.json() : null;
       const audioUrl = data?.audioUrl;
@@ -392,7 +381,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         setTracks(options.trackList);
         setCurrentTrackIndex(options.trackList.findIndex(t => t.id === track.id));
       }
-      const streamUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${track.id}&stream=1`;
+      const streamUrl = `/api/get-audio-url?videoId=${track.id}&stream=1`;
 
       setCurrentTrack(track);
       setPlayingFromPlaylist(!!options?.fromPlaylist);

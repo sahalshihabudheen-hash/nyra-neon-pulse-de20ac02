@@ -580,12 +580,7 @@ const RollingSkyGame = () => {
   const getAudioUrl = async (trackId: string) => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${trackId}`,
-        {
-          headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
+        `/api/get-audio-url?videoId=${trackId}`
       );
       const data = await response.json();
       if (data.fallback || data.error || !data.audioUrl) {
