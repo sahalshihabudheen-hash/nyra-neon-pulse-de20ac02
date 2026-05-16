@@ -337,6 +337,9 @@ const MusicPlayer = ({
               <button onClick={() => setShowEQ(!showEQ)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all hidden md:flex", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
+              <button onClick={handleShare} className="p-1.5 md:p-2 rounded-md md:rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all">
+                <Share2 className="w-3 h-3 md:w-4 md:h-4" />
+              </button>
               {currentTrack && <DownloadButton track={currentTrack} />}
             </div>
 
