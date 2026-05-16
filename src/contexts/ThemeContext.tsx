@@ -169,6 +169,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [rgbHue, setRgbHue] = useState(0);
   const [rgbSat, setRgbSat] = useState(100);
   const [rgbLight, setRgbLight] = useState(50);
+  const [rgbOffset, setRgbOffset] = useState(60);
 
   // RGB Animation Loop
   useEffect(() => {
@@ -195,6 +196,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       setRgbLight(prev => {
         const pulse = 50 + Math.sin(time / 1000) * 15;
         return pulse;
+      });
+
+      // Gradient offset pulse - makes it sometimes single color and sometimes gradient
+      setRgbOffset(prev => {
+        const offset = 60 + Math.sin(time / 3000) * 60; // Pulses between 0 and 120
+        return offset;
       });
 
       animationFrameId = requestAnimationFrame(animate);
@@ -242,8 +249,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     // Apply gradient if enabled
     if (settings.rgbConfig.enabled && settings.rgbConfig.isGradient) {
-      const secondaryHue = (rgbHue + 90) % 360;
-      const secondarySat = 100 - rgbSat; // Inverse saturation for crazy contrast
+      const secondaryHue = (rgbHue + rgbOffset) % 360;
+      const secondarySat = rgbOffset < 10 ? rgbSat : (100 - rgbSat); // Sync saturation when near-solid
+      
       document.documentElement.style.setProperty(
         '--theme-gradient',
         `linear-gradient(135deg, hsl(${rgbHue}, ${rgbSat}%, ${rgbLight}%), hsl(${secondaryHue}, ${secondarySat}%, ${rgbLight}%))`
@@ -267,7 +275,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     } else {
       document.body.style.backgroundImage = '';
     }
-  }, [currentTheme, customColor, gradient, settings.rgbConfig, rgbHue, rgbSat, rgbLight]);
+  }, [currentTheme, customColor, gradient, settings.rgbConfig, rgbHue, rgbSat, rgbLight, rgbOffset]);
 
   useEffect(() => {
     localStorage.setItem('nyra-settings', JSON.stringify(settings));
