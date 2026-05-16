@@ -32,19 +32,29 @@ const Vinyl = ({ spinning, level, side }: { spinning: boolean; level: number; si
     />
     {/* Vinyl record */}
     <div
-      className={cn('relative rounded-full border-4 border-white/10 shadow-2xl', spinning && 'animate-spin')}
-      style={{ width: 160, height: 160, animationDuration: '2s', background: 'radial-gradient(circle, #1a1a1a 30%, #111 50%, #0a0a0a 100%)' }}
+      className={cn('relative rounded-full border-4 border-white/10 shadow-2xl transition-all duration-500', spinning && 'animate-spin')}
+      style={{ 
+        width: 'min(160px, 40vw)', 
+        height: 'min(160px, 40vw)', 
+        animationDuration: '2s', 
+        background: 'radial-gradient(circle, #1a1a1a 30%, #111 50%, #0a0a0a 100%)' 
+      }}
     >
       {/* Grooves */}
-      {[50, 65, 80, 95, 110, 125, 140].map(r => (
-        <div key={r} className="absolute rounded-full border border-white/5"
-          style={{ width: r, height: r, top: (160 - r) / 2, left: (160 - r) / 2 }} />
+      {[0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9].map(scale => (
+        <div key={scale} className="absolute rounded-full border border-white/5"
+          style={{ 
+            width: `${scale * 100}%`, 
+            height: `${scale * 100}%`, 
+            top: `${(1 - scale) * 50}%`, 
+            left: `${(1 - scale) * 50}%` 
+          }} />
       ))}
       {/* Label */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-primary/50"
+        <div className="w-[30%] h-[30%] rounded-full flex items-center justify-center border-2 border-primary/50"
           style={{ background: 'hsl(var(--primary)/0.2)' }}>
-          <span className="text-2xl font-black text-primary italic">{side}</span>
+          <span className="text-[min(2xl,5vw)] font-black text-primary italic">{side}</span>
         </div>
       </div>
       {/* Needle line */}
@@ -150,6 +160,7 @@ const DjMode = () => {
     nowPlayingOpen
   } = useMusicPlayer();
   const { state, apply, init, reSync, getLevels, getBassLevel } = useDjAudio();
+  const [activeDeck, setActiveDeck] = useState<'L' | 'R'>('L');
   const [levels, setLevels] = useState({ left: 0, right: 0 });
   const [smartBass, setSmartBass] = useState(false);
   const [query, setQuery] = useState('');
@@ -482,54 +493,54 @@ const DjMode = () => {
           )}>
             <Headphones className="w-7 h-7" />
           </div>
-          <div className="flex-1">
-            <h1 className="text-5xl font-black tracking-tighter uppercase italic" style={{
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl md:text-5xl font-black tracking-tighter uppercase italic truncate" style={{
               background: 'linear-gradient(135deg, hsl(var(--primary)), #fff, hsl(var(--primary)))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>DJ Mode <span className="text-[10px] opacity-20 not-italic">v2.1</span></h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/50 mt-1">
-              {state.active ? '● LIVE · AUDIO ENGINE ACTIVE' : '○ OFFLINE · ENABLE TO START'}
+            }}>DJ Mode <span className="text-[10px] opacity-20 not-italic hidden sm:inline">v2.2</span></h1>
+            <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground/50 mt-1 truncate">
+              {state.active ? '● LIVE · ENGINE ACTIVE' : '○ OFFLINE · START ENGINE'}
             </p>
           </div>
           {/* BPM indicator */}
           {state.active && (
             <div className={cn('w-3 h-3 rounded-full transition-all duration-200', beat ? 'bg-primary shadow-[0_0_15px_hsl(var(--primary))]' : 'bg-primary/30')} />
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 md:gap-2">
             {state.active && (
               <button
                 onClick={() => setAutoDjActive(a => !a)}
                 className={cn(
-                  'px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2',
+                  'p-2.5 md:px-4 md:py-2 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2',
                   autoDjActive 
-                    ? 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)] hover:scale-105'
-                    : 'border border-white/10 bg-white/5 hover:bg-white/10'
+                    ? 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
+                    : 'border border-white/10 bg-white/5'
                 )}
               >
                 <Wand2 className={cn("w-4 h-4", autoDjActive && "animate-pulse")} />
-                Auto DJ
+                <span className="hidden sm:inline">Auto DJ</span>
               </button>
             )}
             <button
               onClick={() => setShowSearch(s => !s)}
-              className="px-4 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+              className="p-2.5 md:px-4 md:py-2 rounded-xl border border-white/10 bg-white/5 font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <Search className="w-4 h-4" />
-              Tracks
+              <span className="hidden sm:inline">Tracks</span>
               {showSearch ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
             <button
               onClick={state.active ? reset : enable}
               disabled={forcing}
               className={cn(
-                'px-5 py-2 rounded-xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2',
+                'p-2.5 md:px-5 md:py-2 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2',
                 state.active
-                  ? 'border border-white/10 bg-white/5 hover:bg-white/10'
-                  : 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)] hover:scale-105'
+                  ? 'border border-white/10 bg-white/5'
+                  : 'bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--primary)/0.4)]'
               )}
             >
               {forcing ? <Loader2 className="w-4 h-4 animate-spin" /> : state.active ? <RotateCcw className="w-4 h-4" /> : <Power className="w-4 h-4" />}
-              {forcing ? 'Loading' : state.active ? 'Reset' : 'Enable DJ'}
+              <span className="hidden sm:inline">{forcing ? 'Loading' : state.active ? 'Reset' : 'Enable'}</span>
             </button>
           </div>
         </div>
@@ -800,23 +811,23 @@ const DjMode = () => {
             <VuMeter level={levels.left} />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Channel Volume</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Gain</span>
                 <span className={cn("text-xs font-black tabular-nums transition-colors", effectiveGainL > 0 ? "text-primary" : "text-red-500/50")}>
                   {Math.round(effectiveGainL * 100)}%
                 </span>
               </div>
-              <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+              <div className="relative h-3 md:h-2 bg-white/5 rounded-full overflow-hidden">
                 <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
                   style={{ width: `${(effectiveGainL / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
                 <input type="range" min={0} max={150} step={1} value={Math.round(state.leftGain * 100)}
                   onChange={e => apply({ ...state, leftGain: +e.target.value / 100 })}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full" />
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
               </div>
               <div className="flex gap-2 mt-1">
                 <button onClick={() => apply({ ...state, leftGain: Math.max(0, state.leftGain - 0.1) })}
-                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">−</button>
+                  className="flex-1 py-2.5 md:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">−</button>
                 <button onClick={() => apply({ ...state, leftGain: Math.min(1.5, state.leftGain + 0.1) })}
-                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">+</button>
+                  className="flex-1 py-2.5 md:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">+</button>
               </div>
             </div>
           </div>
@@ -964,9 +975,10 @@ const DjMode = () => {
 
           {/* Deck R */}
           <div className={cn(
-            'relative rounded-[2rem] border overflow-hidden p-6 flex flex-col gap-5 transition-all duration-300',
+            'relative rounded-[2rem] border overflow-hidden p-4 md:p-6 flex flex-col gap-4 md:gap-5 transition-all duration-300',
             state.active && levels.right > 0.3 ? 'border-primary/40' : 'border-white/8',
-            'bg-gradient-to-b from-white/3 to-transparent backdrop-blur-xl'
+            'bg-gradient-to-b from-white/3 to-transparent backdrop-blur-xl',
+            activeDeck === 'L' && 'hidden xl:flex'
           )}
             style={{
               boxShadow: state.active ? `0 0 ${20 + levels.right * 40}px hsl(var(--primary)/${0.05 + levels.right * 0.15})` : 'none'
@@ -985,23 +997,23 @@ const DjMode = () => {
             <VuMeter level={levels.right} />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Channel Volume</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">Gain</span>
                 <span className={cn("text-xs font-black tabular-nums transition-colors", effectiveGainR > 0 ? "text-primary" : "text-red-500/50")}>
                   {Math.round(effectiveGainR * 100)}%
                 </span>
               </div>
-              <div className="relative h-2 bg-white/5 rounded-full overflow-hidden">
+              <div className="relative h-3 md:h-2 bg-white/5 rounded-full overflow-hidden">
                 <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-100"
                   style={{ width: `${(effectiveGainR / 1.5) * 100}%`, background: 'linear-gradient(90deg, hsl(var(--primary)), #fff)' }} />
                 <input type="range" min={0} max={150} step={1} value={Math.round(state.rightGain * 100)}
                   onChange={e => apply({ ...state, rightGain: +e.target.value / 100 })}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full" />
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
               </div>
               <div className="flex gap-2 mt-1">
                 <button onClick={() => apply({ ...state, rightGain: Math.max(0, state.rightGain - 0.1) })}
-                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">−</button>
+                  className="flex-1 py-2.5 md:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">−</button>
                 <button onClick={() => apply({ ...state, rightGain: Math.min(1.5, state.rightGain + 0.1) })}
-                  className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">+</button>
+                  className="flex-1 py-2.5 md:py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-black transition-all active:scale-95">+</button>
               </div>
             </div>
           </div>

@@ -240,11 +240,11 @@ const MusicPlayer = ({
     <footer className={cn(
         'fixed bottom-4 left-4 right-4 md:bottom-6 md:left-[272px] transition-all duration-700 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-50',
         nowPlayingOpen ? 'md:right-[380px]' : 'md:right-6',
-        'h-[140px] md:h-[170px] py-2 md:py-4 px-4 md:px-8'
+        'h-[80px] md:h-[170px] py-1 md:py-4 px-3 md:px-8'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
-        <div className="h-full flex items-center justify-between relative z-10 gap-2 md:gap-8">
+        <div className="h-full flex items-center justify-between relative z-10 gap-1 md:gap-8">
           {/* Left: Track Info (Responsive Width) */}
           <div 
             className="flex items-center gap-2 md:gap-3 cursor-pointer group/track min-w-0 w-[35%] md:w-80"
@@ -307,8 +307,8 @@ const MusicPlayer = ({
               </button>
             </div>
 
-            {/* Soundwave (Middle) */}
-            <div className="w-20 md:w-32 h-4 md:h-6 opacity-40 overflow-hidden pointer-events-none">
+            {/* Soundwave (Middle) - Hidden on mobile for space */}
+            <div className="hidden md:block w-32 h-6 opacity-40 overflow-hidden pointer-events-none">
               <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
             </div>
 
