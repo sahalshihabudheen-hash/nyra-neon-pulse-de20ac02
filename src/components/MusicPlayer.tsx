@@ -116,7 +116,6 @@ const MusicPlayer = ({
     volume,
     setVolume,
     isMuted,
-    isMuted,
     setIsMuted,
     nowPlayingOpen,
     setNowPlayingOpen,
