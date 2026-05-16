@@ -166,10 +166,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     }
   });
 
-  const [rgbHue, setRgbHue] = useState(0);
-  const [rgbSat, setRgbSat] = useState(100);
-  const [rgbLight, setRgbLight] = useState(50);
-  const [rgbOffset, setRgbOffset] = useState(60);
+  // Use refs for RGB values to avoid re-rendering the whole app 60 times a second
+  // since these only update CSS variables directly
+  const rgbHueRef = useRef(0);
+  const rgbSatRef = useRef(100);
+  const rgbLightRef = useRef(50);
+  const rgbOffsetRef = useRef(60);
 
   // RGB Animation Loop
   useEffect(() => {
@@ -184,132 +186,153 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
       const speedFactor = settings.rgbConfig.speed * deltaTime;
 
-      setRgbHue(prev => (prev + speedFactor / 50) % 360);
+      rgbHueRef.current = (rgbHueRef.current + speedFactor / 50) % 360;
       
-      // Cycle saturation for "all colors including white"
-      setRgbSat(prev => {
-        const next = prev + (Math.sin(time / 2000) * speedFactor / 100);
-        return Math.max(0, Math.min(100, next));
-      });
+      // Cycle saturation
+      const satDelta = (Math.sin(time / 2000) * speedFactor / 100);
+      rgbSatRef.current = Math.max(0, Math.min(100, rgbSatRef.current + satDelta));
 
-      // Lightness pulse for "crazy" effect
-      setRgbLight(prev => {
-        const pulse = 50 + Math.sin(time / 1000) * 15;
-        return pulse;
-      });
+      // Lightness pulse
+      rgbLightRef.current = 50 + Math.sin(time / 1000) * 15;
 
-      // Gradient offset pulse - makes it sometimes single color and sometimes gradient
-      setRgbOffset(prev => {
-        const offset = 60 + Math.sin(time / 3000) * 60; // Pulses between 0 and 120
-        return offset;
-      });
+      // Gradient offset pulse
+      rgbOffsetRef.current = 60 + Math.sin(time / 3000) * 60;
+
+      // Apply variables directly to DOM
+      const h = Math.round(rgbHueRef.current);
+      const s = Math.round(rgbSatRef.current);
+      const l = Math.round(rgbLightRef.current);
+      const o = Math.round(rgbOffsetRef.current);
+      
+      const primaryHsl = `${h} ${s}% ${l}%`;
+      const hslStr = `hsl(${primaryHsl})`;
+
+      document.documentElement.style.setProperty('--primary', primaryHsl);
+      document.documentElement.style.setProperty('--accent', primaryHsl);
+      document.documentElement.style.setProperty('--ring', primaryHsl);
+      document.documentElement.style.setProperty('--sidebar-primary', primaryHsl);
+      document.documentElement.style.setProperty('--sidebar-ring', primaryHsl);
+      document.documentElement.style.setProperty('--neon', primaryHsl);
+      
+      document.documentElement.style.setProperty(
+        '--neon-glow',
+        `0 0 20px ${hslStr.replace(')', ' / 0.5)')}, 0 0 40px ${hslStr.replace(')', ' / 0.3)')}`
+      );
+      document.documentElement.style.setProperty(
+        '--neon-glow-strong',
+        `0 0 30px ${hslStr.replace(')', ' / 0.6)')}, 0 0 60px ${hslStr.replace(')', ' / 0.4)')}, 0 0 100px ${hslStr.replace(')', ' / 0.2)')}`
+      );
+
+      if (settings.rgbConfig.isGradient) {
+        const secondaryHue = (h + o) % 360;
+        const secondarySat = o < 10 ? s : (100 - s);
+        document.documentElement.style.setProperty(
+          '--theme-gradient',
+          `linear-gradient(135deg, hsl(${h}, ${s}%, ${l}%), hsl(${secondaryHue}, ${secondarySat}%, ${l}%))`
+        );
+      } else {
+        document.documentElement.style.removeProperty('--theme-gradient');
+      }
 
       animationFrameId = requestAnimationFrame(animate);
     };
 
     animationFrameId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [settings.rgbConfig.enabled, settings.rgbConfig.speed]);
+  }, [settings.rgbConfig.enabled, settings.rgbConfig.speed, settings.rgbConfig.isGradient]);
 
   useEffect(() => {
     localStorage.setItem('nyra-theme', currentTheme);
     localStorage.setItem('nyra-custom-color', customColor);
     localStorage.setItem('nyra-gradient', JSON.stringify(gradient));
     
-    let primaryHsl: string;
-    
-    if (settings.rgbConfig.enabled) {
-      primaryHsl = `${Math.round(rgbHue)} ${Math.round(rgbSat)}% ${Math.round(rgbLight)}%`;
-    } else if (gradient.enabled) {
-      primaryHsl = hexToHsl(gradient.startColor);
-    } else if (currentTheme === 'custom') {
-      primaryHsl = hexToHsl(customColor);
-    } else {
-      primaryHsl = themes[currentTheme].primary;
-    }
-    
-    // Apply CSS variables
-    document.documentElement.style.setProperty('--primary', primaryHsl);
-    document.documentElement.style.setProperty('--accent', primaryHsl);
-    document.documentElement.style.setProperty('--ring', primaryHsl);
-    document.documentElement.style.setProperty('--sidebar-primary', primaryHsl);
-    document.documentElement.style.setProperty('--sidebar-ring', primaryHsl);
-    document.documentElement.style.setProperty('--neon', primaryHsl);
-    
-    // Update neon glow
-    const hsl = `hsl(${primaryHsl})`;
-    document.documentElement.style.setProperty(
-      '--neon-glow',
-      `0 0 20px ${hsl.replace(')', ' / 0.5)')}, 0 0 40px ${hsl.replace(')', ' / 0.3)')}`
-    );
-    document.documentElement.style.setProperty(
-      '--neon-glow-strong',
-      `0 0 30px ${hsl.replace(')', ' / 0.6)')}, 0 0 60px ${hsl.replace(')', ' / 0.4)')}, 0 0 100px ${hsl.replace(')', ' / 0.2)')}`
-    );
-
-    // Apply gradient if enabled
-    if (settings.rgbConfig.enabled && settings.rgbConfig.isGradient) {
-      const secondaryHue = (rgbHue + rgbOffset) % 360;
-      const secondarySat = rgbOffset < 10 ? rgbSat : (100 - rgbSat); // Sync saturation when near-solid
+    // Only apply static variables if RGB is disabled
+    if (!settings.rgbConfig.enabled) {
+      let primaryHsl: string;
+      if (gradient.enabled) {
+        primaryHsl = hexToHsl(gradient.startColor);
+      } else if (currentTheme === 'custom') {
+        primaryHsl = hexToHsl(customColor);
+      } else {
+        primaryHsl = themes[currentTheme].primary;
+      }
       
+      document.documentElement.style.setProperty('--primary', primaryHsl);
+      document.documentElement.style.setProperty('--accent', primaryHsl);
+      document.documentElement.style.setProperty('--ring', primaryHsl);
+      document.documentElement.style.setProperty('--sidebar-primary', primaryHsl);
+      document.documentElement.style.setProperty('--sidebar-ring', primaryHsl);
+      document.documentElement.style.setProperty('--neon', primaryHsl);
+      
+      const hsl = `hsl(${primaryHsl})`;
       document.documentElement.style.setProperty(
-        '--theme-gradient',
-        `linear-gradient(135deg, hsl(${rgbHue}, ${rgbSat}%, ${rgbLight}%), hsl(${secondaryHue}, ${secondarySat}%, ${rgbLight}%))`
+        '--neon-glow',
+        `0 0 20px ${hsl.replace(')', ' / 0.5)')}, 0 0 40px ${hsl.replace(')', ' / 0.3)')}`
       );
-    } else if (gradient.enabled) {
       document.documentElement.style.setProperty(
-        '--theme-gradient',
-        `linear-gradient(${gradient.angle}deg, ${gradient.startColor}, ${gradient.endColor})`
+        '--neon-glow-strong',
+        `0 0 30px ${hsl.replace(')', ' / 0.6)')}, 0 0 60px ${hsl.replace(')', ' / 0.4)')}, 0 0 100px ${hsl.replace(')', ' / 0.2)')}`
       );
-    } else {
-      document.documentElement.style.removeProperty('--theme-gradient');
-    }
 
-    // Apply background image if exists
-    const theme = themes[currentTheme];
-    if (theme.backgroundImage && !settings.rgbConfig.enabled) {
-      document.body.style.backgroundImage = `url(${theme.backgroundImage})`;
-      document.body.style.backgroundSize = 'cover';
-      document.body.style.backgroundPosition = 'center';
-      document.body.style.backgroundAttachment = 'fixed';
+      if (gradient.enabled) {
+        document.documentElement.style.setProperty(
+          '--theme-gradient',
+          `linear-gradient(${gradient.angle}deg, ${gradient.startColor}, ${gradient.endColor})`
+        );
+      } else {
+        document.documentElement.style.removeProperty('--theme-gradient');
+      }
+
+      const theme = themes[currentTheme];
+      if (theme.backgroundImage) {
+        document.body.style.backgroundImage = `url(${theme.backgroundImage})`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+      } else {
+        document.body.style.backgroundImage = '';
+      }
     } else {
+      // Clear background image in RGB mode
       document.body.style.backgroundImage = '';
     }
-  }, [currentTheme, customColor, gradient, settings.rgbConfig, rgbHue, rgbSat, rgbLight, rgbOffset]);
+  }, [currentTheme, customColor, gradient, settings.rgbConfig.enabled]);
 
   useEffect(() => {
     localStorage.setItem('nyra-settings', JSON.stringify(settings));
   }, [settings]);
 
-  const setTheme = (theme: ThemeName) => {
+  const setTheme = useCallback((theme: ThemeName) => {
     setCurrentTheme(theme);
-  };
+  }, []);
 
-  const setCustomColor = (color: string) => {
+  const setCustomColor = useCallback((color: string) => {
     setCustomColorState(color);
     setCurrentTheme('custom');
-  };
+  }, []);
 
-  const setGradient = (newGradient: Partial<GradientConfig>) => {
+  const setGradient = useCallback((newGradient: Partial<GradientConfig>) => {
     setGradientState(prev => ({ ...prev, ...newGradient }));
-  };
+  }, []);
 
-  const updateSettings = (newSettings: Partial<AppSettings>) => {
+  const updateSettings = useCallback((newSettings: Partial<AppSettings>) => {
     setSettings(prev => ({ ...prev, ...newSettings }));
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    currentTheme, 
+    setTheme, 
+    settings, 
+    updateSettings,
+    customColor,
+    setCustomColor,
+    gradient,
+    setGradient,
+  }), [currentTheme, setTheme, settings, updateSettings, customColor, setCustomColor, gradient, setGradient]);
 
   return (
-    <ThemeContext.Provider value={{ 
-      currentTheme, 
-      setTheme, 
-      settings, 
-      updateSettings,
-      customColor,
-      setCustomColor,
-      gradient,
-      setGradient,
-    }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );
-};
+};
