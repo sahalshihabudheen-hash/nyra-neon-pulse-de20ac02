@@ -35,7 +35,7 @@
         </provider>
 
         <service
-            android:name=".MediaSessionService"
+            android:name=".NyraMediaService"
             android:enabled="true"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback">
