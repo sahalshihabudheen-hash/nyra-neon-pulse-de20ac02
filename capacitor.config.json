@@ -1,22 +1,17 @@
 {
-  "appId": "app.lovable.445b8b727b5d49efbe2da5363a3de026",
-  "appName": "NYRA",
+  "appId": "com.nyra.pulse",
+  "appName": "Nyra Neon Pulse",
   "webDir": "dist",
+  "bundledWebRuntime": false,
   "server": {
-    "url": "https://445b8b72-7b5d-49ef-be2d-a5363a3de026.lovableproject.com?forceHideBadge=true",
-    "cleartext": true
+    "androidScheme": "https"
   },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
-      "backgroundColor": "#0a0a0a",
-      "showSpinner": false
+      "backgroundColor": "#030303",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
     }
-  },
-  "android": {
-    "allowMixedContent": true
-  },
-  "ios": {
-    "contentInset": "automatic"
   }
 }

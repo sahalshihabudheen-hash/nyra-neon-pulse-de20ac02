@@ -634,9 +634,20 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       ['pause', () => { audioRef.current?.pause(); ytPlayerRef.current?.pauseVideo?.(); }],
       ['previoustrack', handlePrevious],
       ['nexttrack', handleNext],
+      ['seekto', (details) => {
+        if (details.seekTime !== undefined) {
+          if (audioRef.current) audioRef.current.currentTime = details.seekTime;
+          ytPlayerRef.current?.seekTo(details.seekTime, true);
+        }
+      }],
+      ['stop', () => {
+        audioRef.current?.pause();
+        if (audioRef.current) audioRef.current.currentTime = 0;
+        ytPlayerRef.current?.stopVideo?.();
+      }],
     ];
     for (const [action, handler] of handlers) {
-      try { navigator.mediaSession.setActionHandler(action, handler); } catch {}
+      try { navigator.mediaSession.setActionHandler(action as any, handler); } catch {}
     }
     return () => {
       for (const [action] of handlers) {
