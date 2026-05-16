@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2, RotateCcw, Sliders, Shield } from 'lucide-react';
+import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2, RotateCcw, Sliders, Shield, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName, ProgressBarStyle } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
@@ -533,6 +533,70 @@ const Settings = () => {
                   disabled={!gradient.enabled}
                   className="w-full"
                 />
+              </div>
+            </div>
+          </section>
+
+          {/* RGB Lighting Settings */}
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <Sparkles className="w-6 h-6 text-primary" />
+              <h2 className="text-xl md:text-2xl font-semibold text-foreground">RGB Lighting</h2>
+            </div>
+
+            <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
+              {/* Enable RGB Mode */}
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground text-sm md:text-base">Enable RGB Mode</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Dynamic color shifting across the entire UI</p>
+                </div>
+                <Switch
+                  checked={settings.rgbConfig.enabled}
+                  onCheckedChange={(checked) => updateSettings({ 
+                    rgbConfig: { ...settings.rgbConfig, enabled: checked } 
+                  })}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+
+              {/* RGB Gradient Toggle */}
+              <div className="flex items-center justify-between gap-4 mb-6 border-t border-border pt-6">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground text-sm md:text-base">RGB Gradient</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Use two shifting colors for a gradient effect</p>
+                </div>
+                <Switch
+                  disabled={!settings.rgbConfig.enabled}
+                  checked={settings.rgbConfig.isGradient}
+                  onCheckedChange={(checked) => updateSettings({ 
+                    rgbConfig: { ...settings.rgbConfig, isGradient: checked } 
+                  })}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+
+              {/* RGB Speed */}
+              <div className="border-t border-border pt-6">
+                <label className="text-sm text-muted-foreground mb-3 block flex justify-between">
+                  <span>Transition Speed</span>
+                  <span className="text-primary font-medium">{settings.rgbConfig.speed.toFixed(1)}x</span>
+                </label>
+                <Slider
+                  value={[settings.rgbConfig.speed]}
+                  onValueChange={([value]) => updateSettings({ 
+                    rgbConfig: { ...settings.rgbConfig, speed: value } 
+                  })}
+                  min={0.1}
+                  max={5}
+                  step={0.1}
+                  disabled={!settings.rgbConfig.enabled}
+                  className="w-full"
+                />
+                <div className="flex justify-between mt-2 text-[10px] text-muted-foreground uppercase tracking-widest">
+                  <span>Slow</span>
+                  <span>Fast</span>
+                </div>
               </div>
             </div>
           </section>

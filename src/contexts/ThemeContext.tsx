@@ -56,6 +56,12 @@ export interface GradientConfig {
   angle: number;
 }
 
+export interface RgbConfig {
+  enabled: boolean;
+  isGradient: boolean;
+  speed: number; // 0.1 to 5
+}
+
 export type ProgressBarStyle = 'classic' | 'wavy' | 'dots' | 'thin' | 'rounded';
 
 interface AppSettings {
@@ -65,6 +71,7 @@ interface AppSettings {
   autoMiniPlayer: boolean;
   soundwaveShape: SoundwaveShape;
   progressBarStyle: ProgressBarStyle;
+  rgbConfig: RgbConfig;
 }
 
 interface ThemeContextType {
@@ -139,16 +146,50 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       autoMiniPlayer: true,
       soundwaveShape: 'bars' as SoundwaveShape,
       progressBarStyle: 'classic' as ProgressBarStyle,
+      rgbConfig: {
+        enabled: false,
+        isGradient: true,
+        speed: 1,
+      },
     };
     const saved = localStorage.getItem('nyra-settings');
     if (!saved) return defaults;
     try {
       const parsed = JSON.parse(saved);
-      return { ...defaults, ...parsed };
+      return { 
+        ...defaults, 
+        ...parsed,
+        rgbConfig: { ...defaults.rgbConfig, ...(parsed.rgbConfig || {}) }
+      };
     } catch {
       return defaults;
     }
   });
+
+  const [rgbHue, setRgbHue] = useState(0);
+
+  // RGB Animation Loop
+  useEffect(() => {
+    if (!settings.rgbConfig.enabled) return;
+
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const animate = (time: number) => {
+      const deltaTime = time - lastTime;
+      lastTime = time;
+
+      setRgbHue(prevHue => {
+        const deltaHue = (settings.rgbConfig.speed * deltaTime) / 50;
+        return (prevHue + deltaHue) % 360;
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [settings.rgbConfig.enabled, settings.rgbConfig.speed]);
 
   useEffect(() => {
     localStorage.setItem('nyra-theme', currentTheme);
@@ -157,8 +198,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     
     let primaryHsl: string;
     
-    // If gradient is enabled, use the start color as primary
-    if (gradient.enabled) {
+    if (settings.rgbConfig.enabled) {
+      primaryHsl = `${Math.round(rgbHue)} 100% 50%`;
+    } else if (gradient.enabled) {
       primaryHsl = hexToHsl(gradient.startColor);
     } else if (currentTheme === 'custom') {
       primaryHsl = hexToHsl(customColor);
@@ -186,7 +228,13 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     );
 
     // Apply gradient if enabled
-    if (gradient.enabled) {
+    if (settings.rgbConfig.enabled && settings.rgbConfig.isGradient) {
+      const secondaryHue = (rgbHue + 60) % 360;
+      document.documentElement.style.setProperty(
+        '--theme-gradient',
+        `linear-gradient(135deg, hsl(${rgbHue}, 100%, 50%), hsl(${secondaryHue}, 100%, 50%))`
+      );
+    } else if (gradient.enabled) {
       document.documentElement.style.setProperty(
         '--theme-gradient',
         `linear-gradient(${gradient.angle}deg, ${gradient.startColor}, ${gradient.endColor})`
@@ -197,7 +245,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     // Apply background image if exists
     const theme = themes[currentTheme];
-    if (theme.backgroundImage) {
+    if (theme.backgroundImage && !settings.rgbConfig.enabled) {
       document.body.style.backgroundImage = `url(${theme.backgroundImage})`;
       document.body.style.backgroundSize = 'cover';
       document.body.style.backgroundPosition = 'center';
@@ -205,7 +253,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     } else {
       document.body.style.backgroundImage = '';
     }
-  }, [currentTheme, customColor, gradient]);
+  }, [currentTheme, customColor, gradient, settings.rgbConfig, rgbHue]);
 
   useEffect(() => {
     localStorage.setItem('nyra-settings', JSON.stringify(settings));
