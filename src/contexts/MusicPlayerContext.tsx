@@ -131,6 +131,28 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setActiveSource(source);
   }, []);
 
+  const safePlay = useCallback(async (audio: HTMLAudioElement) => {
+    try {
+      await audio.play();
+      setIsPlaying(true);
+      return true;
+    } catch (e: any) {
+      if (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS')) {
+        console.warn('CORS/Suitability failure, retrying without crossOrigin');
+        audio.removeAttribute('crossOrigin');
+        audio.load();
+        try {
+          await audio.play();
+          setIsPlaying(true);
+          return true;
+        } catch (innerError) {
+          console.error('Non-CORS fallback also failed:', innerError);
+        }
+      }
+      return false;
+    }
+  }, []);
+
   const {
     playlist, addToPlaylist, removeFromPlaylist, clearPlaylist,
     isInPlaylist, getNextTrack, getPreviousTrack, reorderPlaylist,
@@ -318,44 +340,20 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         // Force use of the CORS-compliant stream proxy
         const proxyStreamUrl = `/api/get-audio-url?videoId=${videoId}&stream=1`;
         audioRef.current.src = proxyStreamUrl;
+        audioRef.current.load();
         
-        // Safety Fallback: If CORS blocks playback (common with YouTube streams),
-        // we automatically retry without crossOrigin so the music still plays.
-        const originalErrorHandler = audioRef.current.onerror;
-        audioRef.current.onerror = (e) => {
-          if (audioRef.current && audioRef.current.crossOrigin === 'anonymous') {
-            console.warn('CORS playback failed, falling back to non-CORS mode');
-            audioRef.current.removeAttribute('crossOrigin');
-            audioRef.current.load();
-            audioRef.current.play().catch(err => console.error('Non-CORS fallback also failed:', err));
-          } else if (originalErrorHandler) {
-            // @ts-ignore
-            originalErrorHandler(e);
+        const success = await safePlay(audioRef.current);
+        if (!success) {
+          if (useBackgroundAudioOnly) {
+            toast.error('DJ Audio failed to resume. Tap anywhere to continue.');
+            return;
           }
-        };
-
-        audioRef.current.load(); // Ensure new source is loaded
-        audioRef.current.play()
-          .then(() => setIsPlaying(true))
-          .catch((e) => {
-            console.warn('Background audio play failed:', e);
-            if (e.name === 'NotSupportedError' || e.message?.includes('suitable')) {
-               // Force retry immediately if the error is detected early
-               audioRef.current?.removeAttribute('crossOrigin');
-               audioRef.current?.load();
-               audioRef.current?.play().then(() => setIsPlaying(true)).catch(() => {});
-               return;
-            }
-            if (useBackgroundAudioOnly) {
-              toast.error('DJ Audio failed to resume. Tap anywhere to continue.');
-              return;
-            }
-            setPlaybackSource('youtube');
-            const yt = (window as any).YT;
-            if (ytApiReady && yt?.Player) {
-              createPlayer(videoId);
-            }
-          });
+          setPlaybackSource('youtube');
+          const yt = (window as any).YT;
+          if (ytApiReady && yt?.Player) {
+            createPlayer(videoId);
+          }
+        }
         return;
       }
     } catch (error) {
@@ -468,10 +466,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => {
-          console.error("Play failed:", e);
-          if (e.name !== 'AbortError') {
-            toast.error("Playback failed: " + (e.message || "Media unsuitable"));
+        safePlay(audioRef.current).then(success => {
+          if (!success) {
+            toast.error("Playback failed. Reconnecting...");
+            // Switch to YouTube as last resort
+            setPlaybackSource('youtube');
           }
         });
       }
