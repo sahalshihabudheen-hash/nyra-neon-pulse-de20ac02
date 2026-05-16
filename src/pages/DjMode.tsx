@@ -146,7 +146,8 @@ const DjMode = () => {
     ytPlayerRef, audioRef,
     shuffleMode, toggleShuffle,
     loopMode, cycleLoopMode,
-    queue, removeFromQueue
+    queue, removeFromQueue,
+    nowPlayingOpen
   } = useMusicPlayer();
   const { state, apply, init, reSync, getLevels, getBassLevel } = useDjAudio();
   const [levels, setLevels] = useState({ left: 0, right: 0 });
