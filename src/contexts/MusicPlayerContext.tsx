@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import { notifyNativeTrack, notifyNativePlayback, listenCarCommands } from '@/lib/nyraMediaBridge';
 import { toast } from 'sonner';
 import { usePlaylist } from '@/hooks/usePlaylist';
 import { useQueue } from '@/hooks/useQueue';
@@ -621,6 +622,33 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       ],
     });
   }, [currentTrack]);
+
+  // --- Android Auto Bridge ---
+  useEffect(() => {
+    if (!currentTrack) return;
+    notifyNativeTrack(
+      currentTrack.title,
+      currentTrack.channel,
+      currentTrack.thumbnail,
+      (audioRef.current?.duration || 0) * 1000
+    );
+  }, [currentTrack]);
+
+  useEffect(() => {
+    notifyNativePlayback(isPlaying, (audioRef.current?.currentTime || 0) * 1000);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    const unsub = listenCarCommands(
+      () => { audioRef.current?.play()?.catch(() => {}); ytPlayerRef.current?.playVideo?.(); },
+      () => { audioRef.current?.pause(); ytPlayerRef.current?.pauseVideo?.(); },
+      (ms) => {
+        if (audioRef.current) audioRef.current.currentTime = ms / 1000;
+        ytPlayerRef.current?.seekTo?.(ms / 1000, true);
+      }
+    );
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
