@@ -321,7 +321,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         if (ytPlayerRef.current) {
           try { ytPlayerRef.current.pauseVideo(); } catch {}
         }
-        audioRef.current.src = audioUrl;
+        // Force use of the CORS-compliant stream proxy
+        const proxyStreamUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?videoId=${videoId}&stream=1`;
+        audioRef.current.src = proxyStreamUrl;
         audioRef.current.load(); // Ensure new source is loaded
         audioRef.current.play()
           .then(() => setIsPlaying(true))
@@ -454,7 +456,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
-        audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        audioRef.current.play().then(() => setIsPlaying(true)).catch((e) => {
+          console.error("Play failed:", e);
+          if (e.name !== 'AbortError') {
+            toast.error("Playback failed: " + (e.message || "Media unsuitable"));
+          }
+        });
       }
       return;
     }
