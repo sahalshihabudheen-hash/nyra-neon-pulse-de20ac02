@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useMemo, useCallback } from 'react';
 import type { SoundwaveShape } from '@/components/SoundwaveVisualizer';
 
 export type ThemeName = 'yellow' | 'blue' | 'green' | 'purple' | 'red' | 'custom';

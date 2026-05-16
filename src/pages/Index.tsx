@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SplashScreen from '@/components/SplashScreen';
 import Sidebar from '@/components/Sidebar';
