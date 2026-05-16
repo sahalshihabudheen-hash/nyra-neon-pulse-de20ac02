@@ -16,19 +16,25 @@ public class NyraMediaPlugin extends Plugin {
 
     @PluginMethod
     public void updateTrack(PluginCall call) {
-        String title   = call.getString("title", "Unknown");
-        String artist  = call.getString("artist", "");
-        String artwork = call.getString("artwork", "");
-        long duration  = call.getLong("duration", 0L);
-        NyraMediaBridge.getInstance().updateTrack(title, artist, artwork, duration);
+        final String title   = call.getString("title", "Unknown");
+        final String artist  = call.getString("artist", "");
+        final String artwork = call.getString("artwork", "");
+        final long duration  = call.getLong("duration", 0L);
+        // Must run on UI/main thread because SimpleBasePlayer requires it
+        getActivity().runOnUiThread(() ->
+            NyraMediaBridge.getInstance().updateTrack(title, artist, artwork, duration)
+        );
         call.resolve();
     }
 
     @PluginMethod
     public void setPlaybackState(PluginCall call) {
-        boolean isPlaying = Boolean.TRUE.equals(call.getBoolean("isPlaying", false));
-        long position     = call.getLong("position", 0L);
-        NyraMediaBridge.getInstance().updatePlaybackState(isPlaying, position);
+        final boolean isPlaying = Boolean.TRUE.equals(call.getBoolean("isPlaying", false));
+        final long position     = call.getLong("position", 0L);
+        // Must run on UI/main thread
+        getActivity().runOnUiThread(() ->
+            NyraMediaBridge.getInstance().updatePlaybackState(isPlaying, position)
+        );
         call.resolve();
     }
 

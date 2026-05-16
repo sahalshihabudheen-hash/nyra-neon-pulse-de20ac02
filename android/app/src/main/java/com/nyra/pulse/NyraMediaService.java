@@ -31,11 +31,15 @@ public class NyraMediaService extends MediaLibraryService {
     }
 
     public void updateTrack(String title, String artist, String artwork, long durationMs) {
-        virtualPlayer.updateTrack(title, artist, artwork, durationMs);
+        if (virtualPlayer != null) {
+            virtualPlayer.updateTrack(title, artist, artwork, durationMs);
+        }
     }
 
     public void updatePlaybackState(boolean isPlaying, long positionMs) {
-        virtualPlayer.updatePlaybackState(isPlaying, positionMs);
+        if (virtualPlayer != null) {
+            virtualPlayer.updatePlaybackState(isPlaying, positionMs);
+        }
     }
 
     @Nullable
@@ -46,6 +50,7 @@ public class NyraMediaService extends MediaLibraryService {
 
     @Override
     public void onDestroy() {
+        NyraMediaBridge.getInstance().setService(null);
         if (mediaLibrarySession != null) { mediaLibrarySession.release(); mediaLibrarySession = null; }
         if (virtualPlayer != null) { virtualPlayer.release(); virtualPlayer = null; }
         super.onDestroy();
