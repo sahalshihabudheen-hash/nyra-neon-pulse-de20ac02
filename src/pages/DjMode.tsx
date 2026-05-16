@@ -243,6 +243,12 @@ const DjMode = () => {
           next.leftGain = 0;
           next.low = 4;
         }
+
+        // Auto DJ Center Boost: When the mix is centered, push both decks to 150% volume for maximum impact
+        if (Math.abs(next.balance) < 0.15) {
+          next.leftGain = 1.5;
+          next.rightGain = 1.5;
+        }
         
         apply(next);
       }, interval);
