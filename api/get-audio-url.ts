@@ -91,7 +91,7 @@ async function proxyStream(req: Request, url: string, download: boolean, title: 
     };
     if (range) upstreamHeaders['Range'] = range;
 
-    const res = await fetch(url, { headers: upstreamHeaders, signal: AbortSignal.timeout(20000) });
+    const res = await fetch(url, { headers: upstreamHeaders });
     if (!res.ok && res.status !== 206) return null;
 
     const responseHeaders = new Headers(corsHeaders);

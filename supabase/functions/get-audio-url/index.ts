@@ -111,7 +111,7 @@ async function proxyStream(req: Request, url: string, download: boolean, title: 
     const upstreamHeaders: HeadersInit = { 'User-Agent': 'Mozilla/5.0...', 'Referer': 'https://www.youtube.com/', 'Accept': '*/*' };
     if (range) upstreamHeaders['Range'] = range;
 
-    const res = await fetch(url, { headers: upstreamHeaders, signal: AbortSignal.timeout(20000) });
+    const res = await fetch(url, { headers: upstreamHeaders });
     if (!res.ok && res.status !== 206) return null;
 
     const responseHeaders = new Headers(corsHeaders);

@@ -321,7 +321,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       });
 
       const fetchPromise = fetch(
-        `/api/get-audio-url?videoId=${videoId}&stream=1`
+        `/api/get-audio-url?videoId=${videoId}`
       ).then(async (response) => {
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
