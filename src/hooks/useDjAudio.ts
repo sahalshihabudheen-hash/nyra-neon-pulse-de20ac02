@@ -147,7 +147,9 @@ export function useDjAudio() {
     console.log("DJ Engine: Deep Re-Sync initiated");
     initedRef.current = false;
     const ok = init();
-    if (ok) apply(stateRef.current);
+    // IMPORTANT: preserve active:true — apply(stateRef.current) would override
+    // the active:true set by init() since stateRef still has active:false
+    if (ok) apply({ ...stateRef.current, active: true });
     return ok;
   }, [init, apply]);
 

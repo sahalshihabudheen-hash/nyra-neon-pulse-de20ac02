@@ -426,12 +426,12 @@ const DjMode = () => {
 
   const playForDj = async (track: Track, list?: Track[]) => {
     setForcing(true);
-    // Loading ONLY the selected track as a single-item list to prevent auto-playing the next one
     const ready = await forceBackgroundPlayback(track, { trackList: [track], fromPlaylist: false });
     setForcing(false);
-    if (ready) init();
-    
-    // Auto-hide search when playing from results
+    if (ready) {
+      // Use reSync (not bare init) so active:true is properly preserved
+      setTimeout(() => reSync(), 150);
+    }
     setShowSearch(false);
     setResults([]);
   };
