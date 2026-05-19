@@ -579,8 +579,10 @@ const RollingSkyGame = () => {
   // Audio URL fetcher
   const getAudioUrl = async (trackId: string) => {
     try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+      const baseUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/get-audio-url` : '/api/get-audio-url';
       const response = await fetch(
-        `/api/get-audio-url?videoId=${trackId}`
+        `${baseUrl}?videoId=${trackId}`
       );
       const data = await response.json();
       if (data.fallback || data.error || !data.audioUrl) {

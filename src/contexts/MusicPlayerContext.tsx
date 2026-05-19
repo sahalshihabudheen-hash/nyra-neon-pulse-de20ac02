@@ -8,6 +8,16 @@ import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTabTitle } from '@/hooks/useTabTitle';
 
+const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+  const baseUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/get-audio-url` : '/api/get-audio-url';
+  const params = new URLSearchParams({ videoId });
+  if (options?.stream) params.append('stream', '1');
+  if (options?.download) params.append('download', '1');
+  if (options?.title) params.append('title', options.title);
+  return `${baseUrl}?${params.toString()}`;
+};
+
 export interface Track {
   id: string;
   title: string;
@@ -321,7 +331,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       });
 
       const fetchPromise = fetch(
-        `/api/get-audio-url?videoId=${videoId}`
+        getAudioUrlEndpoint(videoId)
       ).then(async (response) => {
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
@@ -345,7 +355,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           try { ytPlayerRef.current.pauseVideo(); } catch {}
         }
         // Force use of the CORS-compliant stream proxy
-        const proxyStreamUrl = `/api/get-audio-url?videoId=${videoId}&stream=1`;
+        const proxyStreamUrl = getAudioUrlEndpoint(videoId, { stream: true });
         audioRef.current.crossOrigin = 'anonymous';
         audioRef.current.src = proxyStreamUrl;
         audioRef.current.load();
@@ -395,7 +405,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setUseBackgroundAudioMode(true);
 
       const response = await fetch(
-        `/api/get-audio-url?videoId=${track.id}`
+        getAudioUrlEndpoint(track.id)
       );
       const data = response.ok ? await response.json() : null;
       const audioUrl = data?.audioUrl;
@@ -424,7 +434,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       // Direct Piped URLs are blocked by some ISPs (e.g. India).
       // The edge function runs from US/EU IPs that can reach Piped.
       // The browser makes range requests — each small chunk completes within timeouts.
-      const streamUrl = `/api/get-audio-url?videoId=${track.id}&stream=1`;
+      const streamUrl = getAudioUrlEndpoint(track.id, { stream: true });
       // IMPORTANT: Keep crossOrigin='anonymous' — required for Web Audio API (DJ effects)
       // Removing it would silently break the DJ engine even though audio still plays
       audioRef.current.crossOrigin = 'anonymous';
