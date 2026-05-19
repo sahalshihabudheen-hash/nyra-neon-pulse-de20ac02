@@ -346,6 +346,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         }
         // Force use of the CORS-compliant stream proxy
         const proxyStreamUrl = `/api/get-audio-url?videoId=${videoId}&stream=1`;
+        audioRef.current.crossOrigin = 'anonymous';
         audioRef.current.src = proxyStreamUrl;
         audioRef.current.load();
         
