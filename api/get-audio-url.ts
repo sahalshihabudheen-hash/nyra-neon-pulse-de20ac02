@@ -124,10 +124,13 @@ export default async function handler(req: Request) {
 
     if (audioUrl) {
       if (shouldStream || shouldDownload) {
-        // If the URL is already a piped proxy URL, we can just redirect to it or proxy it again
-        // But to be safe and ensure CORS, we proxy it here.
-        const proxyRes = await proxyStream(req, audioUrl, shouldDownload, title);
-        if (proxyRes) return proxyRes;
+        return new Response(null, {
+          status: 302,
+          headers: {
+            ...corsHeaders,
+            'Location': audioUrl
+          }
+        });
       } else {
         return new Response(JSON.stringify({ audioUrl, audioUrl1: audioUrl, success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }

@@ -90,8 +90,13 @@ serve(async (req) => {
 
         if (streamUrl) {
           if (shouldStream || shouldDownload) {
-            const proxyRes = await proxyStream(req, streamUrl, shouldDownload, title);
-            if (proxyRes) return proxyRes;
+            return new Response(null, {
+              status: 302,
+              headers: {
+                ...corsHeaders,
+                'Location': streamUrl
+              }
+            });
           } else {
             return returnJson(streamUrl);
           }
