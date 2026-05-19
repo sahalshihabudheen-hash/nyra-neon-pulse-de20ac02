@@ -400,8 +400,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       const audioUrl = data?.audioUrl;
 
       if (!audioUrl) {
-        // No direct URL found — fall back to YouTube IFrame player
-        console.warn('No audio URL, falling back to YouTube player');
+        // No URL found — fall back to YouTube IFrame player
+        console.warn('No audio URL from API, falling back to YouTube player');
         setPlaybackSource('youtube');
         if (ytApiReady) createPlayer(track.id);
         return false;
@@ -419,11 +419,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setShowMiniPlayer(true);
       setPlaybackSource('background');
 
-      // Use the direct Piped/Invidious URL on the audio element.
-      // HTML5 <audio> does NOT enforce CORS, so third-party URLs work directly.
-      // This avoids routing audio through our edge function (which has time/size limits).
+      // IMPORTANT: Use the edge function as the audio proxy (&stream=1).
+      // Direct Piped URLs are blocked by some ISPs (e.g. India).
+      // The edge function runs from US/EU IPs that can reach Piped.
+      // The browser makes range requests — each small chunk completes within timeouts.
+      const streamUrl = `/api/get-audio-url?videoId=${track.id}&stream=1`;
       audioRef.current.removeAttribute('crossOrigin');
-      audioRef.current.src = audioUrl;
+      audioRef.current.src = streamUrl;
       audioRef.current.preload = 'auto';
       audioRef.current.load();
 
@@ -432,12 +434,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         setIsPlaying(true);
       } catch (playError: any) {
         if (playError?.name === 'NotAllowedError') {
-          // Autoplay policy — user must press play
+          // Autoplay blocked — user must press play
           setIsPlaying(false);
           toast.info('DJ Mode ready. Press Play to start audio.');
         } else {
-          // Audio source invalid — fall back to YouTube IFrame player
-          console.warn('Direct audio failed, using YouTube player:', playError?.message);
+          // Stream failed — fall back to YouTube IFrame player
+          console.warn('Stream proxy failed, using YouTube player:', playError?.message);
           audioRef.current.src = '';
           setPlaybackSource('youtube');
           if (ytApiReady) createPlayer(track.id);
