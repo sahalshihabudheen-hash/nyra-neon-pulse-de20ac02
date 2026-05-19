@@ -400,8 +400,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       const audioUrl = data?.audioUrl;
 
       if (!audioUrl) {
+        // No direct URL found — fall back to YouTube IFrame player
+        console.warn('No audio URL, falling back to YouTube player');
         setPlaybackSource('youtube');
-        toast.error('DJ audio stream unavailable for this song');
+        if (ytApiReady) createPlayer(track.id);
         return false;
       }
 
@@ -409,7 +411,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         setTracks(options.trackList);
         setCurrentTrackIndex(options.trackList.findIndex(t => t.id === track.id));
       }
-      const streamUrl = `/api/get-audio-url?videoId=${track.id}&stream=1`;
 
       setCurrentTrack(track);
       setPlayingFromPlaylist(!!options?.fromPlaylist);
@@ -417,29 +418,41 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       recordPlay(track);
       setShowMiniPlayer(true);
       setPlaybackSource('background');
-      
-      // Load the stream URL
-      audioRef.current.src = streamUrl;
+
+      // Use the direct Piped/Invidious URL on the audio element.
+      // HTML5 <audio> does NOT enforce CORS, so third-party URLs work directly.
+      // This avoids routing audio through our edge function (which has time/size limits).
+      audioRef.current.removeAttribute('crossOrigin');
+      audioRef.current.src = audioUrl;
+      audioRef.current.preload = 'auto';
       audioRef.current.load();
-      
+
       try {
         await audioRef.current.play();
         setIsPlaying(true);
-      } catch (playError) {
-        console.warn('DJ audio play() failed (likely autoplay policy):', playError);
-        // Don't completely fail DJ setup just because auto-play was blocked
-        setIsPlaying(false);
-        toast.info('DJ Mode ready. Press Play to start audio.');
+      } catch (playError: any) {
+        if (playError?.name === 'NotAllowedError') {
+          // Autoplay policy — user must press play
+          setIsPlaying(false);
+          toast.info('DJ Mode ready. Press Play to start audio.');
+        } else {
+          // Audio source invalid — fall back to YouTube IFrame player
+          console.warn('Direct audio failed, using YouTube player:', playError?.message);
+          audioRef.current.src = '';
+          setPlaybackSource('youtube');
+          if (ytApiReady) createPlayer(track.id);
+          toast.info('Playing via YouTube player.');
+        }
       }
-      
+
       return true;
     } catch (error: any) {
       console.warn('Force DJ source failed:', error);
       setPlaybackSource('youtube');
-      toast.error(`Could not start DJ audio stream: ${error?.message || 'Network error'}`);
+      toast.error(`Could not start DJ audio: ${error?.message || 'Network error'}`);
       return false;
     }
-  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource]);
+  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
