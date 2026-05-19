@@ -48,6 +48,7 @@ const AiDj = () => {
     handleRemoveFromPlaylist, handleClearPlaylist,
     playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
     shuffleMode, toggleShuffle,
+    loopMode, cycleLoopMode,
     isFavorite, toggleFavorite,
     setShowMiniPlayer,
   } = useMusicPlayer();
@@ -337,6 +338,8 @@ const AiDj = () => {
         audioRef={audioRef}
         shuffleMode={shuffleMode}
         onToggleShuffle={toggleShuffle}
+        loopMode={loopMode}
+        onCycleLoopMode={cycleLoopMode}
         queue={queue}
         onRemoveFromQueue={removeFromQueue}
         onPlayFromQueue={handlePlayFromQueue}

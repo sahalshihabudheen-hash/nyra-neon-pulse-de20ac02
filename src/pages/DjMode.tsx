@@ -407,7 +407,7 @@ const DjMode = () => {
     };
   }, [currentTrack?.id, isPlaying, activeSource, reSync, audioRef]);
 
-  const enable = async () => {
+  const enable = async (): Promise<boolean> => {
     setForcing(true);
     const ready = activeSource === 'background' ? true : await forceBackgroundPlayback();
     setForcing(false);
@@ -429,6 +429,14 @@ const DjMode = () => {
     const ready = await forceBackgroundPlayback(track, { trackList: [track], fromPlaylist: false });
     setForcing(false);
     if (ready) {
+      // Auto-init the engine if not already active, then re-sync
+      if (!state.active) {
+        const ok = init();
+        if (ok) {
+          setUseBackgroundAudioOnly(true);
+          setShowMiniPlayer(true);
+        }
+      }
       // Use reSync (not bare init) so active:true is properly preserved
       setTimeout(() => reSync(), 150);
     }
@@ -707,7 +715,7 @@ const DjMode = () => {
                             loading="lazy"
                           />
                           <button
-                            onClick={() => playForDj(track, playlist, true)}
+                            onClick={() => playForDj(track, playlist)}
                             className={cn(
                               "absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 backdrop-blur-[2px] transition-all",
                               currentTrack?.id === track.id ? "opacity-100" : "opacity-0 group-hover/art:opacity-100"

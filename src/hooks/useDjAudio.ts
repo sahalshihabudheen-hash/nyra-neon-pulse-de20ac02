@@ -52,16 +52,25 @@ export function useDjAudio() {
       if (!ctx) ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       if (ctx.state === 'suspended') ctx.resume();
 
-      // If we already have a functional chain, just ensure it's connected
-      if (merger && initedRef.current) {
+      // Fast path: graph is fully wired to the same element — just ensure destination is connected
+      if (merger && source && initedRef.current && (source as any).mediaElement === audioRef.current) {
         try { merger.connect(ctx.destination); } catch(e) {}
+        if (ctx.state === 'suspended') ctx.resume();
         return true;
       }
 
-      // If the media element changed or source was lost, we must rebuild the source link
-      if (!source || (source as any).mediaElement !== audioRef.current) {
-        if (source) try { source.disconnect(); } catch(e) {}
-        source = ctx.createMediaElementSource(audioRef.current);
+      // Source node creation:
+      // MediaElementAudioSourceNode is permanently bound to its HTMLAudioElement.
+      // createMediaElementSource throws InvalidStateError if called again on the same element.
+      // So: create only on first init. On reSync, the same source node is reused and the
+      // graph is just rewired from scratch around it.
+      if (!source) {
+        try {
+          source = ctx.createMediaElementSource(audioRef.current);
+        } catch(e: any) {
+          console.error('DJ createMediaElementSource failed:', e);
+          return false;
+        }
       }
 
       if (!splitter) splitter = ctx.createChannelSplitter(2);
@@ -88,8 +97,16 @@ export function useDjAudio() {
         highEq.frequency.value = 3200;
       }
 
-      // Clean routing
-      source.disconnect();
+      // Disconnect all nodes cleanly before rewiring to avoid duplicate signal paths
+      try { source.disconnect(); } catch(e) {}
+      try { splitter.disconnect(); } catch(e) {}
+      try { gainL.disconnect(); } catch(e) {}
+      try { gainR.disconnect(); } catch(e) {}
+      try { analyserL.disconnect(); } catch(e) {}
+      try { analyserR.disconnect(); } catch(e) {}
+      try { merger.disconnect(); } catch(e) {}
+
+      // Rewire: source → EQ chain → splitter → gains → analysers → merger → output
       source.connect(lowEq);
       lowEq.connect(midEq);
       midEq.connect(highEq);
@@ -145,6 +162,8 @@ export function useDjAudio() {
 
   const reSync = useCallback(() => {
     console.log("DJ Engine: Deep Re-Sync initiated");
+    // Reset init flag to force full graph rewire (but keep source node —
+    // MediaElementAudioSourceNode is permanently bound to its element)
     initedRef.current = false;
     const ok = init();
     // IMPORTANT: preserve active:true — apply(stateRef.current) would override

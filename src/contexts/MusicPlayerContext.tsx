@@ -424,7 +424,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       // The edge function runs from US/EU IPs that can reach Piped.
       // The browser makes range requests — each small chunk completes within timeouts.
       const streamUrl = `/api/get-audio-url?videoId=${track.id}&stream=1`;
-      audioRef.current.removeAttribute('crossOrigin');
+      // IMPORTANT: Keep crossOrigin='anonymous' — required for Web Audio API (DJ effects)
+      // Removing it would silently break the DJ engine even though audio still plays
+      audioRef.current.crossOrigin = 'anonymous';
       audioRef.current.src = streamUrl;
       audioRef.current.preload = 'auto';
       audioRef.current.load();
