@@ -309,10 +309,27 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [settings.autoPlayNext]);
 
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
-    // Stop any existing background audio
-    if (audioRef.current) {
+    if (activeSourceRef.current === 'background') {
       audioRef.current.pause();
       audioRef.current.src = '';
+    }
+
+    if (useBackgroundAudioOnlyRef.current) {
+      setPlaybackSource('background');
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.pauseVideo(); } catch {}
+      }
+      const proxyStreamUrl = getAudioUrlEndpoint(videoId, { stream: true });
+      audioRef.current.crossOrigin = 'anonymous';
+      audioRef.current.src = proxyStreamUrl;
+      audioRef.current.preload = 'auto';
+      audioRef.current.load();
+      
+      const success = await safePlay(audioRef.current);
+      if (!success) {
+        toast.error('DJ Audio failed to load. Tap play to retry.');
+      }
+      return;
     }
 
     // Race a direct audio URL fetch against a fast timeout so playback starts
@@ -414,6 +431,42 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       audioRef.current.src = '';
       setUseBackgroundAudioMode(true);
 
+      if (options?.trackList) {
+        setTracks(options.trackList);
+        setCurrentTrackIndex(options.trackList.findIndex(t => t.id === track.id));
+      }
+
+      setCurrentTrack(track);
+      setPlayingFromPlaylist(!!options?.fromPlaylist);
+      setLastPlayed(track.id);
+      recordPlay(track);
+      setShowMiniPlayer(true);
+      setPlaybackSource('background');
+
+      if (useBackgroundAudioOnlyRef.current) {
+        const streamUrl = getAudioUrlEndpoint(track.id, { stream: true });
+        audioRef.current.crossOrigin = 'anonymous';
+        audioRef.current.src = streamUrl;
+        audioRef.current.preload = 'auto';
+        audioRef.current.load();
+
+        try {
+          await audioRef.current.play();
+          setIsPlaying(true);
+          return true;
+        } catch (playError: any) {
+          if (playError?.name === 'NotAllowedError') {
+            setIsPlaying(false);
+            toast.info('DJ Mode ready. Press Play to start audio.');
+          } else {
+            console.warn('Stream proxy failed:', playError?.message);
+            toast.error('DJ Audio stream failed. Retrying...');
+            return false;
+          }
+        }
+        return true;
+      }
+
       const response = await fetch(
         getAudioUrlEndpoint(track.id)
       );
@@ -431,18 +484,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         if (ytApiReady) createPlayer(track.id);
         return false;
       }
-
-      if (options?.trackList) {
-        setTracks(options.trackList);
-        setCurrentTrackIndex(options.trackList.findIndex(t => t.id === track.id));
-      }
-
-      setCurrentTrack(track);
-      setPlayingFromPlaylist(!!options?.fromPlaylist);
-      setLastPlayed(track.id);
-      recordPlay(track);
-      setShowMiniPlayer(true);
-      setPlaybackSource('background');
 
       // IMPORTANT: Use the edge function as the audio proxy (&stream=1).
       // Direct Piped URLs are blocked by some ISPs (e.g. India).
