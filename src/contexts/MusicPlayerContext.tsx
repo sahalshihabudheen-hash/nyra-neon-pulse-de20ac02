@@ -102,7 +102,17 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [tracks, setTracks] = useState<Track[]>([]);
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
   const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
-  const [useBackgroundAudioOnly, setUseBackgroundAudioOnly] = useState(false);
+  const [useBackgroundAudioOnly, setUseBackgroundAudioOnlyState] = useState(false);
+  const useBackgroundAudioOnlyRef = useRef(false);
+
+  const setUseBackgroundAudioOnly = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
+    setUseBackgroundAudioOnlyState(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      useBackgroundAudioOnlyRef.current = next;
+      return next;
+    });
+  }, []);
+
   const [ytApiReady, setYtApiReady] = useState(false);
   const [showMiniPlayer, setShowMiniPlayer] = useState(false);
   const [loopMode, setLoopMode] = useState<'off' | 'all' | 'one'>(() => {
@@ -152,7 +162,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setIsPlaying(true);
       return true;
     } catch (e: any) {
-      if (!useBackgroundAudioOnly && (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS'))) {
+      if (!useBackgroundAudioOnlyRef.current && (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS'))) {
         console.warn('CORS/Suitability failure, retrying without crossOrigin');
         audio.removeAttribute('crossOrigin');
         audio.load();
@@ -166,7 +176,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
       return false;
     }
-  }, [useBackgroundAudioOnly]);
+  }, []);
 
   const {
     playlist, addToPlaylist, removeFromPlaylist, clearPlaylist,
@@ -309,14 +319,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     // instantly via YouTube if the edge function is slow.
     // Race a direct audio URL fetch against a timeout.
     // Increased timeout for better reliability on slower connections.
-    const START_TIMEOUT_MS = useBackgroundAudioOnly ? 20000 : 2500;
+    const START_TIMEOUT_MS = useBackgroundAudioOnlyRef.current ? 20000 : 2500;
     let usedFallback = false;
 
     try {
       const controller = new AbortController();
       const timeoutPromise = new Promise<null>((resolve) => {
         setTimeout(() => {
-          if (!usedFallback && !useBackgroundAudioOnly) {
+          if (!usedFallback && !useBackgroundAudioOnlyRef.current) {
             usedFallback = true;
             console.log('Background audio timeout, using YT fallback');
             setPlaybackSource('youtube');
@@ -362,7 +372,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         
         const success = await safePlay(audioRef.current);
         if (!success) {
-          if (useBackgroundAudioOnly) {
+          if (useBackgroundAudioOnlyRef.current) {
             toast.error('DJ Audio failed to resume. Tap anywhere to continue.');
             return;
           }
@@ -379,7 +389,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
 
 
-    if (usedFallback || useBackgroundAudioOnly) return;
+    if (usedFallback || useBackgroundAudioOnlyRef.current) return;
     // Final fallback to standard YouTube IFrame player
     setPlaybackSource('youtube');
     const yt = (window as any).YT;
@@ -412,7 +422,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
       if (!audioUrl) {
         console.warn('No audio URL from API');
-        if (useBackgroundAudioOnly) {
+        if (useBackgroundAudioOnlyRef.current) {
           toast.error('DJ Audio stream unavailable. Try another song.');
           return false;
         }
@@ -456,7 +466,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           toast.info('DJ Mode ready. Press Play to start audio.');
         } else {
           console.warn('Stream proxy failed:', playError?.message);
-          if (useBackgroundAudioOnly) {
+          if (useBackgroundAudioOnlyRef.current) {
             toast.error('DJ Audio stream failed. Retrying...');
             return false;
           }
@@ -471,7 +481,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return true;
     } catch (error: any) {
       console.warn('Force DJ source failed:', error);
-      if (useBackgroundAudioOnly) {
+      if (useBackgroundAudioOnlyRef.current) {
         toast.error(`DJ Audio failed: ${error?.message || 'Network error'}`);
         return false;
       }
@@ -479,7 +489,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       toast.error(`Could not start DJ audio: ${error?.message || 'Network error'}`);
       return false;
     }
-  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, useBackgroundAudioOnly]);
+  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
