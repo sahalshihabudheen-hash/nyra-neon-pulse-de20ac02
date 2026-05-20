@@ -411,8 +411,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       const audioUrl = data?.audioUrl;
 
       if (!audioUrl) {
+        console.warn('No audio URL from API');
+        if (useBackgroundAudioOnly) {
+          toast.error('DJ Audio stream unavailable. Try another song.');
+          return false;
+        }
         // No URL found — fall back to YouTube IFrame player
-        console.warn('No audio URL from API, falling back to YouTube player');
         setPlaybackSource('youtube');
         if (ytApiReady) createPlayer(track.id);
         return false;
@@ -451,8 +455,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           setIsPlaying(false);
           toast.info('DJ Mode ready. Press Play to start audio.');
         } else {
+          console.warn('Stream proxy failed:', playError?.message);
+          if (useBackgroundAudioOnly) {
+            toast.error('DJ Audio stream failed. Retrying...');
+            return false;
+          }
           // Stream failed — fall back to YouTube IFrame player
-          console.warn('Stream proxy failed, using YouTube player:', playError?.message);
           audioRef.current.src = '';
           setPlaybackSource('youtube');
           if (ytApiReady) createPlayer(track.id);
@@ -463,11 +471,15 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return true;
     } catch (error: any) {
       console.warn('Force DJ source failed:', error);
+      if (useBackgroundAudioOnly) {
+        toast.error(`DJ Audio failed: ${error?.message || 'Network error'}`);
+        return false;
+      }
       setPlaybackSource('youtube');
       toast.error(`Could not start DJ audio: ${error?.message || 'Network error'}`);
       return false;
     }
-  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
+  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, useBackgroundAudioOnly]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {

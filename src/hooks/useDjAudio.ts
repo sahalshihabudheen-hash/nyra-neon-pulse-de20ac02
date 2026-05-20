@@ -32,6 +32,23 @@ export function useDjAudio() {
 
   const initedRef = useRef(false);
   const stateRef = useRef(state);
+  const isPlayingRef = useRef(isPlaying);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  const unlock = useCallback(() => {
+    try {
+      if (!ctx) ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (ctx.state === 'suspended') {
+        console.log("DJ Engine: Unlocking AudioContext from gesture...");
+        ctx.resume();
+      }
+    } catch (e) {
+      console.warn('DJ Engine: Failed to unlock AudioContext:', e);
+    }
+  }, []);
 
   // Memoize apply so it doesn't change on every render
   const apply = useCallback((next: DjState) => {
@@ -99,6 +116,9 @@ export function useDjAudio() {
 
       // Disconnect all nodes cleanly before rewiring to avoid duplicate signal paths
       try { source.disconnect(); } catch(e) {}
+      try { lowEq.disconnect(); } catch(e) {}
+      try { midEq.disconnect(); } catch(e) {}
+      try { highEq.disconnect(); } catch(e) {}
       try { splitter.disconnect(); } catch(e) {}
       try { gainL.disconnect(); } catch(e) {}
       try { gainR.disconnect(); } catch(e) {}
@@ -143,7 +163,6 @@ export function useDjAudio() {
       }
     };
 
-    const isPlayingRef = { current: isPlaying };
     const periodicSync = setInterval(() => {
       if (initedRef.current && isPlayingRef.current) {
         if (ctx?.state === 'suspended') ctx.resume();
@@ -156,7 +175,24 @@ export function useDjAudio() {
       audioRef.current?.removeEventListener('play', handleSync);
       clearInterval(periodicSync);
     };
-  }, [init]); // isPlaying removed to prevent setup loops
+  }, [init]);
+
+  // Window-level user gesture listener to rescue suspended context
+  useEffect(() => {
+    const handleGesture = () => {
+      if (ctx && ctx.state === 'suspended' && stateRef.current.active) {
+        console.log("DJ Engine: User gesture context resume");
+        ctx.resume().catch(e => console.warn("Failed to resume ctx on gesture:", e));
+      }
+    };
+
+    window.addEventListener('click', handleGesture);
+    window.addEventListener('touchstart', handleGesture);
+    return () => {
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+    };
+  }, []);
 
   useEffect(() => { stateRef.current = state; }, [state]);
 
@@ -191,5 +227,5 @@ export function useDjAudio() {
     return bassData.reduce((a, b) => a + b, 0) / bassData.length / 255;
   }, []);
 
-  return { state, apply, init, reSync, getLevels, getBassLevel };
+  return { state, apply, init, reSync, getLevels, getBassLevel, unlock };
 }

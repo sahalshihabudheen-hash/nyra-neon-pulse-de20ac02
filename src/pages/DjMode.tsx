@@ -159,7 +159,7 @@ const DjMode = () => {
     queue, removeFromQueue,
     nowPlayingOpen
   } = useMusicPlayer();
-  const { state, apply, init, reSync, getLevels, getBassLevel } = useDjAudio();
+  const { state, apply, init, reSync, getLevels, getBassLevel, unlock } = useDjAudio();
   const [activeDeck, setActiveDeck] = useState<'L' | 'R'>('L');
   const [levels, setLevels] = useState({ left: 0, right: 0 });
   const [smartBass, setSmartBass] = useState(false);
@@ -408,6 +408,7 @@ const DjMode = () => {
   }, [currentTrack?.id, isPlaying, activeSource, reSync, audioRef]);
 
   const enable = async (): Promise<boolean> => {
+    unlock();
     setForcing(true);
     const ready = activeSource === 'background' ? true : await forceBackgroundPlayback();
     setForcing(false);
@@ -425,6 +426,7 @@ const DjMode = () => {
   };
 
   const playForDj = async (track: Track, list?: Track[]) => {
+    unlock();
     setForcing(true);
     const ready = await forceBackgroundPlayback(track, { trackList: [track], fromPlaylist: false });
     setForcing(false);
