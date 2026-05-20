@@ -518,6 +518,25 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
 
   const handlePlayPause = useCallback(() => {
+    // If we have a track but no active source is playing it yet, start it up!
+    if (currentTrack && (
+      !activeSourceRef.current || 
+      (useBackgroundAudioOnlyRef.current && activeSourceRef.current !== 'background') ||
+      (activeSourceRef.current === 'background' && audioRef.current && !audioRef.current.src)
+    )) {
+      if (useBackgroundAudioOnlyRef.current) {
+        playWithBackgroundAudio(currentTrack.id);
+      } else {
+        if (useBackgroundAudioMode) {
+          playWithBackgroundAudio(currentTrack.id);
+        } else {
+          setPlaybackSource('youtube');
+          if (ytApiReady) createPlayer(currentTrack.id);
+        }
+      }
+      return;
+    }
+
     if (activeSourceRef.current === 'background' && audioRef.current && audioRef.current.src) {
       if (isPlaying) {
         audioRef.current.pause();
@@ -527,7 +546,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           if (!success) {
             toast.error("Playback failed. Reconnecting...");
             // Switch to YouTube as last resort
-            setPlaybackSource('youtube');
+            if (!useBackgroundAudioOnlyRef.current) {
+              setPlaybackSource('youtube');
+            }
           }
         });
       }
@@ -538,7 +559,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       if (isPlaying) { ytPlayerRef.current.pauseVideo(); setIsPlaying(false); }
       else { ytPlayerRef.current.playVideo(); setIsPlaying(true); }
     } catch {}
-  }, [isPlaying]);
+  }, [isPlaying, currentTrack, useBackgroundAudioMode, playWithBackgroundAudio, ytApiReady, createPlayer, safePlay]);
 
   const cycleLoopMode = useCallback(() => {
     setLoopMode(prev => {
