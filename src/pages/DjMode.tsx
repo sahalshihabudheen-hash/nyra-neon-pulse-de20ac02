@@ -409,17 +409,21 @@ const DjMode = () => {
 
   const enable = async (): Promise<boolean> => {
     unlock();
+    setUseBackgroundAudioOnly(true);
     setForcing(true);
     const ready = activeSource === 'background' ? true : await forceBackgroundPlayback();
     setForcing(false);
-    if (!ready) return false;
+    if (!ready) {
+      setUseBackgroundAudioOnly(false);
+      return false;
+    }
     const ok = init();
     if (ok) {
-      setUseBackgroundAudioOnly(true);
       setShowMiniPlayer(true);
     }
     if (!ok) {
       toast.error('DJ engine could not connect — needs audio stream mode');
+      setUseBackgroundAudioOnly(false);
       return false;
     }
     return true;
@@ -427,6 +431,7 @@ const DjMode = () => {
 
   const playForDj = async (track: Track, list?: Track[]) => {
     unlock();
+    setUseBackgroundAudioOnly(true);
     setForcing(true);
     const ready = await forceBackgroundPlayback(track, { trackList: [track], fromPlaylist: false });
     setForcing(false);
@@ -435,12 +440,13 @@ const DjMode = () => {
       if (!state.active) {
         const ok = init();
         if (ok) {
-          setUseBackgroundAudioOnly(true);
           setShowMiniPlayer(true);
         }
       }
       // Use reSync (not bare init) so active:true is properly preserved
       setTimeout(() => reSync(), 150);
+    } else {
+      setUseBackgroundAudioOnly(false);
     }
     setShowSearch(false);
     setResults([]);

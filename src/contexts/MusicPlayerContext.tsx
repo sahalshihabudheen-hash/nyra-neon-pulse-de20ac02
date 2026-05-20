@@ -152,7 +152,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setIsPlaying(true);
       return true;
     } catch (e: any) {
-      if (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS')) {
+      if (!useBackgroundAudioOnly && (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS'))) {
         console.warn('CORS/Suitability failure, retrying without crossOrigin');
         audio.removeAttribute('crossOrigin');
         audio.load();
@@ -166,7 +166,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
       return false;
     }
-  }, []);
+  }, [useBackgroundAudioOnly]);
 
   const {
     playlist, addToPlaylist, removeFromPlaylist, clearPlaylist,
