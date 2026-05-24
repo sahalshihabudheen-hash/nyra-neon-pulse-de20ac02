@@ -327,26 +327,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       
       const success = await safePlay(audioRef.current);
       if (!success) {
-        // ATTEMPT DIRECT FALLBACK
-        try {
-          toast.info('Resolving direct audio stream fallback...');
-          const response = await fetch(getAudioUrlEndpoint(videoId));
-          const data = response.ok ? await response.json() : null;
-          const directAudioUrl = data?.audioUrl || data?.audioUrl1;
-          if (directAudioUrl) {
-            console.log('Playing via direct audio stream fallback');
-            audioRef.current.removeAttribute('crossOrigin');
-            audioRef.current.src = directAudioUrl;
-            audioRef.current.load();
-            const fallbackSuccess = await safePlay(audioRef.current);
-            if (fallbackSuccess) {
-              toast.warning('DJ effects disabled: playing raw stream fallback.');
-              return;
-            }
-          }
-        } catch (fallbackErr) {
-          console.error('Direct fallback failed:', fallbackErr);
-        }
         toast.error('DJ Audio failed to load. Tap play to retry.');
       }
       return;
@@ -480,25 +460,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             toast.info('DJ Mode ready. Press Play to start audio.');
           } else {
             console.warn('Stream proxy failed:', playError?.message);
-            try {
-              toast.info('Resolving direct audio stream fallback...');
-              const response = await fetch(getAudioUrlEndpoint(track.id));
-              const data = response.ok ? await response.json() : null;
-              const directAudioUrl = data?.audioUrl || data?.audioUrl1;
-              if (directAudioUrl) {
-                console.log('Playing via direct audio stream fallback');
-                audioRef.current.removeAttribute('crossOrigin');
-                audioRef.current.src = directAudioUrl;
-                audioRef.current.load();
-                await audioRef.current.play();
-                setIsPlaying(true);
-                toast.warning('DJ effects disabled: playing raw stream fallback.');
-                return true;
-              }
-            } catch (fallbackErr: any) {
-              console.error('Direct audio stream fallback failed:', fallbackErr);
-            }
-            toast.error('DJ Audio stream failed. Try another song.');
+            toast.error('DJ Audio stream failed. Retrying...');
             return false;
           }
         }
