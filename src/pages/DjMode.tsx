@@ -560,6 +560,20 @@ const DjMode = () => {
               <span className="hidden sm:inline">Tracks</span>
               {showSearch ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(event) => handleLocalFile(event.target.files?.[0])}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2.5 md:px-4 md:py-2 rounded-xl bg-primary/15 border border-primary/30 text-primary font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2 hover:bg-primary hover:text-primary-foreground"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Upload MP3</span>
+            </button>
             <button
               onClick={state.active ? reset : enable}
               disabled={forcing}
