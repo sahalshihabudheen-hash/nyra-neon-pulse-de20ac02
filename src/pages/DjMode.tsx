@@ -4,7 +4,7 @@ import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Slider } from '@/components/ui/slider';
-import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic, Wand2, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
+import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic, Wand2, Play, Pause, Upload, SkipBack, SkipForward } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -146,6 +146,7 @@ const EQFader = ({ label, value, onChange }: { label: string; value: number; onC
 const DjMode = () => {
   const { 
     currentTrack, isPlaying, activeSource, playlist, forceBackgroundPlayback, 
+    loadLocalDjFile,
     handleAddToQueue, isFavorite, toggleFavorite, 
     useBackgroundAudioOnly, setUseBackgroundAudioOnly,
     showMiniPlayer, setShowMiniPlayer,
@@ -173,6 +174,7 @@ const DjMode = () => {
   const effectiveGainR = state.rightGain * (state.balance >= 0 ? 1 : 1 + state.balance);
 
   const rafRef = useRef<number>();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [beat, setBeat] = useState(false);
   const beatRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -433,7 +435,7 @@ const DjMode = () => {
     unlock();
     setUseBackgroundAudioOnly(true);
     setForcing(true);
-    const ready = await forceBackgroundPlayback(track, { trackList: [track], fromPlaylist: false });
+    const ready = await forceBackgroundPlayback(track, { trackList: list || [track], fromPlaylist: false });
     setForcing(false);
     if (ready) {
       // Auto-init the engine if not already active, then re-sync
@@ -450,6 +452,19 @@ const DjMode = () => {
     }
     setShowSearch(false);
     setResults([]);
+  };
+
+  const handleLocalFile = async (file?: File) => {
+    if (!file) return;
+    unlock();
+    setUseBackgroundAudioOnly(true);
+    setForcing(true);
+    const ready = await loadLocalDjFile(file);
+    setForcing(false);
+    if (ready) {
+      const ok = state.active ? reSync() : init();
+      if (ok) toast.success('Local DJ file loaded — split is ready');
+    }
   };
 
   const searchTracks = async (e?: FormEvent) => {
@@ -544,6 +559,20 @@ const DjMode = () => {
               <Search className="w-4 h-4" />
               <span className="hidden sm:inline">Tracks</span>
               {showSearch ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(event) => handleLocalFile(event.target.files?.[0])}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2.5 md:px-4 md:py-2 rounded-xl bg-primary/15 border border-primary/30 text-primary font-black text-[10px] md:text-xs uppercase tracking-widest transition-all flex items-center gap-2 hover:bg-primary hover:text-primary-foreground"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Upload MP3</span>
             </button>
             <button
               onClick={state.active ? reset : enable}

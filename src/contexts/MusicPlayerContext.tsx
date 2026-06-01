@@ -44,6 +44,7 @@ interface MusicPlayerContextType {
   handlePlayFromPlaylist: (track: Track) => void;
   handlePlayFromQueue: (track: Track) => void;
   forceBackgroundPlayback: (track?: Track, options?: { trackList?: Track[]; fromPlaylist?: boolean }) => Promise<boolean>;
+  loadLocalDjFile: (file: File) => Promise<boolean>;
   handleAddToPlaylist: (track: Track) => void;
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
@@ -82,7 +83,7 @@ interface MusicPlayerContextType {
   isMuted: boolean;
   setIsMuted: (value: boolean) => void;
   useBackgroundAudioOnly: boolean;
-  setUseBackgroundAudioOnly: (v: boolean) => void;
+  setUseBackgroundAudioOnly: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 
@@ -150,10 +151,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
+  const localObjectUrlRef = useRef<string | null>(null);
 
   const setPlaybackSource = useCallback((source: 'youtube' | 'background' | null) => {
     activeSourceRef.current = source;
     setActiveSource(source);
+  }, []);
+
+  const revokeLocalObjectUrl = useCallback(() => {
+    if (localObjectUrlRef.current) {
+      URL.revokeObjectURL(localObjectUrlRef.current);
+      localObjectUrlRef.current = null;
+    }
   }, []);
 
   const safePlay = useCallback(async (audio: HTMLAudioElement) => {
@@ -532,6 +541,50 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
 
+  const loadLocalDjFile = useCallback(async (file: File): Promise<boolean> => {
+    if (!audioRef.current || !file.type.startsWith('audio/')) {
+      toast.error('Please choose an audio file');
+      return false;
+    }
+
+    try {
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.pauseVideo(); } catch {}
+      }
+      audioRef.current.pause();
+      audioRef.current.removeAttribute('crossOrigin');
+      revokeLocalObjectUrl();
+
+      const objectUrl = URL.createObjectURL(file);
+      localObjectUrlRef.current = objectUrl;
+      const localTrack: Track = {
+        id: `local-${file.name}-${file.lastModified}`,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        thumbnail: '/headphones.png',
+        channel: 'Local DJ File',
+      };
+
+      setUseBackgroundAudioOnly(true);
+      setUseBackgroundAudioMode(true);
+      setCurrentTrack(localTrack);
+      setPlayingFromPlaylist(false);
+      setShowMiniPlayer(true);
+      setPlaybackSource('background');
+      audioRef.current.src = objectUrl;
+      audioRef.current.preload = 'auto';
+      audioRef.current.load();
+      const success = await safePlay(audioRef.current);
+      if (!success) {
+        toast.info('Local DJ file ready. Press Play to start.');
+      }
+      return true;
+    } catch (error) {
+      console.warn('Local DJ file failed:', error);
+      toast.error('Could not load that audio file');
+      return false;
+    }
+  }, [revokeLocalObjectUrl, safePlay, setPlaybackSource, setUseBackgroundAudioOnly]);
+
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
       setTracks(trackList);
@@ -692,6 +745,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     handleNextRef.current = handleNext;
   }, [handleNext]);
 
+  useEffect(() => revokeLocalObjectUrl, [revokeLocalObjectUrl]);
+
   const handleAddToPlaylist = useCallback((track: Track) => {
     if (isInPlaylist(track.id)) { toast.info('Track already in playlist'); return; }
     addToPlaylist(track);
@@ -804,7 +859,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       ytPlayerRef, audioRef,
       handlePlayTrack, handlePlayPause, handleNext, handlePrevious,
       handlePlayFromPlaylist, handlePlayFromQueue,
-      forceBackgroundPlayback,
+      forceBackgroundPlayback, loadLocalDjFile,
       handleAddToPlaylist, handleAddToQueue,
       handleRemoveFromPlaylist, handleClearPlaylist,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
