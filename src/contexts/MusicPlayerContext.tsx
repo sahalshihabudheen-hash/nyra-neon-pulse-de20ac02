@@ -83,7 +83,7 @@ interface MusicPlayerContextType {
   isMuted: boolean;
   setIsMuted: (value: boolean) => void;
   useBackgroundAudioOnly: boolean;
-  setUseBackgroundAudioOnly: (v: boolean) => void;
+  setUseBackgroundAudioOnly: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 
