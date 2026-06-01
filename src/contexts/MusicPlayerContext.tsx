@@ -44,6 +44,7 @@ interface MusicPlayerContextType {
   handlePlayFromPlaylist: (track: Track) => void;
   handlePlayFromQueue: (track: Track) => void;
   forceBackgroundPlayback: (track?: Track, options?: { trackList?: Track[]; fromPlaylist?: boolean }) => Promise<boolean>;
+  loadLocalDjFile: (file: File) => Promise<boolean>;
   handleAddToPlaylist: (track: Track) => void;
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
@@ -150,10 +151,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
+  const localObjectUrlRef = useRef<string | null>(null);
 
   const setPlaybackSource = useCallback((source: 'youtube' | 'background' | null) => {
     activeSourceRef.current = source;
     setActiveSource(source);
+  }, []);
+
+  const revokeLocalObjectUrl = useCallback(() => {
+    if (localObjectUrlRef.current) {
+      URL.revokeObjectURL(localObjectUrlRef.current);
+      localObjectUrlRef.current = null;
+    }
   }, []);
 
   const safePlay = useCallback(async (audio: HTMLAudioElement) => {
