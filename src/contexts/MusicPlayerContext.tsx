@@ -541,6 +541,50 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
 
+  const loadLocalDjFile = useCallback(async (file: File): Promise<boolean> => {
+    if (!audioRef.current || !file.type.startsWith('audio/')) {
+      toast.error('Please choose an audio file');
+      return false;
+    }
+
+    try {
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.pauseVideo(); } catch {}
+      }
+      audioRef.current.pause();
+      audioRef.current.removeAttribute('crossOrigin');
+      revokeLocalObjectUrl();
+
+      const objectUrl = URL.createObjectURL(file);
+      localObjectUrlRef.current = objectUrl;
+      const localTrack: Track = {
+        id: `local-${file.name}-${file.lastModified}`,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        thumbnail: '/headphones.png',
+        channel: 'Local DJ File',
+      };
+
+      setUseBackgroundAudioOnly(true);
+      setUseBackgroundAudioMode(true);
+      setCurrentTrack(localTrack);
+      setPlayingFromPlaylist(false);
+      setShowMiniPlayer(true);
+      setPlaybackSource('background');
+      audioRef.current.src = objectUrl;
+      audioRef.current.preload = 'auto';
+      audioRef.current.load();
+      const success = await safePlay(audioRef.current);
+      if (!success) {
+        toast.info('Local DJ file ready. Press Play to start.');
+      }
+      return true;
+    } catch (error) {
+      console.warn('Local DJ file failed:', error);
+      toast.error('Could not load that audio file');
+      return false;
+    }
+  }, [revokeLocalObjectUrl, safePlay, setPlaybackSource, setUseBackgroundAudioOnly]);
+
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
       setTracks(trackList);
