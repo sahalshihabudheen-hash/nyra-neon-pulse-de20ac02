@@ -745,6 +745,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     handleNextRef.current = handleNext;
   }, [handleNext]);
 
+  useEffect(() => revokeLocalObjectUrl, [revokeLocalObjectUrl]);
+
   const handleAddToPlaylist = useCallback((track: Track) => {
     if (isInPlaylist(track.id)) { toast.info('Track already in playlist'); return; }
     addToPlaylist(track);
@@ -857,7 +859,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       ytPlayerRef, audioRef,
       handlePlayTrack, handlePlayPause, handleNext, handlePrevious,
       handlePlayFromPlaylist, handlePlayFromQueue,
-      forceBackgroundPlayback,
+      forceBackgroundPlayback, loadLocalDjFile,
       handleAddToPlaylist, handleAddToQueue,
       handleRemoveFromPlaylist, handleClearPlaylist,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
