@@ -94,14 +94,17 @@ async function fetchViaInvidious(videoId: string): Promise<{ url: string; mimeTy
   const instances = uniqueUrls([...INVIDIOUS_INSTANCES, ...(await discoverInvidiousInstances())]);
   for (const inst of instances) {
     try {
-      const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+      const res = await fetch(`${inst}/api/v1/videos/${videoId}?local=true`, {
         signal: AbortSignal.timeout(8000),
         headers: { 'User-Agent': 'Mozilla/5.0' },
       });
       if (!res.ok) continue;
       const data = await res.json();
       const format = (data.adaptiveFormats || []).find((f: any) => f.type?.startsWith('audio/'));
-      if (format?.url) return { url: format.url, mimeType: format.type || 'audio/webm' };
+      if (format?.url) {
+        const streamUrl = String(format.url).replace(/^http:\/\//, 'https://');
+        return { url: streamUrl, mimeType: format.type || 'audio/webm' };
+      }
     } catch {
       continue;
     }
