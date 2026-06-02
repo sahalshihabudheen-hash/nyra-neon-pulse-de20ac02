@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { filterDjModeTracks } from '@/lib/djStream';
+import { filterDjModeTracks, getLikelyDjModeTracks } from '@/lib/djStream';
 
 interface Track { id: string; title: string; thumbnail: string; channel: string; }
 
@@ -182,6 +182,7 @@ const DjMode = () => {
   const [autoDjSpeed, setAutoDjSpeed] = useState<'normal' | 'rapid'>('normal');
   const autoDjRef = useRef<ReturnType<typeof setInterval>>();
   const latestStateRef = useRef(state);
+  const searchRequestRef = useRef(0);
   
   useEffect(() => {
     latestStateRef.current = state;
@@ -317,9 +318,15 @@ const DjMode = () => {
           thumbnail: item.track_thumbnail || '',
           channel: item.track_channel || 'Unknown',
         }));
-        const compatibleTracks = await filterDjModeTracks(tracks, 30);
-        setLoadedPlaylistTracks(compatibleTracks);
-        toast.success(`Loaded ${compatibleTracks.length} DJ-ready tracks`);
+        const likelyTracks = getLikelyDjModeTracks(tracks, 30);
+        setLoadedPlaylistTracks(likelyTracks);
+        toast.success(`Loaded ${likelyTracks.length} DJ-ready tracks`);
+
+        filterDjModeTracks(likelyTracks, 30).then(compatibleTracks => {
+          if (compatibleTracks.length > 0) {
+            setLoadedPlaylistTracks(compatibleTracks);
+          }
+        });
       }
     } catch (err) {
       toast.error('Failed to load playlist tracks');
@@ -465,12 +472,19 @@ const DjMode = () => {
       );
       const data = await res.json();
       const tracks = Array.isArray(data) ? data : [];
-      const compatibleTracks = await filterDjModeTracks(tracks, 12);
-      setResults(compatibleTracks);
-      if (compatibleTracks.length > 0) {
-        toast.success(`${compatibleTracks.length} DJ-ready tracks found`);
+      const requestId = ++searchRequestRef.current;
+      const likelyTracks = getLikelyDjModeTracks(tracks, 12);
+
+      setResults(likelyTracks);
+      if (likelyTracks.length > 0) {
+        toast.success(`${likelyTracks.length} DJ-ready tracks found`);
+        filterDjModeTracks(likelyTracks, 12).then(compatibleTracks => {
+          if (requestId === searchRequestRef.current && compatibleTracks.length > 0) {
+            setResults(compatibleTracks);
+          }
+        });
       } else {
-        toast.error('No DJ-ready streams found. Try a different song.');
+        toast.error('No DJ-ready songs found. Try a different search.');
       }
     } catch { toast.error('DJ search failed'); }
     finally { setSearching(false); }

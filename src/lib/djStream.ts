@@ -1,4 +1,5 @@
 const DJ_STREAM_PROBE_TIMEOUT_MS = 4500;
+const YOUTUBE_VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 
 export const getDjStreamUrl = (videoId: string, options?: { stream?: boolean; title?: string }) => {
   const params = new URLSearchParams({ videoId });
@@ -28,15 +29,26 @@ export async function filterDjModeTracks<T extends { id: string }>(
   tracks: T[],
   limit = tracks.length
 ): Promise<T[]> {
-  const uniqueTracks = tracks.filter((track, index, all) => (
-    track.id && all.findIndex(candidate => candidate.id === track.id) === index
-  ));
+  const uniqueTracks = getLikelyDjModeTracks(tracks, limit);
 
   const checked = await Promise.all(
-    uniqueTracks.slice(0, limit).map(async track => (
+    uniqueTracks.map(async track => (
       await canUseDjModeTrack(track.id) ? track : null
     ))
   );
 
   return checked.filter((track): track is T => Boolean(track));
+}
+
+export function getLikelyDjModeTracks<T extends { id: string; title?: string }>(
+  tracks: T[],
+  limit = tracks.length
+): T[] {
+  return tracks
+    .filter((track, index, all) => (
+      YOUTUBE_VIDEO_ID_RE.test(track.id) &&
+      Boolean(track.title?.trim()) &&
+      all.findIndex(candidate => candidate.id === track.id) === index
+    ))
+    .slice(0, limit);
 }
