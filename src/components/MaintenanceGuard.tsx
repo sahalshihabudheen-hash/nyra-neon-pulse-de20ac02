@@ -38,7 +38,7 @@ const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
         console.warn('Admin check failed or timed out, using email fallback:', err);
         setIsAdmin(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com');
       } finally {
-        setAdminCheckDone(true);
+        setAdminCheckDone(true); // Always mark done, even if user is null
       }
     };
     checkAdmin();
