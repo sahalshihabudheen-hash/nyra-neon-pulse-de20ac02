@@ -4,7 +4,7 @@ import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 import { Slider } from '@/components/ui/slider';
-import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic, Wand2, Play, Pause, Upload, SkipBack, SkipForward } from 'lucide-react';
+import { Headphones, Power, RotateCcw, Loader2, Search, Zap, Music2, Activity, ChevronDown, ChevronUp, ListMusic, Wand2, Play, Pause, Upload, SkipBack, SkipForward, AlertTriangle } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -160,7 +160,7 @@ const DjMode = () => {
     queue, removeFromQueue,
     nowPlayingOpen
   } = useMusicPlayer();
-  const { state, apply, init, reSync, getLevels, getBassLevel, unlock } = useDjAudio();
+  const { state, apply, init, reSync, getLevels, getBassLevel, unlock, ctxState } = useDjAudio();
   const [activeDeck, setActiveDeck] = useState<'L' | 'R'>('L');
   const [levels, setLevels] = useState({ left: 0, right: 0 });
   const [smartBass, setSmartBass] = useState(false);
@@ -589,6 +589,29 @@ const DjMode = () => {
             </button>
           </div>
         </div>
+
+        {/* Audio Context Suspended Alert */}
+        {state.active && ctxState === 'suspended' && (
+          <div 
+            onClick={unlock}
+            className="mb-8 p-4 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 hover:bg-yellow-500/10 cursor-pointer transition-all duration-300 flex items-center justify-between gap-4 animate-pulse shadow-[0_0_20px_rgba(234,179,8,0.05)]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-500">
+                <AlertTriangle className="w-5 h-5 animate-bounce" style={{ animationDuration: '2s' }} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs md:text-sm font-black text-yellow-500 uppercase tracking-wider text-left">Audio Engine Suspended</p>
+                <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 leading-relaxed text-left">
+                  The browser suspended the Web Audio pipeline. Tap anywhere on this banner to wake up the decks!
+                </p>
+              </div>
+            </div>
+            <button className="px-3 py-1.5 rounded-xl bg-yellow-500 text-black text-[10px] font-black uppercase tracking-wider hover:scale-105 active:scale-95 transition-all shrink-0">
+              Wake Up
+            </button>
+          </div>
+        )}
 
         {/* ── Search Drawer ── */}
         {showSearch && (

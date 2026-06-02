@@ -128,6 +128,17 @@ export function useDjAudio() {
   useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
   useEffect(() => { stateRef.current = state; }, [state]);
 
+  // ── ctxState: tracks live context status ──────────────────────────────────
+  const [ctxState, setCtxState] = useState<AudioContextState>('suspended');
+
+  const bindStateListener = useCallback(() => {
+    if (!_ctx) return;
+    setCtxState(_ctx.state);
+    _ctx.onstatechange = () => {
+      if (_ctx) setCtxState(_ctx.state);
+    };
+  }, []);
+
   // ── unlock: resume AudioContext on user gesture ───────────────────────────
 
   const unlock = useCallback(() => {
@@ -135,13 +146,22 @@ export function useDjAudio() {
       if (!_ctx) {
         _ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
+      bindStateListener();
       if (_ctx.state === 'suspended') {
-        _ctx.resume().catch(() => {});
+        _ctx.resume().then(bindStateListener).catch(() => {});
       }
+      
+      // Silent buffer wake up to force opening audio output stream on mobile/WebViews
+      const buffer = _ctx.createBuffer(1, 1, 22050);
+      const source = _ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(_ctx.destination);
+      source.start(0);
+      console.log('[DJ] AudioContext unlocked & silent buffer played successfully');
     } catch (e) {
       console.warn('[DJ] unlock failed:', e);
     }
-  }, []);
+  }, [bindStateListener]);
 
   // ── apply: push DjState to live nodes ────────────────────────────────────
 
@@ -222,7 +242,10 @@ export function useDjAudio() {
       if (!_ctx) {
         _ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
-      if (_ctx.state === 'suspended') _ctx.resume().catch(() => {});
+      bindStateListener();
+      if (_ctx.state === 'suspended') {
+        _ctx.resume().then(bindStateListener).catch(() => {});
+      }
 
       // Fast path: graph already wired to the SAME element
       if (
@@ -354,5 +377,5 @@ export function useDjAudio() {
     return sum / (bins * 255);
   }, []);
 
-  return { state, apply, init, reSync, getLevels, getBassLevel, unlock };
+  return { state, apply, init, reSync, getLevels, getBassLevel, unlock, ctxState };
 }
