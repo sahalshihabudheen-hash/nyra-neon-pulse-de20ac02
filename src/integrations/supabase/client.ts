@@ -7,11 +7,21 @@ const SUPABASE_URL = rawSupabaseUrl.startsWith('/')
   ? `${window.location.origin}${rawSupabaseUrl}`
   : rawSupabaseUrl;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const HAS_SUPABASE_CONFIG = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+
+if (!HAS_SUPABASE_CONFIG) {
+  console.error(
+    'Supabase env vars are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in Vercel project settings.',
+  );
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(
+  HAS_SUPABASE_CONFIG ? SUPABASE_URL : (typeof window !== 'undefined' ? window.location.origin : 'http://localhost'),
+  HAS_SUPABASE_CONFIG ? SUPABASE_PUBLISHABLE_KEY : 'missing-supabase-key',
+  {
   auth: {
     storage: localStorage,
     persistSession: true,
