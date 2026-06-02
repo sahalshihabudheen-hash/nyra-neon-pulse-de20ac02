@@ -20,6 +20,7 @@ const PIPED_INSTANCES = [
 ];
 
 const INVIDIOUS_INSTANCES = [
+  'https://inv.thepixora.com',
   'https://inv.nadeko.net',
   'https://invidious.flokinet.to',
   'https://yewtu.be',
@@ -51,14 +52,14 @@ async function getStreamInfo(videoId: string): Promise<{ url: string; mimeType: 
   const invidiousResults = await Promise.all(
     INVIDIOUS_INSTANCES.map(async (inst) => {
       try {
-        const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+        const res = await fetch(`${inst}/api/v1/videos/${videoId}?local=true`, {
           signal: AbortSignal.timeout(7000),
           headers: { 'User-Agent': 'Mozilla/5.0' },
         });
         if (!res.ok) return null;
         const data = await res.json();
         const format = (data.adaptiveFormats || []).find((f: any) => f.type?.startsWith('audio/'));
-        return format?.url ? { url: format.url, mimeType: format.type || 'audio/webm' } : null;
+        return format?.url ? { url: String(format.url).replace(/^http:\/\//, 'https://'), mimeType: format.type || 'audio/webm' } : null;
       } catch {
         return null;
       }

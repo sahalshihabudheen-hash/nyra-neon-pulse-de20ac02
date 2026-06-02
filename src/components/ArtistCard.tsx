@@ -6,10 +6,12 @@ interface ArtistCardProps {
   id: string;
   artistName: string;
   coverImageUrl?: string | null;
+  albumName?: string | null;
+  songCount?: number;
   className?: string;
 }
 
-const ArtistCard = ({ id, artistName, coverImageUrl, className }: ArtistCardProps) => {
+const ArtistCard = ({ id, artistName, coverImageUrl, albumName, songCount, className }: ArtistCardProps) => {
   return (
     <Link 
       to={`/yt-artist/${id}`}
@@ -36,7 +38,9 @@ const ArtistCard = ({ id, artistName, coverImageUrl, className }: ArtistCardProp
         <h3 className="font-black text-sm md:text-base text-foreground truncate group-hover:text-primary transition-colors uppercase tracking-tight italic">
           {artistName}
         </h3>
-        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">Artist</p>
+        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">
+          {albumName || (typeof songCount === 'number' ? `${songCount} Songs` : 'Artist')}
+        </p>
       </div>
     </Link>
   );
