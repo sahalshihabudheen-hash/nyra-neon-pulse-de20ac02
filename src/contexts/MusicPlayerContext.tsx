@@ -632,12 +632,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               return true;
             }
 
-            // If CORS fails, play raw (no crossOrigin)
-            success = await playDirectStream(directAudioUrl, null);
-            if (success) {
-              toast.warning('DJ effects disabled for this track (raw stream fallback).');
-              isResolvingStreamRef.current = false;
-              return true;
+            // If CORS fails, raw playback is only useful outside DJ-only mode.
+            if (!useBackgroundAudioOnlyRef.current) {
+              success = await playDirectStream(directAudioUrl, null);
+              if (success) {
+                toast.warning('DJ effects disabled for this track (raw stream fallback).');
+                isResolvingStreamRef.current = false;
+                return true;
+              }
             }
           }
         } catch (fallbackErr) {
@@ -665,11 +667,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               return true;
             }
 
-            success = await playDirectStream(clientUrl, null);
-            if (success) {
-              toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
-              isResolvingStreamRef.current = false;
-              return true;
+            if (!useBackgroundAudioOnlyRef.current) {
+              success = await playDirectStream(clientUrl, null);
+              if (success) {
+                toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
+                isResolvingStreamRef.current = false;
+                return true;
+              }
             }
           }
         } catch (clientErr) {
@@ -824,11 +828,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
                 return true;
               }
 
-              success = await playDirectStream(directAudioUrl, null);
-              if (success) {
-                toast.warning('DJ effects disabled for this track (raw stream fallback).');
-                isResolvingStreamRef.current = false;
-                return true;
+              if (!useBackgroundAudioOnlyRef.current) {
+                success = await playDirectStream(directAudioUrl, null);
+                if (success) {
+                  toast.warning('DJ effects disabled for this track (raw stream fallback).');
+                  isResolvingStreamRef.current = false;
+                  return true;
+                }
               }
             }
           } catch (fallbackErr: any) {
@@ -856,11 +862,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
                 return true;
               }
 
-              success = await playDirectStream(clientUrl, null);
-              if (success) {
-                toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
-                isResolvingStreamRef.current = false;
-                return true;
+              if (!useBackgroundAudioOnlyRef.current) {
+                success = await playDirectStream(clientUrl, null);
+                if (success) {
+                  toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
+                  isResolvingStreamRef.current = false;
+                  return true;
+                }
               }
             }
           } catch (clientErr) {

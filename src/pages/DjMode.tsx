@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { filterDjModeTracks } from '@/lib/djStream';
 
 interface Track { id: string; title: string; thumbnail: string; channel: string; }
 
@@ -316,8 +317,9 @@ const DjMode = () => {
           thumbnail: item.track_thumbnail || '',
           channel: item.track_channel || 'Unknown',
         }));
-        setLoadedPlaylistTracks(tracks);
-        toast.success(`Loaded ${tracks.length} tracks`);
+        const compatibleTracks = await filterDjModeTracks(tracks, 30);
+        setLoadedPlaylistTracks(compatibleTracks);
+        toast.success(`Loaded ${compatibleTracks.length} DJ-ready tracks`);
       }
     } catch (err) {
       toast.error('Failed to load playlist tracks');
@@ -433,7 +435,7 @@ const DjMode = () => {
     unlock();
     setUseBackgroundAudioOnly(true);
     setForcing(true);
-    const ready = await forceBackgroundPlayback(track, { trackList: [track], fromPlaylist: false });
+    const ready = await forceBackgroundPlayback(track, { trackList: list || [track], fromPlaylist: false });
     setForcing(false);
     if (ready) {
       // Auto-init the engine if not already active, then re-sync
@@ -462,9 +464,15 @@ const DjMode = () => {
         { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
       );
       const data = await res.json();
-      setResults(data);
-      toast.success(`${data.length} tracks found`);
-    } catch { toast.error('Search failed'); }
+      const tracks = Array.isArray(data) ? data : [];
+      const compatibleTracks = await filterDjModeTracks(tracks, 12);
+      setResults(compatibleTracks);
+      if (compatibleTracks.length > 0) {
+        toast.success(`${compatibleTracks.length} DJ-ready tracks found`);
+      } else {
+        toast.error('No DJ-ready streams found. Try a different song.');
+      }
+    } catch { toast.error('DJ search failed'); }
     finally { setSearching(false); }
   };
 
