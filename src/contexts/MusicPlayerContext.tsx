@@ -353,7 +353,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       
       const success = await safePlay(audioRef.current);
       if (!success) {
-        startYoutubeCompatibilityPlayback(videoId, 'DJ compatibility mode active for this YouTube track.');
+        // In DJ-only mode never fall back to YouTube — stream just isn't ready yet.
+        // The user can press Play again once the proxy has buffered enough.
+        toast.info('DJ stream loading — press Play when ready.');
       }
       return;
     }
@@ -479,8 +481,17 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             setIsPlaying(false);
             toast.info('DJ Mode ready. Press Play to start audio.');
           } else {
-            console.warn('Stream proxy failed:', playError?.message);
-            return startYoutubeCompatibilityPlayback(track.id, 'This YouTube track is protected, using compatibility playback.');
+            console.warn('[DJ] stream play failed, retrying without crossOrigin:', playError?.message);
+            try {
+              audioRef.current.removeAttribute('crossOrigin');
+              audioRef.current.load();
+              await audioRef.current.play();
+              setIsPlaying(true);
+              toast.warning('Playing — tap \'Enable\' in DJ panel to reactivate EQ.', { duration: 4000 });
+            } catch {
+              setIsPlaying(false);
+              toast.error('Stream unavailable. Try another.');
+            }
           }
         }
         return true;
@@ -525,11 +536,23 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           setIsPlaying(false);
           toast.info('DJ Mode ready. Press Play to start audio.');
         } else {
-          console.warn('Stream proxy failed:', playError?.message);
+          console.warn('[DJ] stream play failed:', playError?.message);
           if (useBackgroundAudioOnlyRef.current) {
-            return startYoutubeCompatibilityPlayback(track.id, 'This YouTube track is protected, using compatibility playback.');
+            // DJ mode — retry without crossOrigin before giving up.
+            // Never show "protected" or switch to YouTube in DJ mode.
+            try {
+              audioRef.current.removeAttribute('crossOrigin');
+              audioRef.current.load();
+              await audioRef.current.play();
+              setIsPlaying(true);
+              toast.warning('Playing — tap \'Enable\' in DJ panel to reactivate EQ.', { duration: 4000 });
+            } catch {
+              setIsPlaying(false);
+              toast.error('Stream unavailable. Try another track or check connection.');
+            }
+            return true;
           }
-          // Stream failed — fall back to YouTube IFrame player
+          // Normal mode — fall back to YouTube IFrame player
           audioRef.current.src = '';
           setPlaybackSource('youtube');
           if (ytApiReady) createPlayer(track.id);
