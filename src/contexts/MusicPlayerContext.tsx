@@ -248,6 +248,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     };
 
     const handleError = () => {
+      if (useBackgroundAudioOnlyRef.current) {
+        console.error('[DJ] Background audio error event fired. Suppressing YouTube fallback in DJ mode.');
+        return;
+      }
       console.error('Audio error, falling back to YouTube player');
       setUseBackgroundAudioMode(false);
     };
