@@ -484,18 +484,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           if (playError?.name === 'NotAllowedError') {
             setIsPlaying(false);
             toast.info('DJ Mode ready. Press Play to start audio.');
+          } else if (playError?.name === 'AbortError') {
+            console.log('[DJ] Playback aborted by browser due to new track load request.');
           } else {
-            console.warn('[DJ] stream play failed, retrying without crossOrigin:', playError?.message);
-            try {
-              audioRef.current.removeAttribute('crossOrigin');
-              audioRef.current.load();
-              await audioRef.current.play();
-              setIsPlaying(true);
-              toast.warning('Playing — tap \'Enable\' in DJ panel to reactivate EQ.', { duration: 4000 });
-            } catch {
-              setIsPlaying(false);
-              toast.error('Stream unavailable. Try another.');
-            }
+            console.warn('[DJ] stream play failed:', playError?.message);
+            setIsPlaying(false);
+            toast.error('DJ Stream loading slow or failed. Try playing again.');
           }
         }
         return true;
@@ -539,21 +533,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           // Autoplay blocked — user must press play
           setIsPlaying(false);
           toast.info('DJ Mode ready. Press Play to start audio.');
+        } else if (playError?.name === 'AbortError') {
+          console.log('[DJ] Playback aborted by browser due to new track load request.');
         } else {
           console.warn('[DJ] stream play failed:', playError?.message);
           if (useBackgroundAudioOnlyRef.current) {
-            // DJ mode — retry without crossOrigin before giving up.
-            // Never show "protected" or switch to YouTube in DJ mode.
-            try {
-              audioRef.current.removeAttribute('crossOrigin');
-              audioRef.current.load();
-              await audioRef.current.play();
-              setIsPlaying(true);
-              toast.warning('Playing — tap \'Enable\' in DJ panel to reactivate EQ.', { duration: 4000 });
-            } catch {
-              setIsPlaying(false);
-              toast.error('Stream unavailable. Try another track or check connection.');
-            }
+            // DJ mode — DO NOT remove crossOrigin!
+            setIsPlaying(false);
+            toast.error('DJ Stream loading slow or failed. Try playing again.');
             return true;
           }
           // Normal mode — fall back to YouTube IFrame player
