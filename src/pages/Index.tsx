@@ -273,6 +273,7 @@ const Index = () => {
               onPlayTrack={handlePlayTrack}
               onAddToQueue={handleAddToQueue}
               isLoading={isLoading}
+              isPlaying={isPlaying}
               searchPerformed={searchPerformed}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
