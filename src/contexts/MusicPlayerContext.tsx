@@ -480,8 +480,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             toast.info('DJ Mode ready. Press Play to start audio.');
           } else {
             console.warn('Stream proxy failed:', playError?.message);
-            toast.error('DJ Audio stream failed. Retrying...');
-            return false;
+            return startYoutubeCompatibilityPlayback(track.id, 'This YouTube track is protected, using compatibility playback.');
           }
         }
         return true;
@@ -528,8 +527,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         } else {
           console.warn('Stream proxy failed:', playError?.message);
           if (useBackgroundAudioOnlyRef.current) {
-            toast.error('DJ Audio stream failed. Retrying...');
-            return false;
+            return startYoutubeCompatibilityPlayback(track.id, 'This YouTube track is protected, using compatibility playback.');
           }
           // Stream failed — fall back to YouTube IFrame player
           audioRef.current.src = '';
@@ -550,7 +548,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       toast.error(`Could not start DJ audio: ${error?.message || 'Network error'}`);
       return false;
     }
-  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
+  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, startYoutubeCompatibilityPlayback]);
 
   const loadLocalDjFile = useCallback(async (file: File): Promise<boolean> => {
     if (!audioRef.current || !file.type.startsWith('audio/')) {
