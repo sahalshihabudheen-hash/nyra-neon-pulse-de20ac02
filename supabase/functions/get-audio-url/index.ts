@@ -21,14 +21,58 @@ const PIPED_INSTANCES = [
 ];
 
 const INVIDIOUS_INSTANCES = [
+  'https://inv.thepixora.com',
   'https://inv.nadeko.net',
   'https://invidious.flokinet.to',
   'https://yewtu.be',
   'https://iv.melmac.space',
 ];
 
+const PIPED_DISCOVERY_URL = 'https://piped-instances.kavin.rocks/';
+const INVIDIOUS_DISCOVERY_URL = 'https://api.invidious.io/instances.json?pretty=0&sort_by=api,type';
+
+async function discoverPipedInstances(): Promise<string[]> {
+  try {
+    const res = await fetch(PIPED_DISCOVERY_URL, {
+      signal: AbortSignal.timeout(3500),
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return data
+      .map((item: any) => item?.api_url)
+      .filter((url: unknown): url is string => typeof url === 'string' && url.startsWith('https://'));
+  } catch {
+    return [];
+  }
+}
+
+async function discoverInvidiousInstances(): Promise<string[]> {
+  try {
+    const res = await fetch(INVIDIOUS_DISCOVERY_URL, {
+      signal: AbortSignal.timeout(3500),
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+    return data
+      .map((item: any) => item?.[1])
+      .filter((meta: any) => meta?.api === true && meta?.type === 'https' && typeof meta?.uri === 'string')
+      .map((meta: any) => meta.uri as string);
+  } catch {
+    return [];
+  }
+}
+
+function uniqueUrls(urls: string[]): string[] {
+  return [...new Set(urls.map((url) => url.replace(/\/$/, '')))];
+}
+
 async function fetchViaPiped(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  for (const inst of PIPED_INSTANCES) {
+  const instances = uniqueUrls([...PIPED_INSTANCES, ...(await discoverPipedInstances())]);
+  for (const inst of instances) {
     try {
       const res = await fetch(`${inst}/streams/${videoId}`, {
         signal: AbortSignal.timeout(8000),
@@ -47,7 +91,8 @@ async function fetchViaPiped(videoId: string): Promise<{ url: string; mimeType: 
 }
 
 async function fetchViaInvidious(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  for (const inst of INVIDIOUS_INSTANCES) {
+  const instances = uniqueUrls([...INVIDIOUS_INSTANCES, ...(await discoverInvidiousInstances())]);
+  for (const inst of instances) {
     try {
       const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
         signal: AbortSignal.timeout(8000),
