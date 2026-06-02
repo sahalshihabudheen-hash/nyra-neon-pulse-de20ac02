@@ -317,6 +317,23 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     });
   }, [settings.autoPlayNext]);
 
+  const startYoutubeCompatibilityPlayback = useCallback((videoId: string, message?: string) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+    setUseBackgroundAudioMode(false);
+    setPlaybackSource('youtube');
+    const yt = (window as any).YT;
+    if (ytApiReady && yt?.Player) {
+      createPlayer(videoId);
+      if (message) toast.info(message);
+      return true;
+    }
+    toast.error('Player not ready. Please try again.');
+    return false;
+  }, [createPlayer, setPlaybackSource, ytApiReady]);
+
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
     if (activeSourceRef.current === 'background') {
       audioRef.current.pause();
@@ -336,7 +353,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       
       const success = await safePlay(audioRef.current);
       if (!success) {
-        toast.error('DJ Audio failed to load. Tap play to retry.');
+        startYoutubeCompatibilityPlayback(videoId, 'DJ compatibility mode active for this YouTube track.');
       }
       return;
     }
@@ -417,14 +434,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
     if (usedFallback || useBackgroundAudioOnlyRef.current) return;
     // Final fallback to standard YouTube IFrame player
-    setPlaybackSource('youtube');
-    const yt = (window as any).YT;
-    if (ytApiReady && yt?.Player) {
-      createPlayer(videoId);
-    } else {
-      toast.error('Player not ready. Please try again.');
-    }
-  }, [ytApiReady, createPlayer, setPlaybackSource]);
+    startYoutubeCompatibilityPlayback(videoId);
+  }, [ytApiReady, createPlayer, setPlaybackSource, startYoutubeCompatibilityPlayback]);
 
   const forceBackgroundPlayback = useCallback(async (track = currentTrack, options?: { trackList?: Track[]; fromPlaylist?: boolean }): Promise<boolean> => {
     if (!track || !audioRef.current) {
