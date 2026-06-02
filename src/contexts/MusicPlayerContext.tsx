@@ -8,18 +8,13 @@ import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTabTitle } from '@/hooks/useTabTitle';
 
-const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string; proxyUrl?: string }) => {
+const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
   const baseUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/get-audio-url` : '/api/get-audio-url';
-  const params = new URLSearchParams();
-  if (videoId) {
-    params.append('videoId', videoId);
-    params.append('id', videoId);
-  }
+  const params = new URLSearchParams({ videoId });
   if (options?.stream) params.append('stream', '1');
   if (options?.download) params.append('download', '1');
   if (options?.title) params.append('title', options.title);
-  if (options?.proxyUrl) params.append('proxyUrl', encodeURIComponent(options.proxyUrl));
   return `${baseUrl}?${params.toString()}`;
 };
 
@@ -107,15 +102,9 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [isPlaying, setIsPlaying] = useState(false);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
-  const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(() => {
-    return localStorage.getItem('nyra-bg-audio-mode') !== 'false';
-  });
+  const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(true);
   const [useBackgroundAudioOnly, setUseBackgroundAudioOnlyState] = useState(false);
   const useBackgroundAudioOnlyRef = useRef(false);
-
-  useEffect(() => {
-    localStorage.setItem('nyra-bg-audio-mode', useBackgroundAudioMode.toString());
-  }, [useBackgroundAudioMode]);
 
   const setUseBackgroundAudioOnly = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
     setUseBackgroundAudioOnlyState(prev => {

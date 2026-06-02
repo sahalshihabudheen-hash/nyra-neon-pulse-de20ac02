@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Nyra Neon Pulse</string>
+    <string name="title_activity_main">Nyra Neon Pulse</string>
+    <string name="package_name">com.nyra.pulse</string>
+    <string name="custom_url_scheme">com.nyra.pulse</string>
+</resources>

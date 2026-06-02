@@ -1,0 +1,1 @@
+UPDATE public.user_preferences SET tutorial_complete = false;

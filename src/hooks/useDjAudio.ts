@@ -1,195 +1,381 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+/**
+ * useDjAudio — Web Audio API DJ engine (v3)
+ *
+ * Signal chain:
+ *   HTMLAudioElement  ←  edge-function proxy stream (crossOrigin="anonymous")
+ *     └─ MediaElementSourceNode  (singleton — one per element)
+ *          └─ ChannelSplitterNode(2)
+ *               ├─ ch 0 → leftGainNode  → lowShelfL → peakingL → highShelfL → analyserL → ChannelMerger(0)
+ *               └─ ch 1 → rightGainNode → lowShelfR → peakingR → highShelfR → analyserR → ChannelMerger(1)
+ *          ChannelMerger → masterGain → AudioContext.destination
+ *
+ * Key design decisions:
+ *  • EQ is applied PER CHANNEL (after splitter) → true L/R tone shaping.
+ *  • Equal-power crossfade avoids the 3 dB dip at centre.
+ *  • All parameter changes use linearRampToValueAtTime (30 ms) → click-free.
+ *  • AudioContext + source node live in module-level vars → guaranteed singleton.
+ *    React's StrictMode double-invocation can't break it.
+ *  • Separate AnalyserNodes on L and R give independent VU metering.
+ *  • Periodic pressure-sync every 2 s reconnects the merger if something
+ *    external disconnects it (e.g. iOS backgrounding).
+ */
 
-// Singleton AudioContext + nodes
-let ctx: AudioContext | null = null;
-let source: MediaElementAudioSourceNode | null = null;
-let lowEq: BiquadFilterNode | null = null;
-let midEq: BiquadFilterNode | null = null;
-let highEq: BiquadFilterNode | null = null;
-let splitter: ChannelSplitterNode | null = null;
-let gainL: GainNode | null = null;
-let gainR: GainNode | null = null;
-let analyserL: AnalyserNode | null = null;
-let analyserR: AnalyserNode | null = null;
-let merger: ChannelMergerNode | null = null;
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+
+// ─── Public state shape ──────────────────────────────────────────────────────
 
 export interface DjState {
-  balance: number;       // -1 (full L) .. 0 (center) .. 1 (full R)
-  leftGain: number;      // 0..1.5
-  rightGain: number;     // 0..1.5
-  low: number;           // -12..12 dB
+  /** Engine is wired and active */
+  active: boolean;
+  /** Crossfader: -1 = full L, 0 = centre, +1 = full R */
+  balance: number;
+  /** Left deck fader (0 – 1.5) */
+  leftGain: number;
+  /** Right deck fader (0 – 1.5) */
+  rightGain: number;
+  /** Bass shelf dB (-12 – +12) */
+  low: number;
+  /** Mid peaking dB (-12 – +12) */
   mid: number;
+  /** Treble shelf dB (-12 – +12) */
   high: number;
-  active: boolean;       // whether DJ chain is wired (background source live)
 }
 
-export function useDjAudio(
-  providedAudioRef: React.RefObject<HTMLAudioElement | null>,
-  providedIsPlaying: boolean
-) {
+// ─── Module-level AudioContext singleton ─────────────────────────────────────
+// These must live outside the hook so React re-renders / StrictMode double
+// calls cannot create duplicate MediaElementSourceNodes.
+
+let _ctx: AudioContext | null = null;
+let _source: MediaElementAudioSourceNode | null = null;
+let _splitter: ChannelSplitterNode | null = null;
+let _gainL: GainNode | null = null;
+let _gainR: GainNode | null = null;
+// Left EQ chain
+let _lowL: BiquadFilterNode | null = null;
+let _midL: BiquadFilterNode | null = null;
+let _highL: BiquadFilterNode | null = null;
+// Right EQ chain
+let _lowR: BiquadFilterNode | null = null;
+let _midR: BiquadFilterNode | null = null;
+let _highR: BiquadFilterNode | null = null;
+// Per-channel analysers
+let _analyserL: AnalyserNode | null = null;
+let _analyserR: AnalyserNode | null = null;
+// Output
+let _merger: ChannelMergerNode | null = null;
+let _masterGain: GainNode | null = null;
+
+// EQ frequencies
+const LOW_FREQ  = 320;   // Hz — low-shelf
+const MID_FREQ  = 1000;  // Hz — peaking centre
+const MID_Q     = 1.0;   // peaking Q
+const HIGH_FREQ = 3200;  // Hz — high-shelf
+const RAMP_S    = 0.03;  // 30 ms smooth ramp
+
+// ─── Helper: build one EQ chain ──────────────────────────────────────────────
+
+function makeEq(ctx: AudioContext): [BiquadFilterNode, BiquadFilterNode, BiquadFilterNode] {
+  const low = ctx.createBiquadFilter();
+  low.type = 'lowshelf';
+  low.frequency.value = LOW_FREQ;
+  low.gain.value = 0;
+
+  const mid = ctx.createBiquadFilter();
+  mid.type = 'peaking';
+  mid.frequency.value = MID_FREQ;
+  mid.Q.value = MID_Q;
+  mid.gain.value = 0;
+
+  const high = ctx.createBiquadFilter();
+  high.type = 'highshelf';
+  high.frequency.value = HIGH_FREQ;
+  high.gain.value = 0;
+
+  low.connect(mid);
+  mid.connect(high);
+  return [low, mid, high];
+}
+
+// ─── Helper: equal-power crossfade ───────────────────────────────────────────
+// balance ∈ [-1, 1]; returns [gainL, gainR] ∈ [0, 1]
+
+function equalPower(balance: number): [number, number] {
+  // Map [-1,1] to angle [0, π/2]
+  const angle = ((balance + 1) / 2) * (Math.PI / 2);
+  return [Math.cos(angle), Math.sin(angle)];
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
+
+export function useDjAudio() {
+  const { audioRef, isPlaying } = useMusicPlayer();
+
   const [state, setState] = useState<DjState>({
+    active: false,
     balance: 0,
     leftGain: 1,
     rightGain: 1,
     low: 0,
     mid: 0,
     high: 0,
-    active: false,
   });
 
-  const initedRef = useRef(false);
-  const audioRef = providedAudioRef;
+  const initedRef    = useRef(false);
+  const stateRef     = useRef(state);
+  const isPlayingRef = useRef(isPlaying);
 
-  const apply = useCallback((next: DjState) => {
-    setState(next);
-    if (!initedRef.current) return;
-    
-    // Balance overlays the per-channel gain
-    const balL = next.balance <= 0 ? 1 : 1 - next.balance;
-    const balR = next.balance >= 0 ? 1 : 1 + next.balance;
-    if (gainL) gainL.gain.value = next.leftGain * balL;
-    if (gainR) gainR.gain.value = next.rightGain * balR;
-    
-    if (lowEq) lowEq.gain.value = next.low;
-    if (midEq) midEq.gain.value = next.mid;
-    if (highEq) highEq.gain.value = next.high;
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
+  // ── ctxState: tracks live context status ──────────────────────────────────
+  const [ctxState, setCtxState] = useState<AudioContextState>('suspended');
+
+  const bindStateListener = useCallback(() => {
+    if (!_ctx) return;
+    setCtxState(_ctx.state);
+    _ctx.onstatechange = () => {
+      if (_ctx) setCtxState(_ctx.state);
+    };
   }, []);
+
+  // ── unlock: resume AudioContext on user gesture ───────────────────────────
 
   const unlock = useCallback(() => {
     try {
-      const AC = (window.AudioContext || (window as any).webkitAudioContext);
-      if (!ctx) ctx = new AC();
-      if (ctx.state === 'suspended') {
-        ctx.resume();
+      if (!_ctx) {
+        _ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
+      bindStateListener();
+      if (_ctx.state === 'suspended') {
+        _ctx.resume().then(bindStateListener).catch(() => {});
+      }
+      
+      // Silent buffer wake up to force opening audio output stream on mobile/WebViews
+      const buffer = _ctx.createBuffer(1, 1, 22050);
+      const source = _ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(_ctx.destination);
+      source.start(0);
+      console.log('[DJ] AudioContext unlocked & silent buffer played successfully');
     } catch (e) {
-      console.warn('Unlock failed:', e);
+      console.warn('[DJ] unlock failed:', e);
+    }
+  }, [bindStateListener]);
+
+  // ── apply: push DjState to live nodes ────────────────────────────────────
+
+  const apply = useCallback((next: DjState) => {
+    setState(next);
+    stateRef.current = next;
+
+    if (!_ctx) return;
+    const now = _ctx.currentTime;
+
+    // Equal-power crossfader
+    const [xL, xR] = equalPower(next.balance);
+    const effL = next.leftGain  * xL;
+    const effR = next.rightGain * xR;
+
+    if (_gainL) _gainL.gain.linearRampToValueAtTime(effL, now + RAMP_S);
+    if (_gainR) _gainR.gain.linearRampToValueAtTime(effR, now + RAMP_S);
+
+    // EQ — applied independently to each channel
+    for (const node of [_lowL, _lowR] as BiquadFilterNode[]) {
+      if (node) node.gain.linearRampToValueAtTime(next.low, now + RAMP_S);
+    }
+    for (const node of [_midL, _midR] as BiquadFilterNode[]) {
+      if (node) node.gain.linearRampToValueAtTime(next.mid, now + RAMP_S);
+    }
+    for (const node of [_highL, _highR] as BiquadFilterNode[]) {
+      if (node) node.gain.linearRampToValueAtTime(next.high, now + RAMP_S);
     }
   }, []);
 
-  const init = useCallback(() => {
-    if (!audioRef.current) return false;
+  // ── _wire: (re)build graph around existing nodes ──────────────────────────
+
+  const _wire = useCallback(() => {
+    if (!_ctx || !_source || !_splitter || !_gainL || !_gainR ||
+        !_lowL || !_midL || !_highL || !_lowR || !_midR || !_highR ||
+        !_analyserL || !_analyserR || !_merger || !_masterGain) return;
+
+    // Disconnect all cleanly first to avoid duplicate paths
+    const nodes = [
+      _source, _splitter, _gainL, _gainR,
+      _lowL, _midL, _highL, _lowR, _midR, _highR,
+      _analyserL, _analyserR, _merger, _masterGain,
+    ];
+    for (const n of nodes) { try { n.disconnect(); } catch {} }
+
+    // Wire:
+    // source → splitter
+    _source.connect(_splitter);
+
+    // Left: splitter[0] → gainL → lowL → midL → highL → analyserL → merger[0]
+    _splitter.connect(_gainL, 0);
+    _gainL.connect(_lowL);
+    // _lowL → _midL → _highL already wired in makeEq
+    _highL.connect(_analyserL);
+    _analyserL.connect(_merger, 0, 0);
+
+    // Right: splitter[1] → gainR → lowR → midR → highR → analyserR → merger[1]
+    _splitter.connect(_gainR, 1);
+    _gainR.connect(_lowR);
+    _highR.connect(_analyserR);
+    _analyserR.connect(_merger, 0, 1);
+
+    // merger → masterGain → destination
+    _merger.connect(_masterGain);
+    _masterGain.connect(_ctx.destination);
+  }, []);
+
+  // ── init: cold start ──────────────────────────────────────────────────────
+
+  const init = useCallback((): boolean => {
+    const audio = audioRef.current;
+    if (!audio?.src) {
+      console.warn('[DJ] init: no audio src');
+      return false;
+    }
     try {
-      const AC = (window.AudioContext || (window as any).webkitAudioContext);
-      if (!ctx) ctx = new AC();
-      
-      if (ctx.state === 'suspended') ctx.resume();
-      
-      // If the media element changed or source was lost, we must rebuild the source link
-      if (!source || (source as any).mediaElement !== audioRef.current) {
-        if (source) try { source.disconnect(); } catch(e) {}
-        source = ctx.createMediaElementSource(audioRef.current);
-        initedRef.current = false; // Trigger re-wiring
+      // Get or create AudioContext
+      if (!_ctx) {
+        _ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      bindStateListener();
+      if (_ctx.state === 'suspended') {
+        _ctx.resume().then(bindStateListener).catch(() => {});
       }
 
-      // If we already have a functional chain, just ensure it's connected
-      if (merger && initedRef.current) {
-        try { merger.connect(ctx.destination); } catch(e) {}
+      // Fast path: graph already wired to the SAME element
+      if (
+        initedRef.current &&
+        _source &&
+        (_source as any).mediaElement === audio &&
+        _merger
+      ) {
+        try { _merger.connect(_masterGain!); _masterGain!.connect(_ctx.destination); } catch {}
         return true;
       }
 
-      // Only create nodes if they don't exist (True Singleton)
-      if (!lowEq) {
-        lowEq = ctx.createBiquadFilter();
-        lowEq.type = 'lowshelf';
-        lowEq.frequency.value = 320; // lowshelf filter at 320Hz for Bass
-
-        midEq = ctx.createBiquadFilter();
-        midEq.type = 'peaking';
-        midEq.frequency.value = 1000;
-        midEq.Q.value = 1;
-
-        highEq = ctx.createBiquadFilter();
-        highEq.type = 'highshelf';
-        highEq.frequency.value = 3200; // highshelf filter at 3200Hz for Highs/Treble
-
-        splitter = ctx.createChannelSplitter(2);
-        gainL = ctx.createGain();
-        gainR = ctx.createGain();
-        analyserL = ctx.createAnalyser();
-        analyserL.fftSize = 256;
-        analyserR = ctx.createAnalyser();
-        analyserR.fftSize = 256;
-        merger = ctx.createChannelMerger(2);
-
-        // Wire nodes (internal chain stays connected once created)
-        lowEq.connect(midEq);
-        midEq.connect(highEq);
-        highEq.connect(splitter);
-        splitter.connect(gainL, 0);
-        splitter.connect(gainR, 1);
-        gainL.connect(analyserL);
-        gainR.connect(analyserR);
-        analyserL.connect(merger, 0, 0);
-        analyserR.connect(merger, 0, 1);
+      // Source node — permanent bond between AudioContext and HTMLAudioElement.
+      // Creating it a second time on the same element throws InvalidStateError.
+      if (!_source || (_source as any).mediaElement !== audio) {
+        try { _source?.disconnect(); } catch {}
+        _source = _ctx.createMediaElementSource(audio);
       }
 
-      // Always reconnect source to start of chain and merger to destination
-      source.connect(lowEq);
-      merger.connect(ctx.destination);
+      // Create all other nodes fresh
+      _splitter  = _ctx.createChannelSplitter(2);
+      _gainL     = _ctx.createGain();
+      _gainR     = _ctx.createGain();
+      [_lowL, _midL, _highL] = makeEq(_ctx);
+      [_lowR, _midR, _highR] = makeEq(_ctx);
 
+      _analyserL = _ctx.createAnalyser();
+      _analyserL.fftSize = 256;
+      _analyserL.smoothingTimeConstant = 0.8;
+
+      _analyserR = _ctx.createAnalyser();
+      _analyserR.fftSize = 256;
+      _analyserR.smoothingTimeConstant = 0.8;
+
+      _merger     = _ctx.createChannelMerger(2);
+      _masterGain = _ctx.createGain();
+      _masterGain.gain.value = 1;
+
+      _wire();
       initedRef.current = true;
-      setState(s => ({ ...s, active: true }));
-      return true;
-    } catch(e) {
-      console.error('DJ Engine Boot Error:', e);
-      return false;
-    }
-  }, [audioRef]);
 
-  const stop = useCallback(() => {
-    try {
-      if (merger && ctx) {
-        merger.disconnect(); // Stand down the stream node without breaking elements
-      }
-      setState(s => ({ ...s, active: false }));
-    } catch(e) {}
-  }, []);
-
-  const reSync = useCallback(() => {
-    if (!audioRef.current || !initedRef.current) return false;
-    try {
-      if (!ctx || ctx.state === 'suspended') ctx?.resume();
-      if (merger) {
-        merger.disconnect();
-        merger.connect(ctx!.destination);
-      }
+      // Push current state to live nodes
+      apply({ ...stateRef.current, active: true });
       return true;
     } catch (e) {
+      console.error('[DJ] init error:', e);
       return false;
     }
+  }, [audioRef, _wire, apply]);
+
+  // ── reSync: rebuild graph after track swap ────────────────────────────────
+
+  const reSync = useCallback((): boolean => {
+    console.log('[DJ] reSync');
+    initedRef.current = false;
+    const ok = init();
+    if (ok) apply({ ...stateRef.current, active: true });
+    return ok;
+  }, [init, apply]);
+
+  // ── Periodic pressure sync (keeps merger wired despite OS interruptions) ──
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handlePlay = () => {
+      if (initedRef.current) {
+        if (_ctx?.state === 'suspended') _ctx.resume().catch(() => {});
+        try { _merger?.connect(_masterGain!); _masterGain?.connect(_ctx!.destination); } catch {}
+      }
+    };
+
+    const interval = setInterval(() => {
+      if (initedRef.current && isPlayingRef.current) {
+        if (_ctx?.state === 'suspended') _ctx.resume().catch(() => {});
+        try { _merger?.connect(_masterGain!); _masterGain?.connect(_ctx!.destination); } catch {}
+      }
+    }, 2000);
+
+    audio.addEventListener('play', handlePlay);
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      clearInterval(interval);
+    };
   }, [audioRef]);
 
-  const getLevels = useCallback(() => {
-    if (!analyserL || !analyserR || !state.active) return { left: 0, right: 0 };
-    const pL = new Uint8Array(1);
-    const pR = new Uint8Array(1);
-    analyserL.getByteTimeDomainData(pL);
-    analyserR.getByteTimeDomainData(pR);
-    
-    // Normalization out of baseline (128 is center node silence)
-    const leftVal = Math.abs(pL[0] - 128) / 128;
-    const rightVal = Math.abs(pR[0] - 128) / 128;
-    return { left: leftVal, right: rightVal };
-  }, [state.active]);
+  // ── Window gesture listener — rescue suspended context ────────────────────
 
-  const getBassLevel = useCallback(() => {
-    if (!analyserL || !state.active) return 0;
-    const data = new Uint8Array(16);
-    analyserL.getByteFrequencyData(data);
-    let sum = 0;
-    for (let i = 0; i < 4; i++) sum += data[i]; // Low-bin nodes
-    return sum / (4 * 255);
-  }, [state.active]);
+  useEffect(() => {
+    const resume = () => {
+      if (_ctx?.state === 'suspended' && stateRef.current.active) {
+        _ctx.resume().catch(() => {});
+      }
+    };
+    window.addEventListener('click', resume);
+    window.addEventListener('touchstart', resume, { passive: true });
+    return () => {
+      window.removeEventListener('click', resume);
+      window.removeEventListener('touchstart', resume);
+    };
+  }, []);
 
-  return {
-    state,
-    apply,
-    init,
-    stop,
-    unlock,
-    getLevels,
-    getBassLevel,
-    reSync
-  };
+  // ── getLevels: 0-1 normalised L/R amplitude ───────────────────────────────
+
+  const getLevels = useCallback((): { left: number; right: number } => {
+    if (!_analyserL || !_analyserR || !initedRef.current) return { left: 0, right: 0 };
+
+    const dataL = new Uint8Array(_analyserL.frequencyBinCount);
+    const dataR = new Uint8Array(_analyserR.frequencyBinCount);
+    _analyserL.getByteFrequencyData(dataL);
+    _analyserR.getByteFrequencyData(dataR);
+
+    const avg = (d: Uint8Array) => d.reduce((a, b) => a + b, 0) / d.length / 255;
+    return { left: avg(dataL), right: avg(dataR) };
+  }, []);
+
+  // ── getBassLevel: 0-1 bass energy from left analyser ─────────────────────
+
+  const getBassLevel = useCallback((): number => {
+    if (!_analyserL || !initedRef.current) return 0;
+
+    const data = new Uint8Array(_analyserL.frequencyBinCount);
+    _analyserL.getByteFrequencyData(data);
+
+    // Bass ≈ lowest 10% of frequency bins
+    const bins = Math.floor(data.length * 0.1);
+    const sum  = data.slice(0, bins).reduce((a, b) => a + b, 0);
+    return sum / (bins * 255);
+  }, []);
+
+  return { state, apply, init, reSync, getLevels, getBassLevel, unlock, ctxState };
 }
