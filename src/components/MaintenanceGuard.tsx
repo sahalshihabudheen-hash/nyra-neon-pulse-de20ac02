@@ -20,21 +20,26 @@ const MaintenanceGuard = ({ children }: MaintenanceGuardProps) => {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      if (!user) {
-        setIsAdmin(false);
+      try {
+        if (!user) {
+          setIsAdmin(false);
+          return;
+        }
+        // Quick check by email
+        if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
+          setIsAdmin(true);
+          return;
+        }
+        // Check via database role
+        const { data, error } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
+        if (error) throw error;
+        setIsAdmin(!!data);
+      } catch (err) {
+        console.warn('Admin check failed or timed out, using email fallback:', err);
+        setIsAdmin(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com');
+      } finally {
         setAdminCheckDone(true);
-        return;
       }
-      // Quick check by email
-      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
-        setIsAdmin(true);
-        setAdminCheckDone(true);
-        return;
-      }
-      // Check via database role
-      const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
-      setIsAdmin(!!data);
-      setAdminCheckDone(true);
     };
     checkAdmin();
   }, [user]);

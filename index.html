@@ -22,17 +22,6 @@
   </head>
 
   <body>
-    <div id="error-overlay" style="color: red; font-family: monospace; padding: 20px; z-index: 999999; position: absolute; background: white; white-space: pre-wrap; display: none;"></div>
-    <script>
-      window.onerror = function(message, source, lineno, colno, error) {
-        document.getElementById('error-overlay').style.display = 'block';
-        document.getElementById('error-overlay').innerText += message + '\n' + (error && error.stack ? error.stack : '') + '\n\n';
-      };
-      window.addEventListener("unhandledrejection", function(event) {
-        document.getElementById('error-overlay').style.display = 'block';
-        document.getElementById('error-overlay').innerText += 'Promise Rejection: ' + event.reason + '\n\n';
-      });
-    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

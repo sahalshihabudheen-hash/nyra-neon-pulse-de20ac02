@@ -10,164 +10,151 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+const PIPED_INSTANCES = [
+  'https://pipedapi.kavin.rocks',
+  'https://api.piped.private.coffee',
+  'https://piped-api.lre.yt',
+  'https://pipedapi.cl7.it',
+  'https://piped-api.hostux.net',
+  'https://pipedapi.adminforge.de',
+  'https://api-piped.mha.fi',
+  'https://pipedapi.swish.re',
+  'https://pipedapi.spirit.com.de',
+  'https://pipedapi.leptons.xyz',
+  'https://api.piped.projectsegfau.lt',
+  'https://pipedapi.pablohud.space',
+  'https://pipedapi.tokyo.cl7.it',
+  'https://pipedapi.moomoo.me',
+  'https://pipedapi.river.rocks',
+  'https://pipedapi.us.reallysoliddns.cf'
+];
+
 const INVIDIOUS_INSTANCES = [
-  'https://inv.thepixora.com',
   'https://inv.nadeko.net',
   'https://invidious.flokinet.to',
   'https://yewtu.be',
-  'https://iv.melmac.space',
+  'https://invidious.projectsegfau.lt',
+  'https://invidious.lre.yt',
+  'https://invidious.slipfox.xyz',
+  'https://invidious.nerdvpn.de',
+  'https://inv.tux.im'
 ];
 
 const COBALT_INSTANCES = [
   'https://api.cobalt.tools',
-  'https://cobalt.perennialte.ch',
-  'https://cobalt.me.uk',
-  'https://cobalt.phrenic.club',
-  'https://api.cobalt.sp-codes.de',
+  'https://cobalt.api.ryboflops.lol',
+  'https://cobalt.k6.ovh',
+  'https://cobalt.shite.xyz',
+  'https://co.wuk.sh'
 ];
 
-const PIPED_INSTANCES = [
-  'https://api.piped.private.coffee',
-  'https://pipedapi.kavin.rocks',
-  'https://piped-api.hostux.net',
-  'https://pipedapi.adminforge.de',
-  'https://pipedapi.cl7.it',
-  'https://api-piped.mha.fi',
-];
-
-// ── Layer 1: Invidious Video API ─────────────────────────────────────────────
-async function fetchViaInvidious(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  for (const inst of INVIDIOUS_INSTANCES) {
-    try {
-      const res = await fetch(`${inst}/api/v1/videos/${videoId}?local=true`, {
-        signal: AbortSignal.timeout(6000),
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const formats = data.adaptiveFormats || [];
-      
-      // Prioritize MP4 container formats (M4A) for standard Apple Safari / iOS background compatibility
-      let bestFormat = formats.find((f: any) => 
-        f.type?.startsWith('audio/mp4') || 
-        f.type?.includes('codecs="mp4') || 
-        f.type?.includes('m4a')
-      );
-      
-      if (!bestFormat) {
-        bestFormat = formats.find((f: any) => f.type?.startsWith('audio/'));
-      }
-      
-      if (bestFormat?.url) {
-        const streamUrl = String(bestFormat.url).replace(/^http:\/\//, 'https://');
-        return { url: streamUrl, mimeType: bestFormat.type || 'audio/mp4' };
-      }
-    } catch {
-      continue;
-    }
+// Helper to shuffle arrays for load distribution and rate-limit bypassing
+function shuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return null;
+  return arr;
 }
 
-// ── Layer 2: Cobalt Instance Pooling ─────────────────────────────────────────
-async function fetchViaCobalt(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  const url = `https://www.youtube.com/watch?v=${videoId}`;
-  for (const inst of COBALT_INSTANCES) {
-    try {
-      // Try Cobalt v10 standard payload format
-      let res = await fetch(inst, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        body: JSON.stringify({
-          url,
-          downloadMode: 'audio',
-          audioFormat: 'mp3',
-        }),
-        signal: AbortSignal.timeout(6000),
-      });
-
-      if (!res.ok) {
-        // Fallback to Cobalt legacy payload format
-        res = await fetch(inst, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
-          body: JSON.stringify({
-            url,
-            isAudioOnly: true,
-          }),
-          signal: AbortSignal.timeout(6000),
-        });
-      }
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.url) {
-          return { url: data.url, mimeType: 'audio/mp3' };
-        }
-      }
-    } catch {
-      continue;
-    }
+// Resilient fetch signal timeout
+const getTimeoutSignal = (ms: number) => {
+  try {
+    return AbortSignal.timeout(ms);
+  } catch {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), ms);
+    return controller.signal;
   }
-  return null;
-}
-
-// ── Layer 3: Piped API Streams ────────────────────────────────────────────────
-async function fetchViaPiped(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  for (const inst of PIPED_INSTANCES) {
-    try {
-      const res = await fetch(`${inst}/streams/${videoId}`, {
-        signal: AbortSignal.timeout(6000),
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const audioStreams: any[] = data.audioStreams || [];
-      
-      // Sort and extract highest bitrate stream
-      const best = audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
-      if (best?.url) {
-        return { url: best.url, mimeType: best.mimeType || 'audio/webm' };
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
+};
 
 async function getStreamInfo(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  // Layer 1: Invidious Video API
-  try {
-    const invidious = await fetchViaInvidious(videoId);
-    if (invidious) return invidious;
-  } catch {}
+  // Layer 1: High-Performance Cobalt Extractors
+  const shuffledCobalt = shuffle(COBALT_INSTANCES);
+  const cobaltResults = await Promise.all(
+    shuffledCobalt.slice(0, 3).map(async (inst) => {
+      try {
+        const res = await fetch(`${inst}/api/json`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          },
+          body: JSON.stringify({
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            isAudioOnly: true,
+            downloadMode: 'audio',
+            audioFormat: 'mp3',
+            audioQuality: '128'
+          }),
+          signal: getTimeoutSignal(3500),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data?.url ? { url: data.url, mimeType: 'audio/mpeg' } : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  
+  const cobaltHit = cobaltResults.find((r) => r !== null);
+  if (cobaltHit) {
+    console.log('Successfully resolved via Cobalt API');
+    return cobaltHit;
+  }
 
-  // Layer 2: Cobalt Instance Pooling
-  try {
-    const cobalt = await fetchViaCobalt(videoId);
-    if (cobalt) return cobalt;
-  } catch {}
+  // Layer 2: Piped Instances (Parallel Race)
+  const shuffledPiped = shuffle(PIPED_INSTANCES);
+  const pipedResults = await Promise.all(
+    shuffledPiped.slice(0, 5).map(async (inst) => {
+      try {
+        const res = await fetch(`${inst}/streams/${videoId}`, {
+          signal: getTimeoutSignal(3500),
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const audioStreams: any[] = data.audioStreams || [];
+        const best = audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+        return best?.url ? { url: best.url, mimeType: best.mimeType || 'audio/webm' } : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  
+  const pipedHit = pipedResults.find((r) => r !== null);
+  if (pipedHit) {
+    console.log('Successfully resolved via Piped API');
+    return pipedHit;
+  }
 
-  // Layer 3: Piped API Streams (Final fallback)
-  try {
-    const piped = await fetchViaPiped(videoId);
-    if (piped) return piped;
-  } catch {}
-
-  return null;
+  // Layer 3: Invidious Instances
+  const shuffledInvidious = shuffle(INVIDIOUS_INSTANCES);
+  const invidiousResults = await Promise.all(
+    shuffledInvidious.slice(0, 4).map(async (inst) => {
+      try {
+        const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+          signal: getTimeoutSignal(3500),
+          headers: { 'User-Agent': 'Mozilla/5.0' },
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const format = (data.adaptiveFormats || []).find((f: any) => f.type?.startsWith('audio/'));
+        return format?.url ? { url: format.url, mimeType: format.type || 'audio/webm' } : null;
+      } catch {
+        return null;
+      }
+    })
+  );
+  
+  return invidiousResults.find((r) => r !== null) || null;
 }
 
-// Proxy stream — critical because source URLs are IP-locked to source server.
-// We fetch on behalf of the browser so the correct server IP makes the request.
+// Proxy stream with robust fallback.
 async function streamProxy(
   req: Request,
   sourceUrl: string,
@@ -185,18 +172,9 @@ async function streamProxy(
 
     const upstream = await fetch(sourceUrl, { headers: upstreamHeaders });
 
-    // Direct-to-browser Redirect: If all backend resolvers fail to output a 200/206 stream
-    // (due to Geolocks, IP throttling), issue a 307 Temporary Redirect to the raw media URL
-    // to allow the client browser IP to stream the track natively.
     if (!upstream.ok && upstream.status !== 206) {
-      console.warn('[Proxy] Upstream failed, issuing 307 native redirect to:', sourceUrl);
-      return new Response(null, {
-        status: 307,
-        headers: {
-          'Location': sourceUrl,
-          'Access-Control-Allow-Origin': '*',
-        }
-      });
+      console.warn(`Upstream returned ${upstream.status}. Invoking client redirect fallback.`);
+      return Response.redirect(sourceUrl, 302);
     }
 
     const responseHeaders = new Headers(corsHeaders);
@@ -222,15 +200,8 @@ async function streamProxy(
       headers: responseHeaders,
     });
   } catch (e: any) {
-    // Attempt fallback native redirect on serverless throw
-    console.warn('[Proxy] Upstream threw, trying 307 redirect:', e.message);
-    return new Response(null, {
-      status: 307,
-      headers: {
-        'Location': sourceUrl,
-        'Access-Control-Allow-Origin': '*',
-      }
-    });
+    console.error(`Proxy stream failed: ${e.message}. Redirecting directly to video source.`);
+    return Response.redirect(sourceUrl, 302);
   }
 }
 
@@ -239,28 +210,18 @@ export default async function handler(req: Request) {
 
   try {
     const url = new URL(req.url);
-    
-    // Accept generic proxyUrl query parameters to proxy external streaming tracks directly
-    const proxyUrl = url.searchParams.get('proxyUrl');
+    let videoId = url.searchParams.get('videoId') || url.searchParams.get('id') || '';
+    const shouldStream = url.searchParams.get('stream') === '1';
     const shouldDownload = url.searchParams.get('download') === '1';
     const title = url.searchParams.get('title') || 'audio';
-    const shouldStream = url.searchParams.get('stream') === '1' || proxyUrl !== null;
-
-    if (proxyUrl) {
-      const decodedProxy = decodeURIComponent(proxyUrl);
-      return await streamProxy(req, decodedProxy, 'audio/mp3', shouldDownload, title);
-    }
-
-    let videoId = url.searchParams.get('videoId') || url.searchParams.get('id') || '';
 
     if (!videoId) {
-      return new Response(JSON.stringify({ error: 'Video ID or proxyUrl required' }), {
+      return new Response(JSON.stringify({ error: 'Video ID required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Clean and extract the 11-character YouTube videoId
     const match = videoId.match(/(?:v=|\/|embed\/|shorts\/|^)([a-zA-Z0-9_-]{11})/);
     if (match) videoId = match[1];
     videoId = videoId.trim().substring(0, 11);

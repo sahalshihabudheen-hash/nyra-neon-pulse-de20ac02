@@ -7,20 +7,254 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTabTitle } from '@/hooks/useTabTitle';
+import { useDjAudio } from '@/hooks/useDjAudio';
 
-const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string; proxyUrl?: string }) => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-  const baseUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/get-audio-url` : '/api/get-audio-url';
-  const params = new URLSearchParams();
-  if (videoId) {
-    params.append('videoId', videoId);
-    params.append('id', videoId);
-  }
+const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
+  const baseUrl = '/api/get-audio-url';
+  const params = new URLSearchParams({ videoId });
   if (options?.stream) params.append('stream', '1');
   if (options?.download) params.append('download', '1');
   if (options?.title) params.append('title', options.title);
-  if (options?.proxyUrl) params.append('proxyUrl', encodeURIComponent(options.proxyUrl));
   return `${baseUrl}?${params.toString()}`;
+};
+
+// Robust, high-speed client-side resolver that bypasses server proxies
+const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> => {
+  console.log(`[Client Resolver] Resolving backup audio stream for ${videoId}...`);
+  
+  const COBALT_INSTANCES = [
+    'https://api.cobalt.tools',
+    'https://cobalt.api.ryboflops.lol',
+    'https://cobalt.k6.ovh',
+    'https://cobalt.shite.xyz',
+    'https://co.wuk.sh',
+    'https://cobalt.smartit.nu',
+    'https://cobalt.drgns.space',
+    'https://c.onon.app',
+    'https://co.v6.sh'
+  ];
+  
+  const PIPED_INSTANCES = [
+    'https://pipedapi.kavin.rocks',
+    'https://api.piped.private.coffee',
+    'https://piped-api.lre.yt',
+    'https://pipedapi.cl7.it',
+    'https://piped-api.hostux.net',
+    'https://pipedapi.adminforge.de',
+    'https://api-piped.mha.fi',
+    'https://pipedapi.swish.re',
+    'https://pipedapi.spirit.com.de',
+    'https://pipedapi.leptons.xyz',
+    'https://api.piped.projectsegfau.lt',
+    'https://pipedapi.moomoo.me',
+    'https://pipedapi.river.rocks'
+  ];
+
+  const shuffle = (array: string[]): string[] => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  const getTimeoutSignal = (ms: number) => {
+    try {
+      return AbortSignal.timeout(ms);
+    } catch {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), ms);
+      return controller.signal;
+    }
+  };
+
+  const safelyParseJson = async <T = any>(response: Response): Promise<T | null> => {
+    try {
+      const text = await response.text();
+      if (!text || text.trim() === '') return null;
+      return JSON.parse(text) as T;
+    } catch {
+      return null;
+    }
+  };
+
+  // Attempt 0: Prioritized proven high-performance Invidious Instance
+  const prioritizedInvidious = [
+    'https://inv.thepixora.com',
+    'https://yewtu.be',
+    'https://invidious.projectsegfau.lt'
+  ];
+
+  for (const inst of prioritizedInvidious) {
+    try {
+      const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        },
+        signal: getTimeoutSignal(4000)
+      });
+      if (res.ok) {
+        const data = await safelyParseJson<any>(res);
+        if (!data) continue;
+        const formats = data?.adaptiveFormats || [];
+        // Prioritize audio/mp4 for outstanding iOS, iPadOS and Safari compatibility, then fall back to any audio
+        const format = formats.find((f: any) => f.type?.includes('audio/mp4')) ||
+                       formats.find((f: any) => f.type?.startsWith('audio/'));
+        if (format?.url) {
+          try {
+            const host = new URL(inst).host;
+            const googleUrl = new URL(format.url);
+            const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
+            console.log(`[Client Resolver] Priority success using Invidious Instance from ${inst} with proxy:`, proxyUrl.substring(0, 100));
+            return proxyUrl;
+          } catch {
+            console.log(`[Client Resolver] Priority success using Invidious Instance from ${inst} (raw fallback)`);
+            return format.url;
+          }
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[Client Resolver] Priority Invidious inst ${inst} failed:`, e?.message);
+    }
+  }
+
+  // Attempt 1: Dynamic Invidious Registry Fallback
+  try {
+    console.log('[Client Resolver] Fetching dynamic live Invidious registry...');
+    const regRes = await fetch('https://api.invidious.io/instances.json', { signal: getTimeoutSignal(3500) });
+    if (regRes.ok) {
+      const data = await safelyParseJson<any>(regRes);
+      if (data) {
+        const upInstances = data
+          .map((item: any) => ({
+            domain: item[0],
+            uri: item[1].uri || `https://${item[0]}`,
+            down: item[1].monitor?.down,
+            status: item[1].monitor?.last_status
+          }))
+          .filter((inst: any) => !inst.down && inst.status === 200 && !prioritizedInvidious.includes(inst.uri));
+
+        const shuffledUp = shuffle(upInstances.map((x: any) => x.uri));
+        for (const inst of shuffledUp.slice(0, 4)) {
+          try {
+            const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+              },
+              signal: getTimeoutSignal(3500)
+            });
+            if (res.ok) {
+              const detail = await safelyParseJson<any>(res);
+              if (!detail) continue;
+              const formats = detail?.adaptiveFormats || [];
+              // Prioritize audio/mp4 for outstanding iOS, iPadOS and Safari compatibility, then fall back to any audio
+              const format = formats.find((f: any) => f.type?.includes('audio/mp4')) ||
+                             formats.find((f: any) => f.type?.startsWith('audio/'));
+              if (format?.url) {
+                try {
+                  const host = new URL(inst).host;
+                  const googleUrl = new URL(format.url);
+                  const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
+                  console.log(`[Client Resolver] Dynamic success using Invidious Instance from ${inst} with proxy:`, proxyUrl.substring(0, 100));
+                  return proxyUrl;
+                } catch {
+                  console.log(`[Client Resolver] Dynamic success using Invidious Instance from ${inst} (raw fallback)`);
+                  return format.url;
+                }
+              }
+            }
+          } catch (e: any) {
+            console.warn(`[Client Resolver] Dynamic Invidious inst ${inst} failed:`, e?.message);
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.error('[Client Resolver] Dynamic registry fetch failed:', err.message);
+  }
+
+  // Attempt 2: Cobalt Instances (Extremely high quality MP3 streams, very fast)
+  const shuffledCobalt = shuffle(COBALT_INSTANCES);
+  for (const inst of shuffledCobalt.slice(0, 4)) {
+    try {
+      // Modern Cobalt v10 API formats prefer simplified audio options and error on old keys, legacy v7 formats want isAudioOnly
+      let res = await fetch(`${inst}/api/json`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        body: JSON.stringify({
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          downloadMode: 'audio',
+          audioFormat: 'mp3',
+          audioQuality: '128'
+        }),
+        signal: getTimeoutSignal(3500)
+      });
+
+      if (!res.ok) {
+        // Fallback to legacy parameters
+        res = await fetch(`${inst}/api/json`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          },
+          body: JSON.stringify({
+            url: `https://www.youtube.com/watch?v=${videoId}`,
+            isAudioOnly: true,
+            audioFormat: 'mp3',
+            audioQuality: '128'
+          }),
+          signal: getTimeoutSignal(3500)
+        });
+      }
+
+      if (res.ok) {
+        const data = await safelyParseJson<any>(res);
+        if (data?.url) {
+          console.log(`[Client Resolver] Successfully resolved using Cobalt API from ${inst}`);
+          return data.url;
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[Client Resolver] Cobalt inst ${inst} failed:`, e?.message);
+    }
+  }
+
+  // Attempt 3: Piped Instances (Shuffled race)
+  const shuffledPiped = shuffle(PIPED_INSTANCES);
+  for (const inst of shuffledPiped.slice(0, 5)) {
+    try {
+      const res = await fetch(`${inst}/streams/${videoId}`, {
+        signal: getTimeoutSignal(3500),
+        headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+      });
+      if (res.ok) {
+        const data = await safelyParseJson<any>(res);
+        if (!data) continue;
+        const audioStreams = data.audioStreams || [];
+        // Prioritize audio/mp4 for Outstanding iOS/Safari/macOS compatibility
+        const best = audioStreams.find((s: any) => s.mimeType?.includes('audio/mp4')) ||
+                     audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+        if (best?.url) {
+          console.log(`[Client Resolver] Successfully resolved using Piped Instance from ${inst}`);
+          return best.url;
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[Client Resolver] Piped inst ${inst} failed:`, e?.message);
+    }
+  }
+
+  console.error('[Client Resolver] All client-side resolutions failed.');
+  return null;
 };
 
 export interface Track {
@@ -49,7 +283,6 @@ interface MusicPlayerContextType {
   handlePlayFromPlaylist: (track: Track) => void;
   handlePlayFromQueue: (track: Track) => void;
   forceBackgroundPlayback: (track?: Track, options?: { trackList?: Track[]; fromPlaylist?: boolean }) => Promise<boolean>;
-  loadLocalDjFile: (file: File) => Promise<boolean>;
   handleAddToPlaylist: (track: Track) => void;
   handleAddToQueue: (track: Track) => void;
   handleRemoveFromPlaylist: (trackId: string) => void;
@@ -88,7 +321,8 @@ interface MusicPlayerContextType {
   isMuted: boolean;
   setIsMuted: (value: boolean) => void;
   useBackgroundAudioOnly: boolean;
-  setUseBackgroundAudioOnly: React.Dispatch<React.SetStateAction<boolean>>;
+  setUseBackgroundAudioOnly: (v: boolean) => void;
+  setUseBackgroundAudioMode: (v: boolean) => void;
 }
 
 
@@ -107,15 +341,28 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [isPlaying, setIsPlaying] = useState(false);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
-  const [useBackgroundAudioMode, setUseBackgroundAudioMode] = useState(() => {
-    return localStorage.getItem('nyra-bg-audio-mode') !== 'false';
+  const [useBackgroundAudioMode, setUseBackgroundAudioModeState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('nyra-bg-audio-mode');
+      // Default to true now as requested by the user, providing full DJ features (EQ, split channels, crossfading) via Web Audio API.
+      return saved !== 'false';
+    }
+    return true;
   });
+
+  const setUseBackgroundAudioMode = useCallback((val: boolean) => {
+    setUseBackgroundAudioModeState(val);
+    localStorage.setItem('nyra-bg-audio-mode', String(val));
+    if (val) {
+      toast.info('DJ Music Engine activated (direct cloud stream rendering with full Web Audio EQ & crossfade).');
+    } else {
+      toast.info('Standard Music Engine activated (hybrid background fallback player).');
+    }
+  }, []);
+
   const [useBackgroundAudioOnly, setUseBackgroundAudioOnlyState] = useState(false);
   const useBackgroundAudioOnlyRef = useRef(false);
-
-  useEffect(() => {
-    localStorage.setItem('nyra-bg-audio-mode', useBackgroundAudioMode.toString());
-  }, [useBackgroundAudioMode]);
+  const isResolvingStreamRef = useRef(false);
 
   const setUseBackgroundAudioOnly = useCallback((val: boolean | ((prev: boolean) => boolean)) => {
     setUseBackgroundAudioOnlyState(prev => {
@@ -162,24 +409,23 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
-  const localObjectUrlRef = useRef<string | null>(null);
+
+  const djAudio = useDjAudio(audioRef, isPlaying);
 
   const setPlaybackSource = useCallback((source: 'youtube' | 'background' | null) => {
     activeSourceRef.current = source;
     setActiveSource(source);
   }, []);
 
-  const revokeLocalObjectUrl = useCallback(() => {
-    if (localObjectUrlRef.current) {
-      URL.revokeObjectURL(localObjectUrlRef.current);
-      localObjectUrlRef.current = null;
-    }
-  }, []);
-
   const safePlay = useCallback(async (audio: HTMLAudioElement) => {
     try {
       await audio.play();
       setIsPlaying(true);
+      try {
+        djAudio.init();
+      } catch (err) {
+        console.warn('djAudio.init() in safePlay failed:', err);
+      }
       return true;
     } catch (e: any) {
       if (!useBackgroundAudioOnlyRef.current && (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS'))) {
@@ -258,13 +504,17 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
     };
 
-    const handleError = () => {
-      if (useBackgroundAudioOnlyRef.current) {
-        console.error('[DJ] Background audio error event fired. Suppressing YouTube fallback in DJ mode.');
+    const handleError = (e: any) => {
+      if (isResolvingStreamRef.current) {
+        console.warn('Audio element error ignored during active background resolution/retry phase');
         return;
       }
-      console.error('Audio error, falling back to YouTube player');
-      setUseBackgroundAudioMode(false);
+      console.error('Audio error, falling back to YouTube player', e);
+      if (!useBackgroundAudioOnlyRef.current) {
+        setUseBackgroundAudioMode(false);
+      } else {
+        toast.error('DJ Stream playback interrupted. Reconnecting...');
+      }
     };
 
     audio.addEventListener('ended', handleEnded);
@@ -332,59 +582,125 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     });
   }, [settings.autoPlayNext]);
 
-  const startYoutubeCompatibilityPlayback = useCallback((videoId: string, message?: string) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = '';
-    }
-    setUseBackgroundAudioMode(false);
-    setPlaybackSource('youtube');
-    const yt = (window as any).YT;
-    if (ytApiReady && yt?.Player) {
-      createPlayer(videoId);
-      if (message) toast.info(message);
-      return true;
-    }
-    toast.error('Player not ready. Please try again.');
-    return false;
-  }, [createPlayer, setPlaybackSource, ytApiReady]);
-
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
     if (activeSourceRef.current === 'background') {
-      audioRef.current.pause();
-      audioRef.current.src = '';
+      audioRef.current?.pause();
+      if (audioRef.current) audioRef.current.src = '';
     }
+
+    const playDirectStream = async (url: string, crossOriginSetting: 'anonymous' | null) => {
+      if (!audioRef.current) return false;
+      try {
+        if (crossOriginSetting) {
+          audioRef.current.crossOrigin = crossOriginSetting;
+        } else {
+          audioRef.current.removeAttribute('crossOrigin');
+        }
+        audioRef.current.src = url;
+        audioRef.current.preload = 'auto';
+        audioRef.current.load();
+        return await safePlay(audioRef.current);
+      } catch (err) {
+        console.warn('playDirectStream error:', err);
+        return false;
+      }
+    };
+
+    const tryRobustResolution = async (): Promise<boolean> => {
+      isResolvingStreamRef.current = true;
+      try {
+        // 1. Try local/Supabase stream proxy
+        console.log('Resolving stream via edge proxy...');
+        const proxyStreamUrl = getAudioUrlEndpoint(videoId, { stream: true });
+        let success = await playDirectStream(proxyStreamUrl, 'anonymous');
+        if (success) {
+          isResolvingStreamRef.current = false;
+          return true;
+        }
+
+        // 2. Try direct audio URL from edge function
+        try {
+          console.log('Edge proxy failed. Querying direct url JSON...');
+          const response = await fetch(getAudioUrlEndpoint(videoId));
+          const data = response.ok ? await response.json() : null;
+          const directAudioUrl = data?.audioUrl || data?.audioUrl1;
+          if (directAudioUrl) {
+            // Play with anonymous first to see if CORS is OK
+            success = await playDirectStream(directAudioUrl, 'anonymous');
+            if (success) {
+              isResolvingStreamRef.current = false;
+              return true;
+            }
+
+            // If CORS fails, play raw (no crossOrigin)
+            success = await playDirectStream(directAudioUrl, null);
+            if (success) {
+              toast.warning('DJ effects disabled for this track (raw stream fallback).');
+              isResolvingStreamRef.current = false;
+              return true;
+            }
+          }
+        } catch (fallbackErr) {
+          console.error('Edge direct json fetch failed:', fallbackErr);
+        }
+
+        // 3. Fallback to high-performance client-side resolver (Cobalt / Piped / Invidious)
+        try {
+          toast.info('Resolving direct high-speed cloud fallback stream...');
+          const clientUrl = await resolveAudioUrlOnClient(videoId);
+          if (clientUrl) {
+            success = await playDirectStream(clientUrl, 'anonymous');
+            if (success) {
+              toast.success('DJ Stream connected directly!');
+              isResolvingStreamRef.current = false;
+              return true;
+            }
+
+            // Proxy the direct URL through our Express server to guarantee CORS compatibility!
+            const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+            success = await playDirectStream(proxiedUrl, 'anonymous');
+            if (success) {
+              toast.success('DJ Stream connected via high-speed proxy!');
+              isResolvingStreamRef.current = false;
+              return true;
+            }
+
+            success = await playDirectStream(clientUrl, null);
+            if (success) {
+              toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
+              isResolvingStreamRef.current = false;
+              return true;
+            }
+          }
+        } catch (clientErr) {
+          console.error('Client resolver failed:', clientErr);
+        }
+      } finally {
+        isResolvingStreamRef.current = false;
+      }
+      return false;
+    };
 
     if (useBackgroundAudioOnlyRef.current) {
       setPlaybackSource('background');
       if (ytPlayerRef.current) {
         try { ytPlayerRef.current.pauseVideo(); } catch {}
       }
-      const proxyStreamUrl = getAudioUrlEndpoint(videoId, { stream: true });
-      audioRef.current.crossOrigin = 'anonymous';
-      audioRef.current.src = proxyStreamUrl;
-      audioRef.current.preload = 'auto';
-      audioRef.current.load();
-      
-      const success = await safePlay(audioRef.current);
-      if (!success) {
-        // In DJ-only mode never fall back to YouTube — stream just isn't ready yet.
-        // The user can press Play again once the proxy has buffered enough.
-        toast.info('DJ stream loading — press Play when ready.');
+      const resolved = await tryRobustResolution();
+      if (!resolved) {
+        toast.error('DJ Audio failed to load. Tap play to retry.');
       }
       return;
     }
 
     // Race a direct audio URL fetch against a fast timeout so playback starts
     // instantly via YouTube if the edge function is slow.
-    // Race a direct audio URL fetch against a timeout.
-    // Increased timeout for better reliability on slower connections.
-    const START_TIMEOUT_MS = useBackgroundAudioOnlyRef.current ? 20000 : 2500;
+    const START_TIMEOUT_MS = 3500;
     let usedFallback = false;
 
     try {
       const controller = new AbortController();
-      const timeoutPromise = new Promise<null>((resolve) => {
+      const timeoutPromise = new Promise<boolean>((resolve) => {
         setTimeout(() => {
           if (!usedFallback && !useBackgroundAudioOnlyRef.current) {
             usedFallback = true;
@@ -396,63 +712,36 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             }
             controller.abort();
           }
-          resolve(null);
+          resolve(false);
         }, START_TIMEOUT_MS);
       });
 
-      const fetchPromise = fetch(
-        getAudioUrlEndpoint(videoId)
-      ).then(async (response) => {
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          console.error('Audio URL fetch failed:', response.status, errData);
-          return null;
-        }
-        const data = await response.json();
-        return data?.audioUrl || data?.audioUrl1 || null;
-      }).catch((e) => {
-        console.error('Audio URL fetch error:', e);
-        return null;
-      });
-
-      const audioUrl = await Promise.race([fetchPromise, timeoutPromise]);
+      const fetchResolutionPromise = tryRobustResolution();
+      const result = await Promise.race([fetchResolutionPromise, timeoutPromise]);
 
       if (usedFallback) return;
 
-      if (audioUrl && audioRef.current) {
+      if (result === true) {
         setPlaybackSource('background');
         if (ytPlayerRef.current) {
           try { ytPlayerRef.current.pauseVideo(); } catch {}
         }
-        // Force use of the CORS-compliant stream proxy
-        const proxyStreamUrl = getAudioUrlEndpoint(videoId, { stream: true });
-        audioRef.current.crossOrigin = 'anonymous';
-        audioRef.current.src = proxyStreamUrl;
-        audioRef.current.load();
-        
-        const success = await safePlay(audioRef.current);
-        if (!success) {
-          if (useBackgroundAudioOnlyRef.current) {
-            toast.error('DJ Audio failed to resume. Tap anywhere to continue.');
-            return;
-          }
-          setPlaybackSource('youtube');
-          const yt = (window as any).YT;
-          if (ytApiReady && yt?.Player) {
-            createPlayer(videoId);
-          }
-        }
         return;
       }
     } catch (error) {
-      console.warn('Background audio flow failed:', error);
+      console.warn('Background audio race failed:', error);
     }
-
 
     if (usedFallback || useBackgroundAudioOnlyRef.current) return;
     // Final fallback to standard YouTube IFrame player
-    startYoutubeCompatibilityPlayback(videoId);
-  }, [ytApiReady, createPlayer, setPlaybackSource, startYoutubeCompatibilityPlayback]);
+    setPlaybackSource('youtube');
+    const yt = (window as any).YT;
+    if (ytApiReady && yt?.Player) {
+      createPlayer(videoId);
+    } else {
+      toast.error('Player not ready. Please try again.');
+    }
+  }, [ytApiReady, createPlayer, setPlaybackSource, safePlay]);
 
   const forceBackgroundPlayback = useCallback(async (track = currentTrack, options?: { trackList?: Track[]; fromPlaylist?: boolean }): Promise<boolean> => {
     if (!track || !audioRef.current) {
@@ -480,89 +769,126 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setShowMiniPlayer(true);
       setPlaybackSource('background');
 
-      if (useBackgroundAudioOnlyRef.current) {
-        const streamUrl = getAudioUrlEndpoint(track.id, { stream: true });
-        audioRef.current.crossOrigin = 'anonymous';
-        audioRef.current.src = streamUrl;
-        audioRef.current.preload = 'auto';
-        audioRef.current.load();
-
+      const playDirectStream = async (url: string, crossOriginSetting: 'anonymous' | null) => {
+        if (!audioRef.current) return false;
         try {
+          if (crossOriginSetting) {
+            audioRef.current.crossOrigin = crossOriginSetting;
+          } else {
+            audioRef.current.removeAttribute('crossOrigin');
+          }
+          audioRef.current.src = url;
+          audioRef.current.preload = 'auto';
+          audioRef.current.load();
           await audioRef.current.play();
           setIsPlaying(true);
+          try {
+            djAudio.init();
+          } catch (err) {
+            console.warn('djAudio.init() in forceBackgroundPlayback failed:', err);
+          }
           return true;
-        } catch (playError: any) {
-          if (playError?.name === 'NotAllowedError') {
+        } catch (err: any) {
+          if (err?.name === 'NotAllowedError') {
             setIsPlaying(false);
             toast.info('DJ Mode ready. Press Play to start audio.');
-          } else if (playError?.name === 'AbortError') {
-            console.log('[DJ] Playback aborted by browser due to new track load request.');
-          } else {
-            console.warn('[DJ] stream play failed:', playError?.message);
-            setIsPlaying(false);
-            toast.error('DJ Stream loading slow or failed. Try playing again.');
+            return true; // Autoplay blocked is not a "failure" of stream loading
           }
+          console.warn('playDirectStream error:', err);
+          return false;
         }
+      };
+
+      const tryRobustResolution = async (): Promise<boolean> => {
+        isResolvingStreamRef.current = true;
+        try {
+          // 1. Try local/Supabase stream proxy
+          console.log('Resolving force stream via edge proxy...');
+          const streamUrl = getAudioUrlEndpoint(track.id, { stream: true });
+          let success = await playDirectStream(streamUrl, 'anonymous');
+          if (success) {
+            isResolvingStreamRef.current = false;
+            return true;
+          }
+
+          // 2. Try direct audio URL from edge function
+          try {
+            console.log('Edge proxy failed. Resolving direct url fallback...');
+            const response = await fetch(getAudioUrlEndpoint(track.id));
+            const data = response.ok ? await response.json() : null;
+            const directAudioUrl = data?.audioUrl || data?.audioUrl1;
+            if (directAudioUrl) {
+              success = await playDirectStream(directAudioUrl, 'anonymous');
+              if (success) {
+                isResolvingStreamRef.current = false;
+                return true;
+              }
+
+              success = await playDirectStream(directAudioUrl, null);
+              if (success) {
+                toast.warning('DJ effects disabled for this track (raw stream fallback).');
+                isResolvingStreamRef.current = false;
+                return true;
+              }
+            }
+          } catch (fallbackErr: any) {
+            console.error('Direct audio stream fallback failed:', fallbackErr);
+          }
+
+          // 3. Fallback to client-side resolver
+          try {
+            toast.info('Resolving direct high-speed cloud fallback stream...');
+            const clientUrl = await resolveAudioUrlOnClient(track.id);
+            if (clientUrl) {
+              success = await playDirectStream(clientUrl, 'anonymous');
+              if (success) {
+                toast.success('DJ Stream connected directly!');
+                isResolvingStreamRef.current = false;
+                return true;
+              }
+
+              // Proxy the direct URL through our Express server to guarantee CORS compatibility!
+              const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+              success = await playDirectStream(proxiedUrl, 'anonymous');
+              if (success) {
+                toast.success('DJ Stream connected via high-speed proxy!');
+                isResolvingStreamRef.current = false;
+                return true;
+              }
+
+              success = await playDirectStream(clientUrl, null);
+              if (success) {
+                toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
+                isResolvingStreamRef.current = false;
+                return true;
+              }
+            }
+          } catch (clientErr) {
+            console.error('Client resolver failed:', clientErr);
+          }
+        } finally {
+          isResolvingStreamRef.current = false;
+        }
+        return false;
+      };
+
+      const resolved = await tryRobustResolution();
+      if (resolved) {
         return true;
       }
 
-      const response = await fetch(
-        getAudioUrlEndpoint(track.id)
-      );
-      const data = response.ok ? await response.json() : null;
-      const audioUrl = data?.audioUrl;
-
-      if (!audioUrl) {
-        console.warn('No audio URL from API');
-        if (useBackgroundAudioOnlyRef.current) {
-          toast.error('DJ Audio stream unavailable. Try another song.');
-          return false;
-        }
-        // No URL found — fall back to YouTube IFrame player
-        setPlaybackSource('youtube');
-        if (ytApiReady) createPlayer(track.id);
+      if (useBackgroundAudioOnlyRef.current) {
+        toast.error('DJ Audio stream failed. Try another song.');
         return false;
       }
 
-      // IMPORTANT: Use the edge function as the audio proxy (&stream=1).
-      // Direct Piped URLs are blocked by some ISPs (e.g. India).
-      // The edge function runs from US/EU IPs that can reach Piped.
-      // The browser makes range requests — each small chunk completes within timeouts.
-      const streamUrl = getAudioUrlEndpoint(track.id, { stream: true });
-      // IMPORTANT: Keep crossOrigin='anonymous' — required for Web Audio API (DJ effects)
-      // Removing it would silently break the DJ engine even though audio still plays
-      audioRef.current.crossOrigin = 'anonymous';
-      audioRef.current.src = streamUrl;
-      audioRef.current.preload = 'auto';
-      audioRef.current.load();
-
-      try {
-        await audioRef.current.play();
-        setIsPlaying(true);
-      } catch (playError: any) {
-        if (playError?.name === 'NotAllowedError') {
-          // Autoplay blocked — user must press play
-          setIsPlaying(false);
-          toast.info('DJ Mode ready. Press Play to start audio.');
-        } else if (playError?.name === 'AbortError') {
-          console.log('[DJ] Playback aborted by browser due to new track load request.');
-        } else {
-          console.warn('[DJ] stream play failed:', playError?.message);
-          if (useBackgroundAudioOnlyRef.current) {
-            // DJ mode — DO NOT remove crossOrigin!
-            setIsPlaying(false);
-            toast.error('DJ Stream loading slow or failed. Try playing again.');
-            return true;
-          }
-          // Normal mode — fall back to YouTube IFrame player
-          audioRef.current.src = '';
-          setPlaybackSource('youtube');
-          if (ytApiReady) createPlayer(track.id);
-          toast.info('Playing via YouTube player.');
-        }
-      }
-
+      // Final fallback to standard YouTube IFrame player (only if not background only)
+      audioRef.current.src = '';
+      setPlaybackSource('youtube');
+      if (ytApiReady) createPlayer(track.id);
+      toast.info('Playing via YouTube player.');
       return true;
+
     } catch (error: any) {
       console.warn('Force DJ source failed:', error);
       if (useBackgroundAudioOnlyRef.current) {
@@ -573,51 +899,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       toast.error(`Could not start DJ audio: ${error?.message || 'Network error'}`);
       return false;
     }
-  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, startYoutubeCompatibilityPlayback]);
-
-  const loadLocalDjFile = useCallback(async (file: File): Promise<boolean> => {
-    if (!audioRef.current || !file.type.startsWith('audio/')) {
-      toast.error('Please choose an audio file');
-      return false;
-    }
-
-    try {
-      if (ytPlayerRef.current) {
-        try { ytPlayerRef.current.pauseVideo(); } catch {}
-      }
-      audioRef.current.pause();
-      audioRef.current.removeAttribute('crossOrigin');
-      revokeLocalObjectUrl();
-
-      const objectUrl = URL.createObjectURL(file);
-      localObjectUrlRef.current = objectUrl;
-      const localTrack: Track = {
-        id: `local-${file.name}-${file.lastModified}`,
-        title: file.name.replace(/\.[^/.]+$/, ''),
-        thumbnail: '/headphones.png',
-        channel: 'Local DJ File',
-      };
-
-      setUseBackgroundAudioOnly(true);
-      setUseBackgroundAudioMode(true);
-      setCurrentTrack(localTrack);
-      setPlayingFromPlaylist(false);
-      setShowMiniPlayer(true);
-      setPlaybackSource('background');
-      audioRef.current.src = objectUrl;
-      audioRef.current.preload = 'auto';
-      audioRef.current.load();
-      const success = await safePlay(audioRef.current);
-      if (!success) {
-        toast.info('Local DJ file ready. Press Play to start.');
-      }
-      return true;
-    } catch (error) {
-      console.warn('Local DJ file failed:', error);
-      toast.error('Could not load that audio file');
-      return false;
-    }
-  }, [revokeLocalObjectUrl, safePlay, setPlaybackSource, setUseBackgroundAudioOnly]);
+  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
@@ -633,8 +915,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setLastPlayed(track.id);
     setShowMiniPlayer(true);
     recordPlay(track);
-    playWithBackgroundAudio(track.id);
-  }, [tracks, playWithBackgroundAudio, setLastPlayed, recordPlay]);
+    
+    if (useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
+      playWithBackgroundAudio(track.id);
+    } else {
+      setPlaybackSource('youtube');
+      if (ytApiReady) createPlayer(track.id);
+    }
+  }, [tracks, playWithBackgroundAudio, useBackgroundAudioMode, ytApiReady, createPlayer, setLastPlayed, recordPlay, setPlaybackSource]);
 
   const handlePlayFromPlaylist = useCallback((track: Track) => {
     setCurrentTrack(track);
@@ -642,8 +930,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setLastPlayed(track.id);
     setShowMiniPlayer(true);
     recordPlay(track);
-    playWithBackgroundAudio(track.id);
-  }, [playWithBackgroundAudio, setLastPlayed, recordPlay]);
+    
+    if (useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
+      playWithBackgroundAudio(track.id);
+    } else {
+      setPlaybackSource('youtube');
+      if (ytApiReady) createPlayer(track.id);
+    }
+  }, [playWithBackgroundAudio, useBackgroundAudioMode, ytApiReady, createPlayer, setLastPlayed, recordPlay, setPlaybackSource]);
 
   const handlePlayPause = useCallback(() => {
     // If we have a track but no active source is playing it yet, start it up!
@@ -779,8 +1073,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     handleNextRef.current = handleNext;
   }, [handleNext]);
 
-  useEffect(() => revokeLocalObjectUrl, [revokeLocalObjectUrl]);
-
   const handleAddToPlaylist = useCallback((track: Track) => {
     if (isInPlaylist(track.id)) { toast.info('Track already in playlist'); return; }
     addToPlaylist(track);
@@ -893,7 +1185,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       ytPlayerRef, audioRef,
       handlePlayTrack, handlePlayPause, handleNext, handlePrevious,
       handlePlayFromPlaylist, handlePlayFromQueue,
-      forceBackgroundPlayback, loadLocalDjFile,
+      forceBackgroundPlayback,
       handleAddToPlaylist, handleAddToQueue,
       handleRemoveFromPlaylist, handleClearPlaylist,
       playlist, queue, isInPlaylist, removeFromQueue, reorderPlaylist,
@@ -906,6 +1198,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       volume, setVolume,
       isMuted, setIsMuted,
       useBackgroundAudioOnly, setUseBackgroundAudioOnly,
+      setUseBackgroundAudioMode,
     }}>
 
       {children}

@@ -119,6 +119,8 @@ const MusicPlayer = ({
     setIsMuted,
     nowPlayingOpen,
     setNowPlayingOpen,
+    useBackgroundAudioMode,
+    setUseBackgroundAudioMode,
   } = useMusicPlayer();
 
   const [progress, setProgress] = useState(0);
@@ -328,6 +330,21 @@ const MusicPlayer = ({
           {/* Right: Actions & Volume (Mobile Friendly) */}
           <div className="flex-1 flex items-center justify-end gap-1 md:gap-6 w-[35%] md:w-auto">
             <div className="flex items-center gap-1 p-1 md:p-1.5 rounded-lg md:rounded-2xl bg-white/5 border border-white/5">
+              <button 
+                onClick={() => setUseBackgroundAudioMode(!useBackgroundAudioMode)} 
+                className={cn(
+                  "p-1.5 md:p-2 rounded-md md:rounded-xl transition-all relative group/zap shrink-0",
+                  useBackgroundAudioMode 
+                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]" 
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                title={useBackgroundAudioMode ? "DJ Mode (Cloud Stream Engine) is ON. Click to use Standard Engine." : "DJ Mode (Cloud Stream Engine) is OFF. Click to enable DJ visual effects and effects faders."}
+              >
+                <Zap className={cn("w-3 h-3 md:w-4 md:h-4", useBackgroundAudioMode && "fill-current animate-pulse")} />
+                <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black/95 border border-white/10 text-[8px] font-black uppercase text-white px-2 py-1 rounded opacity-0 group-hover/zap:opacity-100 transition-opacity whitespace-nowrap pointer-events-none tracking-widest leading-none z-[1001]">
+                  {useBackgroundAudioMode ? "DJ Audio Engine" : "Standard Engine"}
+                </span>
+              </button>
               <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
                 <Music2 className="w-3 h-3 md:w-4 md:h-4" />
               </button>

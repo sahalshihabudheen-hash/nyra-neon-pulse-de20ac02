@@ -49,9 +49,10 @@ const FloatingMiniPlayer = () => {
   // Hide mini player on pages that have their own full player
   const hasFullPlayer = location.pathname === '/' || location.pathname.startsWith('/playlist/') || location.pathname === '/favorites' || location.pathname === '/dj';
 
+  const [isMobileSize, setIsMobileSize] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 640 : false);
   const [position, setPosition] = useState(() => ({
-    x: Math.max(EDGE_PADDING, window.innerWidth - PLAYER_WIDTH - 24),
-    y: Math.max(EDGE_PADDING, window.innerHeight - PLAYER_HEIGHT - 24),
+    x: typeof window !== 'undefined' ? Math.max(EDGE_PADDING, window.innerWidth - PLAYER_WIDTH - 24) : 0,
+    y: typeof window !== 'undefined' ? Math.max(EDGE_PADDING, window.innerHeight - PLAYER_HEIGHT - 24) : 0,
   }));
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -86,6 +87,7 @@ const FloatingMiniPlayer = () => {
   // Clamp position on resize
   useEffect(() => {
     const handleResize = () => {
+      setIsMobileSize(window.innerWidth < 640);
       setPosition((prev) => ({
         x: Math.max(EDGE_PADDING, Math.min(prev.x, window.innerWidth - PLAYER_WIDTH - EDGE_PADDING)),
         y: Math.max(EDGE_PADDING, Math.min(prev.y, window.innerHeight - PLAYER_HEIGHT - EDGE_PADDING)),
@@ -197,11 +199,17 @@ const FloatingMiniPlayer = () => {
     <div
       ref={playerRef}
       className={cn(
-        'fixed z-[9998] w-[calc(100vw-24px)] max-w-[320px] select-none',
-        isDragging ? 'cursor-grabbing' : 'cursor-default',
+        'fixed z-[9998] w-[calc(100vw-24px)] select-none transition-all duration-200 md:duration-0',
+        isMobileSize ? 'max-w-[480px]' : 'max-w-[320px]',
+        isDragging && !isMobileSize ? 'cursor-grabbing' : 'cursor-default',
         isExiting ? 'animate-fade-out' : 'animate-fade-in',
       )}
-      style={{
+      style={isMobileSize ? {
+        left: '12px',
+        right: '12px',
+        bottom: '12px',
+        top: 'auto',
+      } : {
         left: `${position.x}px`,
         top: `${position.y}px`,
       }}
@@ -211,17 +219,19 @@ const FloatingMiniPlayer = () => {
           <button
             type="button"
             onMouseDown={(e) => {
+              if (isMobileSize) return;
               e.preventDefault();
               handleDragStart(e.clientX, e.clientY);
             }}
             onTouchStart={(e) => {
+              if (isMobileSize) return;
               if (!e.touches[0]) return;
               handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
             }}
             onClick={handleExpand}
             className={cn(
               'group relative flex items-center gap-3 min-w-0 flex-1 text-left rounded-xl p-1 transition-colors',
-              isDragging ? 'cursor-grabbing' : 'cursor-grab',
+              isDragging && !isMobileSize ? 'cursor-grabbing' : (isMobileSize ? 'cursor-default' : 'cursor-grab'),
             )}
           >
             <div className="relative shrink-0">
@@ -251,7 +261,7 @@ const FloatingMiniPlayer = () => {
                 e.stopPropagation();
                 handlePrevious();
               }}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95"
+              className="hidden sm:flex h-8 w-8 rounded-full items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
               aria-label="Previous track"
             >
               <SkipBack className="h-4 w-4" fill="currentColor" />
@@ -262,7 +272,7 @@ const FloatingMiniPlayer = () => {
                 e.stopPropagation();
                 handlePlayPause();
               }}
-              className="h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground bg-primary hover:opacity-90 transition-all active:scale-95"
+              className="h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground bg-primary hover:opacity-90 transition-all active:scale-95 shrink-0"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 ml-0.5" fill="currentColor" />}
@@ -273,7 +283,7 @@ const FloatingMiniPlayer = () => {
                 e.stopPropagation();
                 handleNext();
               }}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95"
+              className="h-8 w-8 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
               aria-label="Next track"
             >
               <SkipForward className="h-4 w-4" fill="currentColor" />
@@ -286,7 +296,7 @@ const FloatingMiniPlayer = () => {
                   startDownload({ id: currentTrack.id, title: currentTrack.title, thumbnail: currentTrack.thumbnail });
                 }
               }}
-              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
+              className="hidden sm:flex h-7 w-7 rounded-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
               aria-label="Download"
             >
               {currentTrack && isDownloading(currentTrack.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
@@ -301,7 +311,7 @@ const FloatingMiniPlayer = () => {
                   toast.success('Share link copied!');
                 }
               }}
-              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
+              className="hidden sm:flex h-7 w-7 rounded-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
               aria-label="Share"
             >
               <Share2 className="h-3.5 w-3.5" />
@@ -313,7 +323,7 @@ const FloatingMiniPlayer = () => {
                 setLyricsOpen(!lyricsOpen);
               }}
               className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center transition-all active:scale-95",
+                "hidden sm:flex h-7 w-7 rounded-full items-center justify-center transition-all active:scale-95 shrink-0",
                 lyricsOpen
                   ? "text-primary bg-primary/20"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
@@ -328,7 +338,7 @@ const FloatingMiniPlayer = () => {
                 e.stopPropagation();
                 setShowMiniPlayer(false);
               }}
-              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95"
+              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
               aria-label="Close mini player"
             >
               <X className="h-3.5 w-3.5" />

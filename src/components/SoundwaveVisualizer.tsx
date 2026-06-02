@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useDjAudio } from '@/hooks/useDjAudio';
+import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
 export type SoundwaveShape = 'bars' | 'waves' | 'dots' | 'pulse' | 'spectrum';
 
@@ -12,6 +14,8 @@ interface SoundwaveVisualizerProps {
 
 const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: SoundwaveVisualizerProps) => {
   const { settings } = useTheme();
+  const { audioRef } = useMusicPlayer();
+  const { state, getFrequencyData } = useDjAudio(audioRef, isPlaying);
   const shape = propShape || settings.soundwaveShape || 'bars';
   const [barHeights, setBarHeights] = useState<number[]>(Array(16).fill(20));
   const [dotSizes, setDotSizes] = useState<number[]>(Array(8).fill(4));
@@ -27,19 +31,29 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
     }
 
     const animate = () => {
-      // Bars animation - faster updates for smoother equalizer effect
-      const newHeights = Array(16).fill(0).map(() => Math.random() * 100);
-      setBarHeights(newHeights);
+      let freqArray: number[] = [];
+      if (state.active) {
+        const rawFrequencies = getFrequencyData(); // returns Uint8Array of 16 elements
+        freqArray = Array.from(rawFrequencies).map(v => (v / 255) * 100);
+      } else {
+        freqArray = Array(16).fill(0).map(() => Math.random() * 80 + 10);
+      }
+      
+      setBarHeights(freqArray);
       
       // Dots animation
-      const newDots = Array(8).fill(0).map(() => Math.random() * 8 + 2);
+      const newDots = Array(8).fill(0).map((_, i) => {
+        const val = freqArray[i * 2] || 0;
+        return (val / 100) * 8 + 2;
+      });
       setDotSizes(newDots);
       
       // Pulse animation
-      setPulseScale(0.8 + Math.random() * 0.4);
+      const bassValue = (freqArray[0] || 0) + (freqArray[1] || 0) + (freqArray[2] || 0);
+      setPulseScale(0.85 + (bassValue / 300) * 0.35);
       
       animationRef.current = requestAnimationFrame(() => {
-        setTimeout(animate, 50); // Faster animation (was 80ms)
+        setTimeout(animate, 50); // Fluid 50ms interval animation
       });
     };
 

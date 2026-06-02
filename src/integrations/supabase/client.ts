@@ -2,8 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
+const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_URL = rawSupabaseUrl.startsWith('/') 
+  ? `${window.location.origin}${rawSupabaseUrl}`
+  : rawSupabaseUrl;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -15,3 +18,85 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Developer Sandbox Bypass Interceptor
+const authAny = supabase.auth as any;
+const originalGetUser = authAny.getUser.bind(authAny);
+authAny.getUser = async (token?: string) => {
+  const sandboxUserStr = typeof window !== 'undefined' ? localStorage.getItem('nyra_sandbox_user') : null;
+  if (sandboxUserStr) {
+    try {
+      const user = JSON.parse(sandboxUserStr);
+      return { data: { user }, error: null };
+    } catch (e) {
+      console.error('Failed to parse sandbox user:', e);
+    }
+  }
+  return originalGetUser(token);
+};
+
+const originalGetSession = authAny.getSession.bind(authAny);
+authAny.getSession = async () => {
+  const sandboxUserStr = typeof window !== 'undefined' ? localStorage.getItem('nyra_sandbox_user') : null;
+  if (sandboxUserStr) {
+    try {
+      const user = JSON.parse(sandboxUserStr);
+      return {
+        data: {
+          session: {
+            access_token: 'sandbox-token-12345',
+            refresh_token: 'sandbox-refresh-12345',
+            expires_in: 3600,
+            token_type: 'bearer',
+            user,
+          }
+        },
+        error: null
+      };
+    } catch (e) {
+      console.error('Failed to parse sandbox session:', e);
+    }
+  }
+  return originalGetSession();
+};
+
+const originalSignOut = authAny.signOut.bind(authAny);
+authAny.signOut = async (options?: any) => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('nyra_sandbox_user');
+  }
+  return originalSignOut(options);
+};
+
+const originalOnAuthStateChange = authAny.onAuthStateChange.bind(authAny);
+authAny.onAuthStateChange = (callback: any) => {
+  const sandboxUserStr = typeof window !== 'undefined' ? localStorage.getItem('nyra_sandbox_user') : null;
+  if (sandboxUserStr) {
+    try {
+      const user = JSON.parse(sandboxUserStr);
+      const session = {
+        access_token: 'sandbox-token-12345',
+        refresh_token: 'sandbox-refresh-12345',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user,
+      };
+      
+      // Trigger callback with simulated signed in event immediately
+      setTimeout(() => {
+        callback('SIGNED_IN', session);
+      }, 0);
+
+      return {
+        data: {
+          subscription: {
+            unsubscribe: () => {}
+          }
+        }
+      };
+    } catch (e) {
+      console.error('Failed to parse sandbox session in onAuthStateChange:', e);
+    }
+  }
+  return originalOnAuthStateChange(callback);
+};

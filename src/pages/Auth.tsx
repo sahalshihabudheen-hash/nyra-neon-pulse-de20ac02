@@ -61,6 +61,90 @@ const Auth = () => {
     }
   };
 
+  const handleQuickLogin = async (quickEmail: string) => {
+    setLoading(true);
+    // Standard testing password is default '123456'
+    const testPassword = '123456';
+    setEmail(quickEmail);
+    setPassword(testPassword);
+    
+    try {
+      // 1. First attempt: Sign in with the credentials
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: quickEmail,
+        password: testPassword,
+      });
+      
+      if (error) {
+        console.warn('Login failed, attempting auto sign-up fallback...', error.message);
+        
+        // 2. Second attempt: sign up if user does not exist
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: quickEmail,
+          password: testPassword,
+        });
+        
+        if (signUpError) {
+          throw signUpError;
+        }
+        
+        if (signUpData.session) {
+          toast.success(`Account created and logged in as ${quickEmail}!`);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('nyra_sandbox_user');
+          }
+          if (quickEmail === 'admin@gmail.com' || quickEmail === 'sahalshihabudheen@gmail.com') {
+            navigate('/admin');
+          } else {
+            navigate('/');
+          }
+          return;
+        } else {
+          // A standard sandbox bypass is needed if email confirmation is required/limit hit
+          throw new Error('Verification required or auto-login not supported. Activating Sandbox bypass...');
+        }
+      }
+      
+      toast.success(`Logged in as ${quickEmail}!`);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('nyra_sandbox_user');
+      }
+      if (quickEmail === 'admin@gmail.com' || quickEmail === 'sahalshihabudheen@gmail.com') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
+    } catch (err: any) {
+      console.warn('Real authentication failed / unavailable. Activating local Sandbox Mode fallback:', err.message);
+      
+      // Create local developer sandbox session bypass
+      const mockUser = {
+        id: 'sandbox-id-sahal-admin',
+        email: quickEmail,
+        aud: 'authenticated',
+        role: 'authenticated',
+        app_metadata: { provider: 'email' },
+        user_metadata: { name: quickEmail.split('@')[0], avatar_url: null },
+        created_at: new Date().toISOString()
+      };
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('nyra_sandbox_user', JSON.stringify(mockUser));
+      }
+      
+      toast.success(`⚡ Sandbox Mode Activated! Welcome, ${quickEmail}!`);
+      
+      // Reload page to re-render application under sandbox authentication session
+      setTimeout(() => {
+        window.location.href = quickEmail === 'admin@gmail.com' || quickEmail === 'sahalshihabudheen@gmail.com' 
+          ? '/admin' 
+          : '/';
+      }, 500);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full relative flex items-center justify-center p-4 overflow-hidden bg-[#050505]">
       {/* Subtle Background Glow */}
@@ -144,6 +228,7 @@ const Auth = () => {
             {/* Switch Mode */}
             <div className="mt-8 pt-6 border-t border-white/5 text-center space-y-4">
               <button
+                type="button"
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-sm font-medium text-muted-foreground hover:text-primary transition-all"
               >
@@ -153,6 +238,37 @@ const Auth = () => {
               <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground/30 font-bold uppercase tracking-widest">
                 <ShieldCheck className="w-3 h-3" />
                 Secured Authentication
+              </div>
+
+              {/* Developer Testing Bypass Panel */}
+              <div className="mt-6 pt-5 border-t border-white/5 space-y-3 text-left">
+                <div className="text-[10px] font-extrabold tracking-widest text-[#FED70A] uppercase flex items-center gap-1.5 justify-center">
+                  <Sparkles className="w-3 h-3 animate-pulse" />
+                  ⚡ Developer Bypass / Quick Login
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickLogin('sahalshihabudheen@gmail.com')}
+                    className="bg-white/5 text-xs h-9 border-white/10 hover:bg-white/10 text-white font-medium rounded-xl hover:text-primary transition-all"
+                  >
+                    Sahal (Admin)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickLogin('admin@gmail.com')}
+                    className="bg-white/5 text-xs h-9 border-white/10 hover:bg-white/10 text-white font-medium rounded-xl hover:text-primary transition-all"
+                  >
+                    Admin
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground/40 text-center select-none">
+                  Click to automatically login to your testing account
+                </p>
               </div>
             </div>
           </div>

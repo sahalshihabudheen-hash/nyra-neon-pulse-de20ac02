@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ytdl/ytdlp debug artifacts
+*-player-script.js
+
+# Local test scripts
+test_*.js
+test_*.mjs
+scratch_*.js

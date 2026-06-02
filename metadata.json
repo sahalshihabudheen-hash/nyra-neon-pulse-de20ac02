@@ -1,0 +1,6 @@
+{
+  "name": "Nyra Neon Pulse",
+  "description": "A high-performance neon-themed interactive client experience",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

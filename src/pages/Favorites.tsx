@@ -127,7 +127,6 @@ const Favorites = () => {
                 <TrackCard
                   key={track.id}
                   track={track}
-                  isCurrent={currentTrack?.id === track.id}
                   isPlaying={isPlaying && currentTrack?.id === track.id}
                   onPlay={handlePlay}
                   onAddToQueue={handleAddToQueue}
