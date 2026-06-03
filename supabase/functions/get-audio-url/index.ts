@@ -8,23 +8,82 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
-// Piped instances - these proxy Google Video CDN through their own IP
-// When we proxy through our edge function, the request uses OUR IP to hit Piped.
-// Piped then fetches from Google's CDN using PIPED'S IP, which is allowed.
+// ─── Invidious "local proxy" resolution ───
+// Invidious instances can proxy the IP-locked googlevideo audio stream through
+// their OWN server (?local=true). The returned `/videoplayback` URL points at the
+// instance host, NOT googlevideo, so it is NOT IP-locked and CAN be re-proxied by
+// our edge function. This is the most reliable free path for raw audio right now.
+const CURATED_INVIDIOUS = [
+  'https://inv.thepixora.com',
+  'https://invidious.nerdvpn.de',
+  'https://yewtu.be',
+  'https://invidious.jing.rocks',
+  'https://iv.datura.network',
+  'https://invidious.privacyredirect.com',
+  'https://invidious.f5.si',
+  'https://invidious.einfachzocken.eu',
+];
+
+let cachedInstances: string[] | null = null;
+let cachedAt = 0;
+
+async function getInvidiousInstances(): Promise<string[]> {
+  const now = Date.now();
+  if (cachedInstances && now - cachedAt < 10 * 60 * 1000) return cachedInstances;
+  const dynamic: string[] = [];
+  try {
+    const res = await fetch('https://api.invidious.io/instances.json?pretty=0', {
+      signal: AbortSignal.timeout(6000),
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      for (const entry of data) {
+        const info = entry?.[1];
+        if (info?.type === 'https' && info?.api && info?.uri) dynamic.push(info.uri);
+      }
+    }
+  } catch { /* ignore — fall back to curated */ }
+  // Curated first (known-good), then any dynamic ones not already listed
+  const merged = [...CURATED_INVIDIOUS];
+  for (const u of dynamic) if (!merged.includes(u)) merged.push(u);
+  cachedInstances = merged;
+  cachedAt = now;
+  return merged;
+}
+
+async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; mimeType: string } | null> {
+  const instances = await getInvidiousInstances();
+  for (const inst of instances) {
+    try {
+      const res = await fetch(`${inst}/api/v1/videos/${videoId}?local=true`, {
+        signal: AbortSignal.timeout(8000),
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const audio = (data.adaptiveFormats || [])
+        .filter((f: any) => (f.type || '').startsWith('audio/'))
+        .sort((a: any, b: any) => Number(b.bitrate || 0) - Number(a.bitrate || 0));
+      let best = audio[0];
+      if (!best?.url) continue;
+      // Invidious returns local-proxy URLs sometimes as http:// — force https
+      const url = best.url.replace(/^http:\/\//, 'https://');
+      return { url, mimeType: (best.type || 'audio/webm').split(';')[0] };
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+// ─── Piped fallback (proxies through its own IP too) ───
 const PIPED_INSTANCES = [
   'https://api.piped.private.coffee',
   'https://pipedapi.kavin.rocks',
-  'https://piped-api.hostux.net',
   'https://pipedapi.adminforge.de',
-  'https://pipedapi.cl7.it',
-  'https://api-piped.mha.fi',
-];
-
-const INVIDIOUS_INSTANCES = [
-  'https://inv.nadeko.net',
-  'https://invidious.flokinet.to',
-  'https://yewtu.be',
-  'https://iv.melmac.space',
+  'https://pipedapi.reallyaweso.me',
+  'https://pipedapi.ducks.party',
 ];
 
 async function fetchViaPiped(videoId: string): Promise<{ url: string; mimeType: string } | null> {
@@ -38,25 +97,7 @@ async function fetchViaPiped(videoId: string): Promise<{ url: string; mimeType: 
       const data = await res.json();
       const audioStreams: any[] = data.audioStreams || [];
       const best = audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
-      if (best?.url) return { url: best.url, mimeType: best.mimeType || 'audio/webm' };
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-async function fetchViaInvidious(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  for (const inst of INVIDIOUS_INSTANCES) {
-    try {
-      const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
-        signal: AbortSignal.timeout(8000),
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const format = (data.adaptiveFormats || []).find((f: any) => f.type?.startsWith('audio/'));
-      if (format?.url) return { url: format.url, mimeType: format.type || 'audio/webm' };
+      if (best?.url) return { url: best.url, mimeType: (best.mimeType || 'audio/webm').split(';')[0] };
     } catch {
       continue;
     }
@@ -65,16 +106,18 @@ async function fetchViaInvidious(videoId: string): Promise<{ url: string; mimeTy
 }
 
 async function getStreamInfo(videoId: string): Promise<{ url: string; mimeType: string } | null> {
+  // Invidious local-proxy is the most reliable free path — try it first.
+  const inv = await fetchViaInvidiousLocal(videoId);
+  if (inv) return inv;
   const piped = await fetchViaPiped(videoId);
   if (piped) return piped;
-  const invidious = await fetchViaInvidious(videoId);
-  if (invidious) return invidious;
   return null;
 }
 
 // Proxy the audio stream from the source through our edge function.
-// This is essential because the source URLs are IP-locked to the proxy server's IP.
-// The browser cannot directly access them — WE must fetch and forward.
+// Adds permissive CORS headers so the browser <audio crossOrigin="anonymous">
+// element stays "clean" and can be routed through the Web Audio API (channel
+// split / EQ / crossfade) without tainting.
 async function streamProxy(req: Request, sourceUrl: string, mimeType: string, download: boolean, title: string) {
   try {
     const range = req.headers.get('range');
@@ -85,8 +128,8 @@ async function streamProxy(req: Request, sourceUrl: string, mimeType: string, do
     if (range) upstreamHeaders['Range'] = range;
 
     // No timeout - let the stream run for the full song duration
-    const upstream = await fetch(sourceUrl, { headers: upstreamHeaders });
-    
+    const upstream = await fetch(sourceUrl, { headers: upstreamHeaders, redirect: 'follow' });
+
     if (!upstream.ok && upstream.status !== 206) {
       return new Response(
         JSON.stringify({ error: `Upstream returned ${upstream.status}` }),
@@ -98,11 +141,11 @@ async function streamProxy(req: Request, sourceUrl: string, mimeType: string, do
     responseHeaders.set('Content-Type', mimeType || upstream.headers.get('content-type') || 'audio/webm');
     responseHeaders.set('Accept-Ranges', 'bytes');
     responseHeaders.set('Cache-Control', 'no-cache');
-    
+
     if (download) {
       responseHeaders.set('Content-Disposition', `attachment; filename="${title.replace(/[^\w\s-]/g, '')}.mp3"`);
     }
-    
+
     const contentLength = upstream.headers.get('content-length');
     const contentRange = upstream.headers.get('content-range');
     if (contentLength) responseHeaders.set('Content-Length', contentLength);
@@ -136,6 +179,12 @@ serve(async (req) => {
     const shouldStream = url.searchParams.get('stream') === '1';
     const shouldDownload = url.searchParams.get('download') === '1';
     const title = url.searchParams.get('title') || 'audio';
+
+    // Allow direct proxying of an already-resolved client URL (used by client fallback).
+    const proxyUrl = url.searchParams.get('proxyUrl');
+    if (proxyUrl) {
+      return await streamProxy(req, proxyUrl, 'audio/webm', shouldDownload, title);
+    }
 
     if (!videoId) {
       return new Response(
