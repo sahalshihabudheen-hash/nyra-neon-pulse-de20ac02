@@ -10,7 +10,7 @@ import { useTabTitle } from '@/hooks/useTabTitle';
 import { useDjAudio } from '@/hooks/useDjAudio';
 
 const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
-  const baseUrl = '/api/get-audio-url';
+  const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
   const params = new URLSearchParams({ videoId });
   if (options?.stream) params.append('stream', '1');
   if (options?.download) params.append('download', '1');
@@ -321,7 +321,7 @@ interface MusicPlayerContextType {
   isMuted: boolean;
   setIsMuted: (value: boolean) => void;
   useBackgroundAudioOnly: boolean;
-  setUseBackgroundAudioOnly: (v: boolean) => void;
+  setUseBackgroundAudioOnly: (v: boolean | ((prev: boolean) => boolean)) => void;
   setUseBackgroundAudioMode: (v: boolean) => void;
 }
 
@@ -659,7 +659,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             }
 
             // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-            const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+            const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
             success = await playDirectStream(proxiedUrl, 'anonymous');
             if (success) {
               toast.success('DJ Stream connected via high-speed proxy!');
@@ -854,7 +854,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               }
 
               // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-              const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+              const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
               success = await playDirectStream(proxiedUrl, 'anonymous');
               if (success) {
                 toast.success('DJ Stream connected via high-speed proxy!');

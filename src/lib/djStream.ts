@@ -37,7 +37,7 @@ export async function filterDjModeTracks<T extends { id: string }>(
     ))
   );
 
-  return checked.filter((track): track is T => Boolean(track));
+  return checked.filter(Boolean) as T[];
 }
 
 export function getLikelyDjModeTracks<T extends { id: string; title?: string }>(

@@ -6,6 +6,8 @@ interface ArtistCardProps {
   id: string;
   artistName: string;
   coverImageUrl?: string | null;
+  albumName?: string | null;
+  songCount?: number;
   className?: string;
 }
 

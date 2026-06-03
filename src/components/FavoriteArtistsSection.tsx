@@ -20,7 +20,7 @@ const FavoriteArtistsSection = () => {
     // Subscribe to changes
     const channel = supabase
       .channel('followed_artists_changes')
-      .on('postgres_changes', { event: '*', table: 'followed_artists' }, () => {
+      .on('postgres_changes' as any, { event: '*', schema: 'public', table: 'followed_artists' } as any, () => {
         fetchFollowedArtists();
       })
       .subscribe();
@@ -44,7 +44,7 @@ const FavoriteArtistsSection = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (data) setArtists(data);
+      if (data) setArtists(data as unknown as FollowedArtist[]);
     } catch (err) {
       console.error('Error fetching followed artists:', err);
     } finally {
