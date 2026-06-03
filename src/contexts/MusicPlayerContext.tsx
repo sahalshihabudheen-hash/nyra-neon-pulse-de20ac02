@@ -10,7 +10,7 @@ import { useTabTitle } from '@/hooks/useTabTitle';
 import { useDjAudio } from '@/hooks/useDjAudio';
 
 const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
-  const baseUrl = '/api/get-audio-url';
+  const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
   const params = new URLSearchParams({ videoId });
   if (options?.stream) params.append('stream', '1');
   if (options?.download) params.append('download', '1');
