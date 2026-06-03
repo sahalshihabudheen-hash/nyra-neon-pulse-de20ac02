@@ -27,26 +27,43 @@ serve(async (req) => {
     });
   } catch {}
 
-  const thumbnail = trackThumbnail || `https://img.youtube.com/vi/${trackId}/hqdefault.jpg`;
+  // HTML-encode every value before embedding to prevent reflected XSS.
+  const esc = (s: string) =>
+    String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
+  // Only allow plausible YouTube video ids in the redirect / fallback image.
+  const safeTrackId = /^[A-Za-z0-9_-]{1,20}$/.test(trackId || "") ? trackId : "";
+  const rawThumbnail = trackThumbnail || (safeTrackId ? `https://img.youtube.com/vi/${safeTrackId}/hqdefault.jpg` : "");
+  // Only allow http(s) image URLs to avoid javascript:/data: injection.
+  const safeThumbnail = /^https?:\/\//i.test(rawThumbnail) ? esc(rawThumbnail) : "";
+  const safeTitle = esc(trackTitle);
+  const safeChannel = esc(trackChannel);
+  const safeAppName = esc(appName);
+  const redirectBase = url.origin.replace("/functions/v1/og-embed", "");
 
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <meta property="og:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
-  <meta property="og:description" content="${trackChannel.replace(/"/g, '&quot;')} · Playing on ${appName}" />
-  <meta property="og:image" content="${thumbnail}" />
+  <meta property="og:title" content="${safeTitle}" />
+  <meta property="og:description" content="${safeChannel} · Playing on ${safeAppName}" />
+  <meta property="og:image" content="${safeThumbnail}" />
   <meta property="og:type" content="music.song" />
-  <meta property="og:site_name" content="${appName}" />
+  <meta property="og:site_name" content="${safeAppName}" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="${trackTitle.replace(/"/g, '&quot;')}" />
-  <meta name="twitter:description" content="${trackChannel.replace(/"/g, '&quot;')} · ${appName}" />
-  <meta name="twitter:image" content="${thumbnail}" />
+  <meta name="twitter:title" content="${safeTitle}" />
+  <meta name="twitter:description" content="${safeChannel} · ${safeAppName}" />
+  <meta name="twitter:image" content="${safeThumbnail}" />
   <meta name="theme-color" content="#ffd300" />
-  <meta http-equiv="refresh" content="0;url=${url.origin.replace('/functions/v1/og-embed', '')}/?play=${trackId}" />
+  <meta http-equiv="refresh" content="0;url=${esc(redirectBase)}/?play=${esc(safeTrackId)}" />
 </head>
 <body>
-  <p>Redirecting to ${appName}...</p>
+  <p>Redirecting to ${safeAppName}...</p>
 </body>
 </html>`;
 
