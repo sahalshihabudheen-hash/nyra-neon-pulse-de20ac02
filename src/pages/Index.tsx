@@ -270,6 +270,7 @@ const Index = () => {
             <TrackGrid
               tracks={tracks}
               currentTrack={currentTrack}
+              isPlaying={isPlaying}
               onPlayTrack={handlePlayTrack}
               onAddToQueue={handleAddToQueue}
               isLoading={isLoading}
