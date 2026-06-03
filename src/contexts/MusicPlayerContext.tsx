@@ -321,7 +321,7 @@ interface MusicPlayerContextType {
   isMuted: boolean;
   setIsMuted: (value: boolean) => void;
   useBackgroundAudioOnly: boolean;
-  setUseBackgroundAudioOnly: (v: boolean) => void;
+  setUseBackgroundAudioOnly: (v: boolean | ((prev: boolean) => boolean)) => void;
   setUseBackgroundAudioMode: (v: boolean) => void;
 }
 
