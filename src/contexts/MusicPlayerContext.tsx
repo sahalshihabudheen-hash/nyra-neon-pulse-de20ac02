@@ -659,7 +659,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             }
 
             // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-            const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+            const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
             success = await playDirectStream(proxiedUrl, 'anonymous');
             if (success) {
               toast.success('DJ Stream connected via high-speed proxy!');
@@ -854,7 +854,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               }
 
               // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-              const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+              const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
               success = await playDirectStream(proxiedUrl, 'anonymous');
               if (success) {
                 toast.success('DJ Stream connected via high-speed proxy!');
