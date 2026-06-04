@@ -10,6 +10,7 @@ import Navbar from '@/components/Navbar';
 import MusicPlayer from '@/components/MusicPlayer';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Song {
   title: string;
