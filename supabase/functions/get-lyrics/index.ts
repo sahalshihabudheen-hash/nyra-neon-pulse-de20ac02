@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getRequestUser, unauthorized } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,10 +125,17 @@ serve(async (req) => {
   }
 
   try {
+    // Require an authenticated user to prevent anonymous AI-credit drain.
+    const user = await getRequestUser(req);
+    if (!user) return unauthorized(corsHeaders);
+
     const { trackId, trackTitle, trackChannel } = await req.json();
 
-    if (!trackId || !trackTitle) {
-      return new Response(JSON.stringify({ error: "Missing trackId or trackTitle" }), {
+    const isValid = (v: unknown, max: number) =>
+      typeof v === "string" && v.trim().length > 0 && v.length <= max && !/[\u0000-\u001f]/.test(v);
+
+    if (!isValid(trackId, 64) || !isValid(trackTitle, 300) || (trackChannel !== undefined && trackChannel !== null && !isValid(trackChannel, 200))) {
+      return new Response(JSON.stringify({ error: "Invalid trackId, trackTitle or trackChannel" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

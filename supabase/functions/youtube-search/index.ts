@@ -11,6 +11,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+
+
   try {
     const url = new URL(req.url);
     const query = url.searchParams.get('q');

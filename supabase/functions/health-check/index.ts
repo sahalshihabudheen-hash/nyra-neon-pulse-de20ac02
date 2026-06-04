@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { fetchYouTubeWithBackupFailover, getYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
+import { getRequestUser, isAdmin, unauthorized, forbidden } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Exposes internal metrics and can toggle maintenance mode — admins only.
+    const user = await getRequestUser(req);
+    if (!user) return unauthorized(corsHeaders);
+    if (!(await isAdmin(user.id, user.email))) return forbidden(corsHeaders);
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
