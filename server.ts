@@ -5,7 +5,14 @@ import path from 'path';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 
-const PORT = 3000;
+function getServerPort() {
+  const cliPortIndex = process.argv.findIndex((arg) => arg === '--port' || arg === '-p');
+  const cliPort = cliPortIndex >= 0 ? process.argv[cliPortIndex + 1] : undefined;
+  const parsedPort = Number(process.env.PORT || cliPort || 3000);
+  return Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000;
+}
+
+const PORT = getServerPort();
 
 const COBALT_INSTANCES = [
   'https://api.cobalt.tools',
