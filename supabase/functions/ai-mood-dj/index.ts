@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getRequestUser, unauthorized } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,10 +12,14 @@ serve(async (req) => {
   }
 
   try {
+    // Require an authenticated user to prevent anonymous AI-credit drain.
+    const user = await getRequestUser(req);
+    if (!user) return unauthorized(corsHeaders);
+
     const { mood } = await req.json();
 
-    if (!mood || typeof mood !== "string") {
-      return new Response(JSON.stringify({ error: "Missing mood input" }), {
+    if (!mood || typeof mood !== "string" || mood.trim().length === 0 || mood.length > 500) {
+      return new Response(JSON.stringify({ error: "Invalid mood input" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
