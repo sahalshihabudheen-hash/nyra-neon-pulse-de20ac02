@@ -46,9 +46,7 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-trending`,
         {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: await getFunctionAuthHeaders(),
         }
       );
 
