@@ -3,6 +3,7 @@ import { Play, Sparkles, TrendingUp, Disc3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 
 interface Track {
   id: string;
