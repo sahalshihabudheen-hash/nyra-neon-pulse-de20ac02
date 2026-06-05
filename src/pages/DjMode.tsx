@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 import Sidebar from '@/components/Sidebar';
 import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
