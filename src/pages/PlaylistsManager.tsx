@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog';
+import ImportYouTubePlaylistDialog from '@/components/ImportYouTubePlaylistDialog';
 import PlaylistGridPhoto from '@/components/PlaylistGridPhoto';
 import { cn } from '@/lib/utils';
 
