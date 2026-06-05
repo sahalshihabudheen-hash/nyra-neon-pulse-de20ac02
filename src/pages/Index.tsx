@@ -20,6 +20,7 @@ import { famousSongs } from '@/data/famousSongs';
 import { cn } from '@/lib/utils';
 import { Sparkles, TrendingUp, Compass, Users } from 'lucide-react';
 import FavoriteArtistsSection from '@/components/FavoriteArtistsSection';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 
 
 const Index = () => {
