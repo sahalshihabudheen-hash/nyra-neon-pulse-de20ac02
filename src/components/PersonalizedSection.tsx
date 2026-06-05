@@ -54,9 +54,7 @@ const PersonalizedSection = ({
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-personalized-songs?${params}`,
         {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: await getFunctionAuthHeaders(),
         }
       );
       if (!response.ok) throw new Error('Failed');
