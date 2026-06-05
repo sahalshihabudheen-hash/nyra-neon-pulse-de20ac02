@@ -63,9 +63,7 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
         const fallbackResponse = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent('trending music hits')}`,
           {
-            headers: {
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
+            headers: await getFunctionAuthHeaders(),
           }
         );
         if (fallbackResponse.ok) {
