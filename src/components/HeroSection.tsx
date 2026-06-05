@@ -3,6 +3,7 @@ import { Play, Sparkles, TrendingUp, Disc3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 
 interface Track {
   id: string;
@@ -35,9 +36,7 @@ const HeroSection = ({ onPlayTrack, featuredTrack: propFeaturedTrack }: HeroSect
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-featured`,
         {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: await getFunctionAuthHeaders(),
         }
       );
 

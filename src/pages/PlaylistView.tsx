@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search, Music2 } from 'lucide-react';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
@@ -168,9 +169,7 @@ const PlaylistView = () => {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(playlistSearchQuery)}`,
         {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: await getFunctionAuthHeaders(),
         }
       );
       if (!response.ok) throw new Error('Search failed');

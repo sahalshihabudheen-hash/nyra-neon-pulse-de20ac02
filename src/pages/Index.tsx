@@ -20,6 +20,7 @@ import { famousSongs } from '@/data/famousSongs';
 import { cn } from '@/lib/utils';
 import { Sparkles, TrendingUp, Compass, Users } from 'lucide-react';
 import FavoriteArtistsSection from '@/components/FavoriteArtistsSection';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 
 
 const Index = () => {
@@ -80,9 +81,7 @@ const Index = () => {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(searchQuery)}`,
         {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: await getFunctionAuthHeaders(),
         }
       );
 

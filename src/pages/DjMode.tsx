@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 import Sidebar from '@/components/Sidebar';
 import TrackGrid from '@/components/TrackGrid';
 import { useDjAudio } from '@/hooks/useDjAudio';
@@ -468,7 +469,7 @@ const DjMode = () => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(query)}`,
-        { headers: { 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+        { headers: await getFunctionAuthHeaders() }
       );
       const data = await res.json();
       const tracks = Array.isArray(data) ? data : [];

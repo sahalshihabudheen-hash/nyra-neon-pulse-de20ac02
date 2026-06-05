@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getAllYouTubeApiKeys } from "../_shared/youtube-key-failover.ts";
+import { getRequestUser, unauthorized } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Require an authenticated user to prevent anonymous YouTube quota abuse.
+  const user = await getRequestUser(req);
+  if (!user) return unauthorized(corsHeaders);
 
   try {
     const url = new URL(req.url);
