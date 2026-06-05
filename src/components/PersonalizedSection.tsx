@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { famousSongs } from '@/data/famousSongs';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
+import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 
 
 interface Track {
