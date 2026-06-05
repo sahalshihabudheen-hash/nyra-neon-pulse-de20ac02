@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import CreatePlaylistDialog from '@/components/CreatePlaylistDialog';
+import ImportYouTubePlaylistDialog from '@/components/ImportYouTubePlaylistDialog';
 import PlaylistGridPhoto from '@/components/PlaylistGridPhoto';
 import { cn } from '@/lib/utils';
 
@@ -106,7 +107,10 @@ const PlaylistsManager = () => {
               <h1 className="text-4xl font-bold neon-text mb-2">Your Playlists</h1>
               <p className="text-muted-foreground">{playlists.length} playlists</p>
             </div>
-            <CreatePlaylistDialog onPlaylistCreated={fetchPlaylists} />
+            <div className="flex items-center gap-2">
+              <ImportYouTubePlaylistDialog onPlaylistImported={fetchPlaylists} />
+              <CreatePlaylistDialog onPlaylistCreated={fetchPlaylists} />
+            </div>
           </div>
         </div>
 
