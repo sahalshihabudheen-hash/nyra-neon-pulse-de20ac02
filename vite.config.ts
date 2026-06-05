@@ -1,18 +1,21 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+
+  return ({
   define: {
-    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || '/supabase-api'),
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL || 'https://nsznavxgjkjlkiicmqmq.supabase.co'),
     'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify(
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      env.VITE_SUPABASE_PUBLISHABLE_KEY ||
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zem5hdnhnamtqbGtpaWNtcW1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ1MDk0NTksImV4cCI6MjA4MDA4NTQ1OX0.0j9r5JSW1-AH2gw7xuFbi_ei4uoetzywv93jQhw4gNY'
     ),
     'import.meta.env.VITE_SUPABASE_PROJECT_ID': JSON.stringify(
-      process.env.VITE_SUPABASE_PROJECT_ID || 'nsznavxgjkjlkiicmqmq'
+      env.VITE_SUPABASE_PROJECT_ID || 'nsznavxgjkjlkiicmqmq'
     ),
   },
   server: {
@@ -34,4 +37,5 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+});
+});
