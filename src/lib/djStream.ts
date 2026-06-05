@@ -1,11 +1,13 @@
 const DJ_STREAM_PROBE_TIMEOUT_MS = 4500;
 const YOUTUBE_VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 
+const AUDIO_URL_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
+
 export const getDjStreamUrl = (videoId: string, options?: { stream?: boolean; title?: string }) => {
   const params = new URLSearchParams({ videoId });
   if (options?.stream) params.set('stream', '1');
   if (options?.title) params.set('title', options.title);
-  return `/api/get-audio-url?${params.toString()}`;
+  return `${AUDIO_URL_BASE}?${params.toString()}`;
 };
 
 export async function canUseDjModeTrack(videoId: string): Promise<boolean> {
