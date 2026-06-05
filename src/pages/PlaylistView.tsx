@@ -169,9 +169,7 @@ const PlaylistView = () => {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search?q=${encodeURIComponent(playlistSearchQuery)}`,
         {
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: await getFunctionAuthHeaders(),
         }
       );
       if (!response.ok) throw new Error('Search failed');
