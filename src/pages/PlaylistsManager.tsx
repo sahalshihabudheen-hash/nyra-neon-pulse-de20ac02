@@ -107,7 +107,10 @@ const PlaylistsManager = () => {
               <h1 className="text-4xl font-bold neon-text mb-2">Your Playlists</h1>
               <p className="text-muted-foreground">{playlists.length} playlists</p>
             </div>
-            <CreatePlaylistDialog onPlaylistCreated={fetchPlaylists} />
+            <div className="flex items-center gap-2">
+              <ImportYouTubePlaylistDialog onPlaylistImported={fetchPlaylists} />
+              <CreatePlaylistDialog onPlaylistCreated={fetchPlaylists} />
+            </div>
           </div>
         </div>
 
