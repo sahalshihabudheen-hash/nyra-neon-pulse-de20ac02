@@ -75,6 +75,10 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Require an authenticated user to prevent anonymous YouTube quota abuse.
+  const user = await getRequestUser(req);
+  if (!user) return unauthorized(corsHeaders);
+
   try {
     const keys = await getYouTubeApiKeys();
 
