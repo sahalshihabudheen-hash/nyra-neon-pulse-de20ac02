@@ -18,6 +18,9 @@ const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; down
   return `${baseUrl}?${params.toString()}`;
 };
 
+const DJ_STREAM_TOAST_ID = 'dj-stream-resolve';
+const PLAYBACK_START_TIMEOUT_MS = 6500;
+
 // Robust, high-speed client-side resolver that bypasses server proxies
 const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> => {
   console.log(`[Client Resolver] Resolving backup audio stream for ${videoId}...`);
@@ -428,6 +431,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
       return true;
     } catch (e: any) {
+      if (e?.name === 'NotAllowedError') {
+        toast.info('Tap Play once to start DJ audio.');
+        return false;
+      }
       if (!useBackgroundAudioOnlyRef.current && (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS'))) {
         console.warn('CORS/Suitability failure, retrying without crossOrigin');
         audio.removeAttribute('crossOrigin');
@@ -443,6 +450,37 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return false;
     }
   }, []);
+
+  const playAudioUrl = useCallback(async (url: string, crossOriginSetting: 'anonymous' | null) => {
+    const audio = audioRef.current;
+    if (!audio) return false;
+
+    if (crossOriginSetting) {
+      audio.crossOrigin = crossOriginSetting;
+    } else {
+      audio.removeAttribute('crossOrigin');
+    }
+
+    audio.src = url;
+    audio.preload = 'auto';
+    audio.load();
+
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<boolean>((resolve) => {
+      timeoutId = setTimeout(() => resolve(false), PLAYBACK_START_TIMEOUT_MS);
+    });
+
+    const success = await Promise.race([safePlay(audio), timeoutPromise]);
+    if (timeoutId) clearTimeout(timeoutId);
+
+    if (!success && audio.src === url) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    }
+
+    return success;
+  }, [safePlay]);
 
   const {
     playlist, addToPlaylist, removeFromPlaylist, clearPlaylist,
