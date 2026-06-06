@@ -793,43 +793,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setShowMiniPlayer(true);
       setPlaybackSource('background');
 
-      const playDirectStream = async (url: string, crossOriginSetting: 'anonymous' | null) => {
-        if (!audioRef.current) return false;
-        try {
-          if (crossOriginSetting) {
-            audioRef.current.crossOrigin = crossOriginSetting;
-          } else {
-            audioRef.current.removeAttribute('crossOrigin');
-          }
-          audioRef.current.src = url;
-          audioRef.current.preload = 'auto';
-          audioRef.current.load();
-          await audioRef.current.play();
-          setIsPlaying(true);
-          try {
-            djAudio.init();
-          } catch (err) {
-            console.warn('djAudio.init() in forceBackgroundPlayback failed:', err);
-          }
-          return true;
-        } catch (err: any) {
-          if (err?.name === 'NotAllowedError') {
-            setIsPlaying(false);
-            toast.info('DJ Mode ready. Press Play to start audio.');
-            return true; // Autoplay blocked is not a "failure" of stream loading
-          }
-          console.warn('playDirectStream error:', err);
-          return false;
-        }
-      };
-
       const tryRobustResolution = async (): Promise<boolean> => {
         isResolvingStreamRef.current = true;
         try {
           // 1. Try local/Supabase stream proxy
           console.log('Resolving force stream via edge proxy...');
           const streamUrl = getAudioUrlEndpoint(track.id, { stream: true });
-          let success = await playDirectStream(streamUrl, 'anonymous');
+          let success = await playAudioUrl(streamUrl, 'anonymous');
           if (success) {
             isResolvingStreamRef.current = false;
             return true;
@@ -842,14 +812,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             const data = response.ok ? await response.json() : null;
             const directAudioUrl = data?.audioUrl || data?.audioUrl1;
             if (directAudioUrl) {
-              success = await playDirectStream(directAudioUrl, 'anonymous');
+              success = await playAudioUrl(directAudioUrl, 'anonymous');
               if (success) {
                 isResolvingStreamRef.current = false;
                 return true;
               }
 
               if (!useBackgroundAudioOnlyRef.current) {
-                success = await playDirectStream(directAudioUrl, null);
+                success = await playAudioUrl(directAudioUrl, null);
                 if (success) {
                   toast.warning('DJ effects disabled for this track (raw stream fallback).');
                   isResolvingStreamRef.current = false;
@@ -863,27 +833,27 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
           // 3. Fallback to client-side resolver
           try {
-            toast.info('Resolving direct high-speed cloud fallback stream...');
+            toast.info('Finding a DJ-compatible stream...', { id: DJ_STREAM_TOAST_ID });
             const clientUrl = await resolveAudioUrlOnClient(track.id);
             if (clientUrl) {
-              success = await playDirectStream(clientUrl, 'anonymous');
+              success = await playAudioUrl(clientUrl, 'anonymous');
               if (success) {
-                toast.success('DJ Stream connected directly!');
+                toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
                 isResolvingStreamRef.current = false;
                 return true;
               }
 
               // Proxy the direct URL through our Express server to guarantee CORS compatibility!
               const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
-              success = await playDirectStream(proxiedUrl, 'anonymous');
+              success = await playAudioUrl(proxiedUrl, 'anonymous');
               if (success) {
-                toast.success('DJ Stream connected via high-speed proxy!');
+                toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
                 isResolvingStreamRef.current = false;
                 return true;
               }
 
               if (!useBackgroundAudioOnlyRef.current) {
-                success = await playDirectStream(clientUrl, null);
+                success = await playAudioUrl(clientUrl, null);
                 if (success) {
                   toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
                   isResolvingStreamRef.current = false;
@@ -927,7 +897,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       toast.error(`Could not start DJ audio: ${error?.message || 'Network error'}`);
       return false;
     }
-  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer]);
+  }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, playAudioUrl]);
 
   const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
     if (trackList) {
