@@ -320,14 +320,17 @@ const DjMode = () => {
           channel: item.track_channel || 'Unknown',
         }));
         const likelyTracks = getLikelyDjModeTracks(tracks, 30);
-        setLoadedPlaylistTracks(likelyTracks);
-        toast.success(`Loaded ${likelyTracks.length} DJ-ready tracks`);
+        setLoadedPlaylistTracks([]);
+        toast.info('Checking which playlist tracks support DJ Mode...');
 
-        filterDjModeTracks(likelyTracks, 30).then(compatibleTracks => {
-          if (compatibleTracks.length > 0) {
-            setLoadedPlaylistTracks(compatibleTracks);
-          }
-        });
+        const compatibleTracks = await filterDjModeTracks(likelyTracks, 30);
+        setLoadedPlaylistTracks(compatibleTracks);
+
+        if (compatibleTracks.length > 0) {
+          toast.success(`Loaded ${compatibleTracks.length} DJ-ready tracks`);
+        } else {
+          toast.error('No DJ-ready tracks found in this playlist.');
+        }
       }
     } catch (err) {
       toast.error('Failed to load playlist tracks');
@@ -476,15 +479,19 @@ const DjMode = () => {
       const requestId = ++searchRequestRef.current;
       const likelyTracks = getLikelyDjModeTracks(tracks, 12);
 
-      setResults(likelyTracks);
       if (likelyTracks.length > 0) {
-        toast.success(`${likelyTracks.length} DJ-ready tracks found`);
-        filterDjModeTracks(likelyTracks, 12).then(compatibleTracks => {
-          if (requestId === searchRequestRef.current && compatibleTracks.length > 0) {
-            setResults(compatibleTracks);
-          }
-        });
+        toast.info('Checking DJ-compatible streams...');
+        const compatibleTracks = await filterDjModeTracks(likelyTracks, 12);
+        if (requestId !== searchRequestRef.current) return;
+
+        setResults(compatibleTracks);
+        if (compatibleTracks.length > 0) {
+          toast.success(`${compatibleTracks.length} DJ-ready tracks found`);
+        } else {
+          toast.error('No DJ-ready songs found. Try a different search.');
+        }
       } else {
+        setResults([]);
         toast.error('No DJ-ready songs found. Try a different search.');
       }
     } catch { toast.error('DJ search failed'); }
