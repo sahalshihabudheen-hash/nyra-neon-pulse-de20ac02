@@ -1,4 +1,4 @@
-const DJ_STREAM_PROBE_TIMEOUT_MS = 4500;
+const DJ_STREAM_PROBE_TIMEOUT_MS = 6500;
 const YOUTUBE_VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 
 const AUDIO_URL_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
@@ -15,11 +15,11 @@ export async function canUseDjModeTrack(videoId: string): Promise<boolean> {
   const timeout = window.setTimeout(() => controller.abort(), DJ_STREAM_PROBE_TIMEOUT_MS);
 
   try {
-    const response = await fetch(getDjStreamUrl(videoId), { signal: controller.signal });
-    if (!response.ok) return false;
-
-    const data = await response.json().catch(() => null);
-    return Boolean(data?.success && (data.audioUrl || data.audioUrl1));
+    const response = await fetch(getDjStreamUrl(videoId, { stream: true }), {
+      signal: controller.signal,
+      headers: { Range: 'bytes=0-1' },
+    });
+    return response.ok || response.status === 206;
   } catch {
     return false;
   } finally {
