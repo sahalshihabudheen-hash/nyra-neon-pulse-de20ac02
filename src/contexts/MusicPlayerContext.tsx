@@ -421,9 +421,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setActiveSource(source);
   }, []);
 
-  const safePlay = useCallback(async (audio: HTMLAudioElement) => {
+  const safePlay = useCallback(async (audio: HTMLAudioElement, shouldApply = () => true) => {
     try {
       await audio.play();
+      if (!shouldApply()) return false;
       setIsPlaying(true);
       try {
         djAudio.init();
@@ -442,6 +443,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         audio.load();
         try {
           await audio.play();
+          if (!shouldApply()) return false;
           setIsPlaying(true);
           return true;
         } catch (innerError) {
@@ -472,7 +474,10 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       timeoutId = setTimeout(() => resolve(false), PLAYBACK_START_TIMEOUT_MS);
     });
 
-    const success = await Promise.race([safePlay(audio), timeoutPromise]);
+    const success = await Promise.race([
+      safePlay(audio, () => attemptId === audioPlayAttemptRef.current),
+      timeoutPromise,
+    ]);
     if (timeoutId) clearTimeout(timeoutId);
 
     if (attemptId !== audioPlayAttemptRef.current) return false;
