@@ -412,6 +412,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
+  const audioPlayAttemptRef = useRef(0);
 
   const djAudio = useDjAudio(audioRef, isPlaying);
 
@@ -454,6 +455,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const playAudioUrl = useCallback(async (url: string, crossOriginSetting: 'anonymous' | null) => {
     const audio = audioRef.current;
     if (!audio) return false;
+    const attemptId = ++audioPlayAttemptRef.current;
 
     if (crossOriginSetting) {
       audio.crossOrigin = crossOriginSetting;
@@ -473,10 +475,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     const success = await Promise.race([safePlay(audio), timeoutPromise]);
     if (timeoutId) clearTimeout(timeoutId);
 
+    if (attemptId !== audioPlayAttemptRef.current) return false;
+
     if (!success && audio.src === url) {
       audio.pause();
       audio.removeAttribute('src');
       audio.load();
+      setIsPlaying(false);
     }
 
     return success;
