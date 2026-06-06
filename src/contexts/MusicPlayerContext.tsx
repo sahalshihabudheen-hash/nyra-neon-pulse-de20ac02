@@ -421,7 +421,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setActiveSource(source);
   }, []);
 
-  const safePlay = useCallback(async (audio: HTMLAudioElement, shouldApply = () => true) => {
+  const safePlay = useCallback(async (audio: HTMLAudioElement, shouldApply: () => boolean = () => true) => {
     try {
       await audio.play();
       if (!shouldApply()) return false;
