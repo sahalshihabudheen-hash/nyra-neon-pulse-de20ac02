@@ -288,7 +288,7 @@ const FloatingMiniPlayer = () => {
               </p>
               <div className="mt-0.5 flex items-center gap-1.5">
                 <p className="truncate text-[10px] text-muted-foreground font-medium">{currentTrack.channel}</p>
-                <SoundwaveVisualizer isPlaying={isPlaying} className="h-3 w-6 shrink-0 opacity-80" shape="bars" />
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-4 w-12 shrink-0 opacity-100" shape="bars" />
               </div>
             </div>
           </button>
