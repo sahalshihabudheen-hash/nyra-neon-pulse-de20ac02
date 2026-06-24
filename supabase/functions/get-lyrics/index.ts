@@ -132,6 +132,7 @@ serve(async (req) => {
     const { trackId, trackTitle, trackChannel } = await req.json();
 
     const isValid = (v: unknown, max: number) =>
+      // eslint-disable-next-line no-control-regex
       typeof v === "string" && v.trim().length > 0 && v.length <= max && !/[\u0000-\u001f]/.test(v);
 
     if (!isValid(trackId, 64) || !isValid(trackTitle, 300) || (trackChannel !== undefined && trackChannel !== null && !isValid(trackChannel, 200))) {

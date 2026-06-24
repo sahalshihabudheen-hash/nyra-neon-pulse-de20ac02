@@ -8,10 +8,22 @@ import SoundwaveVisualizer from '@/components/SoundwaveVisualizer';
 import LyricsDrawer from '@/components/LyricsDrawer';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 import { toast } from 'sonner';
+import StyledProgressBar from '@/components/StyledProgressBar';
 
 const PLAYER_WIDTH = 320;
-const PLAYER_HEIGHT = 96;
+const PLAYER_HEIGHT = 136;
 const EDGE_PADDING = 12;
+
+const formatTime = (seconds: number) => {
+  if (isNaN(seconds)) return '0:00';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
 
 const FloatingMiniPlayer = () => {
   const {
@@ -188,6 +200,19 @@ const FloatingMiniPlayer = () => {
     navigate('/');
   };
 
+  const handleSeek = useCallback((value: number) => {
+    setProgress(value);
+    if (audioRef?.current && audioRef.current.src) {
+      audioRef.current.currentTime = value;
+      return;
+    }
+    if (ytPlayerRef?.current) {
+      try {
+        ytPlayerRef.current.seekTo?.(value, true);
+      } catch (e) {}
+    }
+  }, [ytPlayerRef, audioRef]);
+
   const progressPercent = useMemo(() => {
     if (!duration || Number.isNaN(duration)) return 0;
     return Math.min(100, (progress / duration) * 100);
@@ -207,15 +232,16 @@ const FloatingMiniPlayer = () => {
       style={isMobileSize ? {
         left: '12px',
         right: '12px',
-        bottom: '12px',
+        bottom: '76px',
         top: 'auto',
       } : {
         left: `${position.x}px`,
         top: `${position.y}px`,
       }}
     >
-      <div className="relative overflow-hidden rounded-2xl border border-border/60 glass-premium shadow-2xl">
-        <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="relative overflow-hidden rounded-[2rem] border border-primary/25 hover:border-primary/45 bg-zinc-950/95 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.7),0_0_20px_hsl(var(--primary)/0.1)] transition-all duration-300 hover:shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_30px_hsl(var(--primary)/0.2)]">
+        {/* Row 1: Drag Area, Artwork & Track Info, Close Button */}
+        <div className="flex items-center gap-3 px-4 pt-3.5 pb-2">
           <button
             type="button"
             onMouseDown={(e) => {
@@ -235,71 +261,123 @@ const FloatingMiniPlayer = () => {
             )}
           >
             <div className="relative shrink-0">
+              <div className={cn(
+                "absolute -inset-1 rounded-full bg-primary/25 blur-md transition-all duration-1000",
+                isPlaying ? "opacity-100 scale-110 glow-pulse" : "opacity-0 scale-100"
+              )} />
               <img
                 src={currentTrack.thumbnail}
                 alt={currentTrack.title}
-                className="h-12 w-12 rounded-xl object-cover"
+                className={cn(
+                  "relative h-12 w-12 rounded-full object-cover shadow-lg border-2 border-primary/25 transition-all duration-500",
+                  isPlaying ? "animate-spin" : ""
+                )}
+                style={{ animationDuration: '8s' }}
                 loading="lazy"
               />
-              <div className="absolute inset-0 rounded-xl bg-background/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              {/* Vinyl center hub hole */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-zinc-950 border border-primary/30 z-10 shadow-inner" />
+              <div className="absolute inset-0 rounded-full bg-background/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
                 <Maximize2 className="h-3.5 w-3.5 text-foreground" />
               </div>
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-foreground leading-tight">{currentTrack.title}</p>
+              <p className="truncate text-xs font-bold text-foreground leading-tight tracking-tight group-hover:text-primary transition-colors">
+                {currentTrack.title}
+              </p>
               <div className="mt-0.5 flex items-center gap-1.5">
-                <p className="truncate text-xs text-muted-foreground">{currentTrack.channel}</p>
-                <SoundwaveVisualizer isPlaying={isPlaying} className="h-3 w-8 shrink-0" shape="bars" />
+                <p className="truncate text-[10px] text-muted-foreground font-medium">{currentTrack.channel}</p>
+                <SoundwaveVisualizer isPlaying={isPlaying} className="h-3 w-6 shrink-0 opacity-80" shape="bars" />
               </div>
             </div>
           </button>
 
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePrevious();
-              }}
-              className="hidden sm:flex h-8 w-8 rounded-full items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
-              aria-label="Previous track"
-            >
-              <SkipBack className="h-4 w-4" fill="currentColor" />
-            </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMiniPlayer(false);
+            }}
+            className="h-6 w-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all shrink-0"
+            aria-label="Close mini player"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePlayPause();
-              }}
-              className="h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground bg-primary hover:opacity-90 transition-all active:scale-95 shrink-0"
-              aria-label={isPlaying ? 'Pause' : 'Play'}
-            >
-              {isPlaying ? <Pause className="h-4 w-4" fill="currentColor" /> : <Play className="h-4 w-4 ml-0.5" fill="currentColor" />}
-            </button>
+        {/* Row 2: Cute Interactive Progress Bar with Timestamps */}
+        <div className="px-4 py-1.5 flex flex-col gap-1">
+          <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground/60 tracking-wider font-mono tabular-nums px-0.5">
+            <span>{formatTime(progress)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+          <StyledProgressBar
+            progress={progress}
+            duration={duration}
+            onSeek={handleSeek}
+            className="h-1.5"
+            showHandle={true}
+          />
+        </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-foreground hover:text-primary hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
-              aria-label="Next track"
-            >
-              <SkipForward className="h-4 w-4" fill="currentColor" />
-            </button>
+        {/* Row 3: Mini Controls & Quick Actions */}
+        <div className="flex items-center justify-between px-4 pb-3.5 pt-2">
+          {/* Left Action: Previous */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrevious();
+            }}
+            className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all active:scale-90 shrink-0"
+            aria-label="Previous track"
+          >
+            <SkipBack className="h-3.5 w-3.5 fill-current" />
+          </button>
 
+          {/* Center: Play/Pause Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePlayPause();
+            }}
+            className="h-8.5 w-8.5 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_3px_10px_rgba(var(--primary),0.3)] hover:scale-105 active:scale-95 transition-all neon-glow shrink-0"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current ml-0.5" />}
+          </button>
+
+          {/* Right Action: Next */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all active:scale-90 shrink-0"
+            aria-label="Next track"
+          >
+            <SkipForward className="h-3.5 w-3.5 fill-current" />
+          </button>
+
+          {/* Spacer */}
+          <div className="w-2" />
+
+          {/* Action Capsule: Lyrics, Share, Download */}
+          <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-lg border border-white/5 shrink-0">
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                if (currentTrack) {
-                  startDownload({ id: currentTrack.id, title: currentTrack.title, thumbnail: currentTrack.thumbnail });
-                }
+                setLyricsOpen(!lyricsOpen);
               }}
-              className="hidden sm:flex h-7 w-7 rounded-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
-              aria-label="Download"
+              className={cn(
+                "p-1 rounded-md transition-all active:scale-[0.85]",
+                lyricsOpen
+                  ? "text-primary bg-primary/15"
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              )}
+              aria-label="Lyrics"
+              title="Lyrics"
             >
-              {currentTrack && isDownloading(currentTrack.id) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              <Music2 className="h-3.5 w-3.5" />
             </button>
 
             <button
@@ -311,8 +389,9 @@ const FloatingMiniPlayer = () => {
                   toast.success('Share link copied!');
                 }
               }}
-              className="hidden sm:flex h-7 w-7 rounded-full items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all active:scale-[0.85]"
               aria-label="Share"
+              title="Share"
             >
               <Share2 className="h-3.5 w-3.5" />
             </button>
@@ -320,37 +399,21 @@ const FloatingMiniPlayer = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setLyricsOpen(!lyricsOpen);
+                if (currentTrack) {
+                  startDownload({ id: currentTrack.id, title: currentTrack.title, thumbnail: currentTrack.thumbnail });
+                }
               }}
-              className={cn(
-                "hidden sm:flex h-7 w-7 rounded-full items-center justify-center transition-all active:scale-95 shrink-0",
-                lyricsOpen
-                  ? "text-primary bg-primary/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all active:scale-[0.85]"
+              aria-label="Download"
+              title="Download"
+            >
+              {currentTrack && isDownloading(currentTrack.id) ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
               )}
-              aria-label="Lyrics"
-            >
-              <Music2 className="h-3.5 w-3.5" />
-            </button>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMiniPlayer(false);
-              }}
-              className="h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/70 transition-all active:scale-95 shrink-0"
-              aria-label="Close mini player"
-            >
-              <X className="h-3.5 w-3.5" />
             </button>
           </div>
-        </div>
-
-        <div className="h-1 w-full bg-secondary/70">
-          <div
-            className="h-full bg-primary transition-all duration-200"
-            style={{ width: `${progressPercent}%` }}
-          />
         </div>
 
         {nextUpTrack && (

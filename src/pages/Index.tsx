@@ -172,7 +172,7 @@ const Index = () => {
                     <TrendingUp className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-black tracking-tighter uppercase italic group-hover:neon-text transition-all duration-500">Global Pulse</h2>
+                    <h2 className="text-xl md:text-3xl font-black tracking-tighter uppercase italic group-hover:neon-text transition-all duration-500">Global Pulse</h2>
                     <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em]">Trending worldwide right now</p>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ const Index = () => {
                     <Compass className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-black tracking-tighter uppercase italic group-hover:text-blue-400 transition-all duration-500">Local Vibes</h2>
+                    <h2 className="text-xl md:text-3xl font-black tracking-tighter uppercase italic group-hover:text-blue-400 transition-all duration-500">Local Vibes</h2>
                     <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em]">Hits from {location.state || location.country}</p>
                   </div>
                 </div>
@@ -221,7 +221,7 @@ const Index = () => {
                       <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-black tracking-tighter uppercase italic group-hover:neon-text transition-all duration-500">{genre} Essence</h2>
+                      <h2 className="text-xl md:text-3xl font-black tracking-tighter uppercase italic group-hover:neon-text transition-all duration-500">{genre} Essence</h2>
                       <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em]">Because you love this rhythm</p>
                     </div>
                   </div>
@@ -245,7 +245,7 @@ const Index = () => {
               <div className="mb-12 animate-in-up">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="h-px flex-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-                  <h1 className="text-4xl font-black tracking-tighter uppercase italic neon-text">Results</h1>
+                  <h1 className="text-2xl md:text-4xl font-black tracking-tighter uppercase italic neon-text">Results</h1>
                   <div className="h-px flex-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
                 </div>
                 <p className="text-center text-xs font-bold text-muted-foreground uppercase tracking-[0.5em]">
@@ -259,7 +259,7 @@ const Index = () => {
                 <div className="flex items-center gap-3 mb-8">
                   <div className="w-1.5 h-10 rounded-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
                   <div>
-                    <h2 className="text-4xl font-black tracking-tighter uppercase italic">The Collection</h2>
+                    <h2 className="text-2xl md:text-4xl font-black tracking-tighter uppercase italic">The Collection</h2>
                     <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em]">Discover trending hits and popular tracks</p>
                   </div>
                 </div>

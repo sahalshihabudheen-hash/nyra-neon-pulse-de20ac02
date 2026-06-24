@@ -104,7 +104,7 @@ const PlaylistsManager = () => {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold neon-text mb-2">Your Playlists</h1>
+              <h1 className="text-2xl md:text-4xl font-bold neon-text mb-2">Your Playlists</h1>
               <p className="text-muted-foreground">{playlists.length} playlists</p>
             </div>
             <div className="flex items-center gap-2">

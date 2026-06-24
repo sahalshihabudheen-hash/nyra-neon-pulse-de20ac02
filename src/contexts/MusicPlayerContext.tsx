@@ -552,6 +552,14 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
     };
 
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+
     const handleError = (e: any) => {
       if (isResolvingStreamRef.current) {
         console.warn('Audio element error ignored during active background resolution/retry phase');
@@ -567,11 +575,47 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('playing', handlePlay);
+    audio.addEventListener('pause', handlePause);
     return () => {
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('playing', handlePlay);
+      audio.removeEventListener('pause', handlePause);
     };
   }, [settings.autoPlayNext]);
+
+  // Sync isPlaying with actual audio or youtube playing state periodically to avoid state desyncs
+  useEffect(() => {
+    const syncInterval = setInterval(() => {
+      if (activeSourceRef.current === 'background') {
+        const audio = audioRef.current;
+        if (audio && audio.src) {
+          const actuallyPlaying = !audio.paused;
+          if (actuallyPlaying !== isPlaying) {
+            setIsPlaying(actuallyPlaying);
+          }
+        }
+      } else if (activeSourceRef.current === 'youtube') {
+        const ytPlayer = ytPlayerRef.current;
+        if (ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+          try {
+            const state = ytPlayer.getPlayerState();
+            const actuallyPlaying = state === 1 || state === 3; // 1 = PLAYING, 3 = BUFFERING
+            if (actuallyPlaying !== isPlaying) {
+              setIsPlaying(actuallyPlaying);
+            }
+          } catch (e) {
+            // Player might not be initialized or destroyed
+          }
+        }
+      }
+    }, 500);
+
+    return () => clearInterval(syncInterval);
+  }, [isPlaying]);
 
   // Load YouTube IFrame API
   useEffect(() => {
@@ -610,12 +654,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         origin: window.location.origin,
       },
       events: {
-        onReady: (e: any) => { e.target.setVolume(80); e.target.playVideo(); },
+        onReady: (e: any) => { 
+          e.target.setVolume(80); 
+          e.target.playVideo(); 
+          setIsPlaying(true);
+        },
         onStateChange: (e: any) => {
           if (activeSourceRef.current === 'background') return;
-          if (e.data === yt.PlayerState.PLAYING) setIsPlaying(true);
-          else if (e.data === yt.PlayerState.PAUSED) setIsPlaying(false);
-          else if (e.data === yt.PlayerState.ENDED) {
+          if (e.data === yt.PlayerState.PLAYING || e.data === yt.PlayerState.BUFFERING) {
+            setIsPlaying(true);
+          } else if (e.data === yt.PlayerState.PAUSED) {
+            setIsPlaying(false);
+          } else if (e.data === yt.PlayerState.ENDED) {
             if (settings.autoPlayNext && handleNextRef.current) handleNextRef.current();
             else setIsPlaying(false);
           }

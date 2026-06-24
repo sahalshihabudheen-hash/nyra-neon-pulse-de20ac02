@@ -61,7 +61,7 @@ const FavoriteArtistsSection = () => {
           <Users className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-3xl font-black tracking-tighter uppercase italic group-hover:neon-text transition-all duration-500">Your Inner Circle</h2>
+          <h2 className="text-xl md:text-3xl font-black tracking-tighter uppercase italic group-hover:neon-text transition-all duration-500">Your Inner Circle</h2>
           <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em]">The artists you resonate with most</p>
         </div>
       </div>

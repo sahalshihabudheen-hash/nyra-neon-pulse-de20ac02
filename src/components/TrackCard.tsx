@@ -90,7 +90,11 @@ const TrackCard = ({ track, isCurrent, isPlaying, onPlay, onAddToQueue, isFavori
                 isCurrent && isPlaying ? 'bg-primary text-primary-foreground neon-glow animate-pulse' : 'bg-primary text-primary-foreground hover:scale-110 active:scale-95'
               )}
             >
-              <Play className="w-5 h-5 fill-current ml-0.5" />
+              {isCurrent && isPlaying ? (
+                <Pause className="w-5 h-5 fill-current" />
+              ) : (
+                <Play className="w-5 h-5 fill-current ml-0.5" />
+              )}
             </button>
 
 

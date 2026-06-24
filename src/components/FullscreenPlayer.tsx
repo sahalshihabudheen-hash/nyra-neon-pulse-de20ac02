@@ -159,11 +159,22 @@ const FullscreenPlayer = ({
       aria-modal="true"
     >
       {/* Immersive Background */}
-      <div className="absolute inset-0 bg-[#050505]">
+      <div className="absolute inset-0 bg-[#050505] overflow-hidden">
         {currentTrack && (
           <>
+            {/* Ambient Background Video */}
+            <div className="absolute inset-0 w-full h-full opacity-30 pointer-events-none scale-[1.35]">
+              <iframe
+                className="w-full h-full object-cover pointer-events-none select-none"
+                src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&disablekb=1`}
+                title="Fullscreen Video Background"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              />
+            </div>
+
             <div 
-              className="absolute inset-0 opacity-50 blur-[140px] scale-150 transition-all duration-[1500ms]"
+              className="absolute inset-0 opacity-40 blur-[120px] scale-150 transition-all duration-[1500ms]"
               style={{
                 backgroundImage: `url(${currentTrack.thumbnail})`,
                 backgroundSize: 'cover',
@@ -175,7 +186,7 @@ const FullscreenPlayer = ({
             <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[140px] animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
           </>
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/70 to-[#050505]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/40 via-[#050505]/75 to-[#050505]" />
         {/* Subtle noise/grain overlay */}
         <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{
           backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")'

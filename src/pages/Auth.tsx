@@ -62,35 +62,6 @@ const Auth = () => {
     }
   };
 
-  const handleQuickLogin = async (quickEmail: string) => {
-    setLoading(true);
-    try {
-      if (!isDev) {
-        toast.error('Quick login is disabled in production.');
-        return;
-      }
-
-      // Standard testing password (dev-only). Use real Supabase credentials for real environments.
-      const testPassword = '123456';
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: quickEmail,
-        password: testPassword,
-      });
-
-      if (error) throw error;
-      if (!data.user) throw new Error('Login failed (no user returned).');
-
-      toast.success(`Logged in as ${quickEmail}!`);
-      if (quickEmail === 'admin@gmail.com' || quickEmail === 'sahalshihabudheen@gmail.com') navigate('/admin');
-      else navigate('/');
-    } catch (err: any) {
-      toast.error(err.message || 'Quick login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen w-full relative flex items-center justify-center p-4 overflow-hidden bg-[#050505]">
       {/* Subtle Background Glow */}
@@ -185,39 +156,6 @@ const Auth = () => {
                 <ShieldCheck className="w-3 h-3" />
                 Secured Authentication
               </div>
-
-              {/* Developer Testing Panel (dev-only) */}
-              {isDev && (
-                <div className="mt-6 pt-5 border-t border-white/5 space-y-3 text-left">
-                  <div className="text-[10px] font-extrabold tracking-widest text-[#FED70A] uppercase flex items-center gap-1.5 justify-center">
-                    <Sparkles className="w-3 h-3 animate-pulse" />
-                    ⚡ Developer Quick Login
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickLogin('sahalshihabudheen@gmail.com')}
-                      className="bg-white/5 text-xs h-9 border-white/10 hover:bg-white/10 text-white font-medium rounded-xl hover:text-primary transition-all"
-                    >
-                      Sahal (Admin)
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickLogin('admin@gmail.com')}
-                      className="bg-white/5 text-xs h-9 border-white/10 hover:bg-white/10 text-white font-medium rounded-xl hover:text-primary transition-all"
-                    >
-                      Admin
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/40 text-center select-none">
-                    Uses real Supabase sign-in (dev-only).
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </Card>

@@ -13,14 +13,15 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
 
-const DownloadButton = ({ track }: { track: { id: string; title: string; thumbnail: string } }) => {
+const DownloadButton = ({ track, compact }: { track: { id: string; title: string; thumbnail: string }; compact?: boolean }) => {
   const { startDownload, isDownloading } = useDownloadManager();
   const loading = isDownloading(track.id);
   return (
     <button 
       onClick={() => startDownload(track)} 
       className={cn(
-        "p-2 rounded-xl transition-all",
+        "rounded-xl transition-all flex items-center justify-center",
+        compact ? "p-1" : "p-1.5 lg:p-2",
         loading ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
       )} 
       title="Download"
@@ -122,6 +123,8 @@ const MusicPlayer = ({
     useBackgroundAudioMode,
     setUseBackgroundAudioMode,
   } = useMusicPlayer();
+
+  const { startDownload, isDownloading } = useDownloadManager();
 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -232,7 +235,10 @@ const MusicPlayer = ({
     
     // Auto-open the Now Playing panel (video/artist) when first playing
     if (isPlaying && !hasAutoOpened && !nowPlayingOpen) {
-      setNowPlayingOpen(true);
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      if (!isMobile) {
+        setNowPlayingOpen(true);
+      }
       setHasAutoOpened(true);
     }
   }, [isPlaying, currentTrack?.id, settings.autoMiniPlayer, isMiniMode, updateSettings, hasAutoOpened, nowPlayingOpen, setNowPlayingOpen]);
@@ -240,128 +246,269 @@ const MusicPlayer = ({
   return (
     <>
     <footer className={cn(
-        'fixed bottom-4 left-4 right-4 md:bottom-6 md:left-[272px] transition-all duration-700 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-50',
+        'fixed bottom-20 left-3 right-3 md:bottom-6 md:left-[272px] transition-all duration-700 rounded-[2rem] md:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] overflow-hidden group/player glass-premium border border-white/10 z-50',
         nowPlayingOpen ? 'md:right-[380px]' : 'md:right-6',
-        'h-[80px] md:h-[170px] py-1 md:py-4 px-3 md:px-8'
+        'h-[88px] md:h-[136px] py-2 px-3 md:px-8'
       )}>
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-50 group-hover/player:opacity-100 transition-opacity" />
         
-        <div className="h-full flex items-center justify-between relative z-10 gap-1 md:gap-8">
-          {/* Left: Track Info (Responsive Width) */}
+        {/* Mobile View Player (h-[88px] on mobile, hidden on desktop) */}
+        <div className="flex md:hidden h-full w-full items-center justify-between relative z-10 gap-2">
+          {/* Left: Track Info + Seek Bar */}
           <div 
-            className="flex items-center gap-2 md:gap-3 cursor-pointer group/track min-w-0 w-[35%] md:w-80"
+            className="flex-1 flex flex-col justify-center min-w-0 cursor-pointer"
+            onClick={() => currentTrack && setIsFullscreen(true)}
+          >
+            {/* Top row: thumbnail + text */}
+            <div className="flex items-center gap-2 min-w-0">
+              {currentTrack ? (
+                <>
+                  <div className="relative shrink-0">
+                    <div className={cn(
+                      "absolute -inset-1 rounded-lg bg-primary/30 blur-md transition-all duration-1000",
+                      isPlaying ? "opacity-100 scale-110 glow-pulse" : "opacity-0 scale-100"
+                    )} />
+                    <img
+                      src={currentTrack.thumbnail}
+                      alt={currentTrack.title}
+                      className="relative w-10 h-10 rounded-lg object-cover shadow-md"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[11px] font-black text-foreground truncate tracking-tight">
+                      {currentTrack.title}
+                    </h3>
+                    <p className="text-[8px] font-black text-muted-foreground/60 truncate uppercase tracking-widest mt-0.5">
+                      {currentTrack.channel}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 opacity-40">
+                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/5" />
+                  <div className="space-y-1">
+                    <div className="h-2 w-16 bg-white/10 rounded-full" />
+                    <div className="h-1.5 w-12 bg-white/5 rounded-full" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom row: seek progress bar */}
+            <div className="flex items-center gap-1.5 mt-1.5 px-0.5 w-full">
+              <span className="text-[7px] font-bold text-muted-foreground tabular-nums w-6 text-right">{formatTime(progress)}</span>
+              <StyledProgressBar
+                progress={progress}
+                duration={duration}
+                onSeek={handleSeek}
+                className="flex-1 min-w-[120px]"
+              />
+              <span className="text-[7px] font-bold text-muted-foreground tabular-nums w-6">{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          {/* Center Play/Pause Pill */}
+          <div className="shrink-0 flex items-center justify-center px-1">
+            <button
+              onClick={onPlayPause}
+              className="w-11 h-11 rounded-[1.25rem] bg-primary text-primary-foreground flex items-center justify-center shadow-[0_4px_15px_rgba(var(--primary),0.35)] hover:scale-105 active:scale-95 transition-all neon-glow"
+            >
+              {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+            </button>
+          </div>
+
+          {/* Right actions pill/capsule */}
+          <div className="shrink-0 flex items-center justify-end">
+            <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-white/5 border border-white/5">
+              <button 
+                onClick={() => setLyricsOpen(!lyricsOpen)} 
+                className={cn("p-1.5 rounded-full transition-all", lyricsOpen ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+                title="Lyrics"
+              >
+                <Music2 className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={() => currentTrack && setIsFullscreen(true)} 
+                className="p-1.5 rounded-full text-muted-foreground hover:text-foreground transition-all"
+                title="Fullscreen"
+              >
+                <MonitorPlay className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={handleShare} 
+                className="p-1.5 rounded-full text-muted-foreground hover:text-foreground transition-all"
+                title="Share"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+              {currentTrack && (
+                <button 
+                  onClick={() => startDownload(currentTrack)} 
+                  className={cn(
+                    "p-1.5 rounded-full transition-all",
+                    isDownloading(currentTrack.id) ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  )} 
+                  title="Download"
+                >
+                  {isDownloading(currentTrack.id) ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop View Player (hidden on mobile, flex on desktop) */}
+        <div className="hidden md:flex h-full items-center justify-between relative z-10 gap-4 lg:gap-8">
+          {/* Left: Track Info */}
+          <div 
+            className={cn(
+              "flex items-center gap-3 cursor-pointer group/track min-w-0 transition-all duration-500 shrink-0",
+              nowPlayingOpen ? "w-48 lg:w-60" : "w-64 lg:w-76"
+            )}
             onClick={() => currentTrack && setIsFullscreen(true)}
           >
             {currentTrack ? (
               <>
                 <div className="relative shrink-0">
                   <div className={cn(
-                    "absolute -inset-1 rounded-lg md:-inset-1.5 md:rounded-xl bg-primary/30 blur-md transition-all duration-1000",
+                    "absolute -inset-1 rounded-xl bg-primary/30 blur-md transition-all duration-1000",
                     isPlaying ? "opacity-100 scale-110 glow-pulse" : "opacity-0 scale-100"
                   )} />
                   <img
                     src={currentTrack.thumbnail}
                     alt={currentTrack.title}
-                    className="relative w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-xl object-cover shadow-2xl transition-transform duration-500 group-hover/track:scale-105"
+                    className="relative w-12 h-12 rounded-xl object-cover shadow-xl transition-transform duration-500 group-hover/track:scale-105"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-[10px] md:text-sm font-black text-foreground truncate group-hover/track:text-primary transition-colors tracking-tight">
+                  <h3 className="text-[13px] font-black text-foreground truncate group-hover/track:text-primary transition-colors tracking-tight">
                     {currentTrack.title}
                   </h3>
-                  <p className="text-[7px] md:text-[10px] font-black text-muted-foreground/60 truncate uppercase tracking-widest mt-0.5">
+                  <p className="text-[9px] font-black text-muted-foreground/60 truncate uppercase tracking-widest mt-0.5">
                     {currentTrack.channel}
                   </p>
                 </div>
               </>
             ) : (
               <div className="flex items-center gap-2 opacity-40">
-                <div className="w-10 h-10 md:w-16 md:h-16 rounded-lg md:rounded-xl bg-white/5 border border-white/5" />
-                <div className="space-y-1 md:space-y-2">
-                  <div className="h-2 w-16 md:h-3 md:w-24 bg-white/10 rounded-full" />
-                  <div className="h-1.5 w-12 md:h-2 md:w-16 bg-white/5 rounded-full" />
+                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5" />
+                <div className="space-y-1.5">
+                  <div className="h-2.5 w-20 bg-white/10 rounded-full" />
+                  <div className="h-1.5 w-12 bg-white/5 rounded-full" />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Center Tier: Responsive Vertical Stack */}
-          <div className="absolute left-1/2 -translate-x-1/2 inset-y-0 flex flex-col items-center justify-between py-3 md:py-4 w-[30%] md:w-full md:max-w-xl z-20">
+          {/* Center Tier: Controls and Progress */}
+          <div className="flex-1 max-w-md lg:max-w-xl h-full flex flex-col items-center justify-between py-1.5 mx-auto min-w-0 px-2">
             {/* Controls (Top) */}
-            <div className="flex items-center gap-3 md:gap-8">
+            <div className="flex items-center gap-6 lg:gap-8">
               <button 
                 onClick={onPrevious}
-                className="text-muted-foreground hover:text-foreground transition-all active:scale-90 hidden sm:block"
+                className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
               >
-                <SkipBack className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                <SkipBack className="w-4.5 h-4.5 fill-current" />
               </button>
               <button
                 onClick={onPlayPause}
-                className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary),0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
+                className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-[0_0_15px_hsl(var(--primary)/0.4)] hover:scale-110 active:scale-95 transition-all neon-glow"
               >
-                {isPlaying ? <Pause className="w-5 h-5 md:w-7 md:h-7 fill-current" /> : <Play className="w-5 h-5 md:w-7 md:h-7 fill-current ml-0.5 md:ml-1" />}
+                {isPlaying ? <Pause className="w-4.5 h-4.5 fill-current" /> : <Play className="w-4.5 h-4.5 fill-current ml-0.5" />}
               </button>
               <button 
                 onClick={onNext}
-                className="text-muted-foreground hover:text-foreground transition-all active:scale-90 hidden sm:block"
+                className="text-muted-foreground hover:text-foreground transition-all active:scale-90"
               >
-                <SkipForward className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                <SkipForward className="w-4.5 h-4.5 fill-current" />
               </button>
             </div>
 
-            {/* Soundwave (Middle) - Hidden on mobile for space */}
-            <div className="hidden md:block w-32 h-6 opacity-40 overflow-hidden pointer-events-none">
+            {/* Soundwave (Middle) */}
+            <div className={cn(
+              "w-28 h-4 opacity-40 overflow-hidden pointer-events-none transition-all duration-300",
+              nowPlayingOpen ? "hidden" : "block"
+            )}>
               <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
             </div>
 
-            {/* Progress Bar (Bottom) - Responsive width */}
-            <div className="w-[280%] sm:w-[200%] md:w-full flex items-center gap-2 md:gap-4 px-2 md:px-4">
-              <span className="text-[8px] md:text-[10px] font-bold text-muted-foreground tabular-nums w-8 md:w-10 text-right">{formatTime(progress)}</span>
+            {/* Progress Bar (Bottom) */}
+            <div className="w-full flex items-center gap-2 px-1">
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-8 text-right shrink-0">{formatTime(progress)}</span>
               <StyledProgressBar
                 progress={progress}
                 duration={duration}
                 onSeek={handleSeek}
-                className="flex-1"
+                className="flex-1 min-w-[100px]"
               />
-              <span className="text-[8px] md:text-[10px] font-bold text-muted-foreground tabular-nums w-8 md:w-10">{formatTime(duration)}</span>
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums w-8 shrink-0">{formatTime(duration)}</span>
             </div>
           </div>
 
-          {/* Right: Actions & Volume (Mobile Friendly) */}
-          <div className="flex-1 flex items-center justify-end gap-1 md:gap-6 w-[35%] md:w-auto">
-            <div className="flex items-center gap-1 p-1 md:p-1.5 rounded-lg md:rounded-2xl bg-white/5 border border-white/5">
+          {/* Right: Actions & Volume */}
+          <div className={cn(
+            "flex items-center justify-end gap-3 transition-all duration-500 shrink-0",
+            nowPlayingOpen ? "w-48 lg:w-60" : "w-64 lg:w-76"
+          )}>
+            <div className={cn(
+              "flex items-center rounded-xl bg-white/5 border border-white/5 shadow-inner transition-all",
+              nowPlayingOpen ? "gap-0.5 p-0.5" : "gap-1 p-1 lg:p-1.5"
+            )}>
               <button 
-                onClick={() => setUseBackgroundAudioMode(!useBackgroundAudioMode)} 
+                onClick={() => setLyricsOpen(!lyricsOpen)} 
                 className={cn(
-                  "p-1.5 md:p-2 rounded-md md:rounded-xl transition-all relative group/zap shrink-0",
-                  useBackgroundAudioMode 
-                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  "rounded-lg transition-all",
+                  nowPlayingOpen ? "p-1" : "p-1.5 lg:p-2",
+                  lyricsOpen ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
                 )}
-                title={useBackgroundAudioMode ? "DJ Mode (Cloud Stream Engine) is ON. Click to use Standard Engine." : "DJ Mode (Cloud Stream Engine) is OFF. Click to enable DJ visual effects and effects faders."}
+                title="Lyrics"
               >
-                <Zap className={cn("w-3 h-3 md:w-4 md:h-4", useBackgroundAudioMode && "fill-current animate-pulse")} />
-                <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-black/95 border border-white/10 text-[8px] font-black uppercase text-white px-2 py-1 rounded opacity-0 group-hover/zap:opacity-100 transition-opacity whitespace-nowrap pointer-events-none tracking-widest leading-none z-[1001]">
-                  {useBackgroundAudioMode ? "DJ Audio Engine" : "Standard Engine"}
-                </span>
+                <Music2 className="w-4 h-4" />
               </button>
-              <button onClick={() => setLyricsOpen(!lyricsOpen)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all", lyricsOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
-                <Music2 className="w-3 h-3 md:w-4 md:h-4" />
+              <button 
+                onClick={() => setNowPlayingOpen(!nowPlayingOpen)} 
+                className={cn(
+                  "rounded-lg transition-all",
+                  nowPlayingOpen ? "p-1 animate-pulse" : "p-1.5 lg:p-2",
+                  nowPlayingOpen ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                title="Now Playing"
+              >
+                <MonitorPlay className="w-4 h-4" />
               </button>
-              <button onClick={() => setNowPlayingOpen(!nowPlayingOpen)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all", nowPlayingOpen ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
-                <MonitorPlay className="w-3 h-3 md:w-4 md:h-4" />
-              </button>
-              <button onClick={() => setShowEQ(!showEQ)} className={cn("p-1.5 md:p-2 rounded-md md:rounded-xl transition-all hidden md:flex", showEQ ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5")}>
+              <button 
+                onClick={() => setShowEQ(!showEQ)} 
+                className={cn(
+                  "rounded-lg transition-all",
+                  nowPlayingOpen ? "p-1" : "p-1.5 lg:p-2",
+                  showEQ ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                )}
+                title="Equalizer"
+              >
                 <SlidersHorizontal className="w-4 h-4" />
               </button>
-              <button onClick={handleShare} className="p-1.5 md:p-2 rounded-md md:rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all">
-                <Share2 className="w-3 h-3 md:w-4 md:h-4" />
+              <button 
+                onClick={handleShare} 
+                className={cn(
+                  "rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all",
+                  nowPlayingOpen ? "p-1" : "p-1.5 lg:p-2"
+                )}
+                title="Share"
+              >
+                <Share2 className="w-4 h-4" />
               </button>
-              {currentTrack && <DownloadButton track={currentTrack} />}
+              {currentTrack && (
+                <div className={nowPlayingOpen ? "scale-90" : "scale-100"}>
+                  <DownloadButton track={currentTrack} compact={nowPlayingOpen} />
+                </div>
+              )}
             </div>
 
-            <div className="hidden sm:flex items-center gap-2 md:gap-3 w-20 md:w-32 group/volume shrink-0">
-              <button onClick={toggleMute} className="text-muted-foreground hover:text-primary transition-colors">
+            <div className={cn(
+              "flex items-center gap-2 group/volume shrink-0 transition-all duration-300",
+              nowPlayingOpen ? "w-16 lg:w-24" : "w-24 lg:w-32"
+            )}>
+              <button onClick={toggleMute} className="text-muted-foreground hover:text-primary transition-colors shrink-0">
                 {getVolumeIcon()}
               </button>
               <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden relative">
