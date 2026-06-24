@@ -426,8 +426,8 @@ const MusicPlayer = ({
 
             {/* Soundwave (Middle) */}
             <div className={cn(
-              "w-28 h-6 opacity-75 overflow-hidden pointer-events-none transition-all duration-300",
-              nowPlayingOpen ? "hidden" : "block"
+              "w-36 h-8 opacity-90 overflow-hidden pointer-events-none transition-all duration-300",
+              nowPlayingOpen ? "hidden" : "flex items-center justify-center"
             )}>
               <SoundwaveVisualizer isPlaying={isPlaying} className="w-full h-full" />
             </div>

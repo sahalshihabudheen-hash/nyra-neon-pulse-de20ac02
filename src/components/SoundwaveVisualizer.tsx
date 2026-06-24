@@ -21,69 +21,91 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
   const [dotSizes, setDotSizes] = useState<number[]>(Array(8).fill(4));
   const [pulseScale, setPulseScale] = useState(1);
   const animationRef = useRef<number>();
+  const isPlayingRef = useRef(isPlaying);
+  const stateRef = useRef(state);
+  const getFrequencyDataRef = useRef(getFrequencyData);
+
+  // Keep refs in sync to avoid stale closures in animation loop
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => { getFrequencyDataRef.current = getFrequencyData; }, [getFrequencyData]);
 
   useEffect(() => {
     if (!isPlaying) {
       setBarHeights(Array(16).fill(20));
       setDotSizes(Array(8).fill(4));
       setPulseScale(1);
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
       return;
     }
 
+    let running = true;
+
     const animate = () => {
+      if (!running) return;
+
       let freqArray: number[] = [];
-      if (state.active) {
-        const rawFrequencies = getFrequencyData(); // returns Uint8Array of 16 elements
+      if (stateRef.current.active) {
+        const rawFrequencies = getFrequencyDataRef.current();
         freqArray = Array.from(rawFrequencies).map(v => (v / 255) * 100);
       } else {
-        freqArray = Array(16).fill(0).map(() => Math.random() * 80 + 10);
+        // Smooth pseudo-random animation when DJ engine is not active
+        freqArray = Array(16).fill(0).map((_, i) => {
+          const base = 20 + Math.sin(Date.now() / 400 + i * 0.7) * 15;
+          const rand = Math.random() * 50 + 15;
+          return (base + rand) / 2;
+        });
       }
-      
+
       setBarHeights(freqArray);
-      
-      // Dots animation
+
       const newDots = Array(8).fill(0).map((_, i) => {
         const val = freqArray[i * 2] || 0;
         return (val / 100) * 8 + 2;
       });
       setDotSizes(newDots);
-      
-      // Pulse animation
+
       const bassValue = (freqArray[0] || 0) + (freqArray[1] || 0) + (freqArray[2] || 0);
       setPulseScale(0.85 + (bassValue / 300) * 0.35);
-      
+
       animationRef.current = requestAnimationFrame(() => {
-        setTimeout(animate, 50); // Fluid 50ms interval animation
+        setTimeout(animate, 60);
       });
     };
 
     animate();
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      running = false;
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, [isPlaying]);
 
-  // Bars Shape (Classic) - PROPER EQUALIZER
+  // Bars Shape (Classic) - heights in px, not % so they're visible in any container
   if (shape === 'bars') {
     return (
-      <div className={cn('flex items-end justify-center gap-1 h-8', className)}>
-        {barHeights.slice(0, 12).map((height, index) => (
-          <div
-            key={index}
-            className="w-1 rounded-full bg-primary"
-            style={{
-              height: isPlaying ? `${Math.max(15, height)}%` : '20%',
-              boxShadow: isPlaying 
-                ? '0 0 6px hsl(var(--primary)), 0 0 12px hsl(var(--primary) / 0.6)' 
-                : '0 0 3px hsl(var(--primary) / 0.4)',
-              transition: 'height 0.08s ease-out',
-              opacity: isPlaying ? 1 : 0.5,
-            }}
-          />
-        ))}
+      <div className={cn('flex items-end justify-center gap-[3px]', className)}>
+        {barHeights.slice(0, 12).map((height, index) => {
+          // Convert 0-100 scale to a pixel height between 3px and 100% of container
+          // Use a minimum of 4px and max via calc
+          const pxHeight = isPlaying ? Math.max(4, Math.round(height * 0.4)) : 4;
+          return (
+            <div
+              key={index}
+              className="w-[3px] rounded-full bg-primary shrink-0"
+              style={{
+                height: `${pxHeight}px`,
+                minHeight: '4px',
+                maxHeight: '100%',
+                boxShadow: isPlaying
+                  ? '0 0 6px hsl(var(--primary)), 0 0 12px hsl(var(--primary) / 0.6)'
+                  : '0 0 3px hsl(var(--primary) / 0.4)',
+                transition: 'height 0.08s ease-out',
+                opacity: isPlaying ? 1 : 0.5,
+              }}
+            />
+          );
+        })}
       </div>
     );
   }
@@ -96,9 +118,9 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
       return `${x},${y}`;
     });
     const pathData = `M 0,20 L ${points.join(' L ')} L 100,20`;
-    
+
     return (
-      <div className={cn('flex items-center justify-center h-10 overflow-hidden', className)}>
+      <div className={cn('flex items-center justify-center overflow-hidden', className)}>
         <svg viewBox="0 0 100 40" className="w-full h-full" preserveAspectRatio="none">
           <defs>
             <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -122,11 +144,8 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
             strokeLinecap="round"
             strokeLinejoin="round"
             className="transition-all duration-75"
-            style={{
-              filter: isPlaying ? 'url(#glow)' : 'none',
-            }}
+            style={{ filter: isPlaying ? 'url(#glow)' : 'none' }}
           />
-          {/* Fill under the wave */}
           <path
             d={`${pathData} L 100,40 L 0,40 Z`}
             fill="url(#waveGradient)"
@@ -141,14 +160,11 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
   // Dots Shape (Bouncing dots)
   if (shape === 'dots') {
     return (
-      <div className={cn('flex items-center justify-center gap-2 h-8', className)}>
+      <div className={cn('flex items-center justify-center gap-2', className)}>
         {dotSizes.map((size, index) => (
           <div
             key={index}
-            className={cn(
-              'rounded-full transition-all duration-100',
-              isPlaying ? 'bg-primary' : 'bg-primary/30'
-            )}
+            className={cn('rounded-full transition-all duration-100', isPlaying ? 'bg-primary' : 'bg-primary/30')}
             style={{
               width: isPlaying ? `${size + 4}px` : '6px',
               height: isPlaying ? `${size + 4}px` : '6px',
@@ -164,9 +180,8 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
   // Pulse Shape (Circular pulse)
   if (shape === 'pulse') {
     return (
-      <div className={cn('flex items-center justify-center h-8', className)}>
+      <div className={cn('flex items-center justify-center', className)}>
         <div className="relative">
-          {/* Outer pulse rings */}
           {[0, 1, 2].map((ring) => (
             <div
               key={ring}
@@ -184,12 +199,8 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
               }}
             />
           ))}
-          {/* Center dot */}
           <div
-            className={cn(
-              'w-6 h-6 rounded-full transition-all duration-100',
-              isPlaying ? 'bg-primary' : 'bg-primary/30'
-            )}
+            className={cn('w-6 h-6 rounded-full transition-all duration-100', isPlaying ? 'bg-primary' : 'bg-primary/30')}
             style={{
               transform: isPlaying ? `scale(${pulseScale})` : 'scale(1)',
               boxShadow: isPlaying ? '0 0 20px hsl(var(--primary) / 0.8)' : 'none',
@@ -203,47 +214,42 @@ const SoundwaveVisualizer = ({ isPlaying, className, shape: propShape }: Soundwa
   // Spectrum Shape (Mirrored bars)
   if (shape === 'spectrum') {
     const halfBars = barHeights.slice(0, 8);
+    const maxHeight = Math.max(...barHeights);
     return (
-      <div className={cn('flex items-center justify-center gap-[2px] h-8', className)}>
-        {/* Left side (mirrored) */}
-        {[...halfBars].reverse().map((height, index) => (
-          <div
-            key={`left-${index}`}
-            className={cn(
-              'w-[2px] rounded-full transition-all duration-75',
-              isPlaying ? 'bg-primary' : 'bg-primary/30'
-            )}
-            style={{
-              height: `${isPlaying ? height * 0.8 : 20}%`,
-              boxShadow: isPlaying ? '0 0 4px hsl(var(--primary) / 0.5)' : 'none',
-            }}
-          />
-        ))}
-        {/* Center peak */}
+      <div className={cn('flex items-center justify-center gap-[2px]', className)}>
+        {[...halfBars].reverse().map((height, index) => {
+          const pxH = isPlaying ? Math.max(4, Math.round(height * 0.4)) : 6;
+          return (
+            <div
+              key={`left-${index}`}
+              className={cn('w-[2px] rounded-full transition-all duration-75', isPlaying ? 'bg-primary' : 'bg-primary/30')}
+              style={{
+                height: `${pxH}px`,
+                boxShadow: isPlaying ? '0 0 4px hsl(var(--primary) / 0.5)' : 'none',
+              }}
+            />
+          );
+        })}
         <div
-          className={cn(
-            'w-[3px] rounded-full transition-all duration-75',
-            isPlaying ? 'bg-primary' : 'bg-primary/30'
-          )}
+          className={cn('w-[3px] rounded-full transition-all duration-75', isPlaying ? 'bg-primary' : 'bg-primary/30')}
           style={{
-            height: `${isPlaying ? Math.max(...barHeights) : 25}%`,
+            height: `${isPlaying ? Math.max(6, Math.round(maxHeight * 0.4)) : 10}px`,
             boxShadow: isPlaying ? '0 0 8px hsl(var(--primary))' : 'none',
           }}
         />
-        {/* Right side */}
-        {halfBars.map((height, index) => (
-          <div
-            key={`right-${index}`}
-            className={cn(
-              'w-[2px] rounded-full transition-all duration-75',
-              isPlaying ? 'bg-primary' : 'bg-primary/30'
-            )}
-            style={{
-              height: `${isPlaying ? height * 0.8 : 20}%`,
-              boxShadow: isPlaying ? '0 0 4px hsl(var(--primary) / 0.5)' : 'none',
-            }}
-          />
-        ))}
+        {halfBars.map((height, index) => {
+          const pxH = isPlaying ? Math.max(4, Math.round(height * 0.4)) : 6;
+          return (
+            <div
+              key={`right-${index}`}
+              className={cn('w-[2px] rounded-full transition-all duration-75', isPlaying ? 'bg-primary' : 'bg-primary/30')}
+              style={{
+                height: `${pxH}px`,
+                boxShadow: isPlaying ? '0 0 4px hsl(var(--primary) / 0.5)' : 'none',
+              }}
+            />
+          );
+        })}
       </div>
     );
   }
