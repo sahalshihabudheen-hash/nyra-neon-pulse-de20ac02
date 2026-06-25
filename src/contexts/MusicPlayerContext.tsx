@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useTabTitle } from '@/hooks/useTabTitle';
 import { useDjAudio } from '@/hooks/useDjAudio';
 import { getTrackOffline, isTrackDownloadedOffline } from '@/lib/offlineStore';
+import { COBALT_INSTANCES, PIPED_INSTANCES } from '@/lib/instances';
 
 const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
   const baseUrl = '/api/get-audio-url';

@@ -282,6 +282,13 @@ export default async function handler(req: Request) {
         responseHeaders.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
         responseHeaders.set('Accept-Ranges', 'bytes');
         responseHeaders.set('Cache-Control', 'no-cache');
+        
+        const shouldDownload = url.searchParams.get('download') === '1';
+        const title = url.searchParams.get('title') || 'audio';
+        if (shouldDownload) {
+          responseHeaders.set('Content-Disposition', `attachment; filename="${title.replace(/[^\w\s-]/g, '')}.mp3"`);
+        }
+
         const contentLength = upstream.headers.get('content-length');
         const contentRange = upstream.headers.get('content-range');
         if (contentLength) responseHeaders.set('Content-Length', contentLength);

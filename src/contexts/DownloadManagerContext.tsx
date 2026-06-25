@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 import { saveTrackOffline } from '@/lib/offlineStore';
+import { COBALT_INSTANCES, PIPED_INSTANCES, INVIDIOUS_INSTANCES } from '@/lib/instances';
 import { Download, Smartphone, Laptop, CheckSquare, Square, X } from 'lucide-react';
 
 export interface DownloadItem {
@@ -53,47 +54,6 @@ function shuffle<T>(array: T[]): T[] {
 
 // ── Audio URL Resolvers (client-side, uses residential IP — no server needed) ──
 
-const COBALT_INSTANCES = [
-  'https://api.cobalt.tools',
-  'https://cobalt.api.ryboflops.lol',
-  'https://cobalt.k6.ovh',
-  'https://co.wuk.sh',
-  'https://cobalt.shite.xyz',
-  'https://cobalt.smartit.nu',
-  'https://cobalt.drgns.space',
-  'https://c.onon.app',
-  'https://co.v6.sh',
-  'https://cobalt.instgrm.lol',
-  'https://cobalt.nyx.moe',
-  'https://cobalt.q69.de',
-  'https://co.dispp.li',
-];
-
-const PIPED_INSTANCES = [
-  'https://api.piped.private.coffee',
-  'https://pipedapi.kavin.rocks',
-  'https://piped-api.lre.yt',
-  'https://pipedapi.cl7.it',
-  'https://piped-api.hostux.net',
-  'https://pipedapi.adminforge.de',
-  'https://api-piped.mha.fi',
-  'https://pipedapi.swish.re',
-  'https://pipedapi.spirit.com.de',
-  'https://pipedapi.leptons.xyz',
-  'https://api.piped.projectsegfau.lt',
-  'https://pipedapi.moomoo.me',
-  'https://pipedapi.river.rocks',
-];
-
-const INVIDIOUS_INSTANCES = [
-  'https://inv.thepixora.com',
-  'https://yewtu.be',
-  'https://invidious.projectsegfau.lt',
-  'https://inv.nadeko.net',
-  'https://invidious.flokinet.to',
-  'https://invidious.lre.yt',
-];
-
 async function tryCobalt(inst: string, videoId: string): Promise<string | null> {
   // New Cobalt v10+ API (POST /)
   for (const [endpoint, body] of [
@@ -136,21 +96,20 @@ async function tryPiped(inst: string, videoId: string): Promise<string | null> {
 
 async function tryInvidious(inst: string, videoId: string): Promise<string | null> {
   try {
-    const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+    const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+    const res = await fetch(testUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      },
       signal: getTimeoutSignal(5000),
-      headers: { 'User-Agent': 'Mozilla/5.0' },
     });
-    if (!res.ok) return null;
-    const data = await res.json();
-    const formats: any[] = data.adaptiveFormats || [];
-    const audio =
-      formats.find((f: any) => f.type?.startsWith('audio/mp4')) ||
-      formats.find((f: any) => f.type?.startsWith('audio/'));
-    return audio?.url ?? null;
-  } catch {
-    return null;
-  }
+    if (res.status === 200 || res.status === 206) {
+      return res.url;
+    }
+  } catch {}
+  return null;
 }
+
 
 // YouTube Innertube API — fetches directly from YT using ANDROID_MUSIC client.
 // Works from browser (residential IP), no third-party service needed.
@@ -326,7 +285,8 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         // Try blob download first (gives proper .mp3 filename in most browsers)
         let blobSuccess = false;
         try {
-          const blob = await fetchAudioBlob(audioUrl, (p) => updateItem(track.id, { progress: Math.round(10 + p * 0.7) }));
+          const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}`;
+          const blob = await fetchAudioBlob(proxiedUrl, (p) => updateItem(track.id, { progress: Math.round(10 + p * 0.7) }));
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = blobUrl;
@@ -343,7 +303,8 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         // Fallback: direct browser link — browser handles download natively (no CORS restriction)
         if (!blobSuccess) {
           const link = document.createElement('a');
-          link.href = audioUrl;
+          const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}&download=1&title=${encodeURIComponent(track.title)}`;
+          link.href = proxiedUrl;
           link.download = `${sanitizeFilename(track.title)}.mp3`;
           link.target = '_blank';
           link.rel = 'noreferrer noopener';
@@ -381,7 +342,8 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
           throw new Error('Could not resolve audio stream. Try again in a moment.');
         }
 
-        const audioBlob = await fetchAudioBlob(audioUrl, (p) =>
+        const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}`;
+        const audioBlob = await fetchAudioBlob(proxiedUrl, (p) =>
           updateItem(track.id, { progress: Math.round(10 + p * 0.85) })
         );
 
@@ -396,6 +358,7 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         toast.error(err.message || 'Failed to save for offline. Please try again.');
         removeItem(track.id, 8_000);
       }
+
     },
     [addItem, updateItem, removeItem]
   );
