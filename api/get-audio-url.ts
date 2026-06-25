@@ -69,35 +69,60 @@ const getTimeoutSignal = (ms: number) => {
   }
 };
 
+async function tryCobalt(inst: string, videoId: string): Promise<{ url: string; mimeType: string } | null> {
+  // Try new Cobalt v10+ API format first (POST /)
+  try {
+    const res = await fetch(`${inst}/`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        downloadMode: 'audio',
+        audioFormat: 'mp3',
+        audioBitrate: '128'
+      }),
+      signal: getTimeoutSignal(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.url) return { url: data.url, mimeType: 'audio/mpeg' };
+    }
+  } catch {}
+
+  // Fallback: try legacy endpoint (POST /api/json)
+  try {
+    const res = await fetch(`${inst}/api/json`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        isAudioOnly: true,
+        downloadMode: 'audio',
+        audioFormat: 'mp3',
+        audioQuality: '128'
+      }),
+      signal: getTimeoutSignal(5000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.url) return { url: data.url, mimeType: 'audio/mpeg' };
+    }
+  } catch {}
+
+  return null;
+}
+
 async function getStreamInfo(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  // Layer 1: High-Performance Cobalt Extractors
+  // Layer 1: High-Performance Cobalt Extractors (new API + legacy fallback)
   const shuffledCobalt = shuffle(COBALT_INSTANCES);
   const cobaltResults = await Promise.all(
-    shuffledCobalt.slice(0, 3).map(async (inst) => {
-      try {
-        const res = await fetch(`${inst}/api/json`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          body: JSON.stringify({
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            isAudioOnly: true,
-            downloadMode: 'audio',
-            audioFormat: 'mp3',
-            audioQuality: '128'
-          }),
-          signal: getTimeoutSignal(3500),
-        });
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data?.url ? { url: data.url, mimeType: 'audio/mpeg' } : null;
-      } catch {
-        return null;
-      }
-    })
+    shuffledCobalt.slice(0, 3).map((inst) => tryCobalt(inst, videoId))
   );
   
   const cobaltHit = cobaltResults.find((r) => r !== null);

@@ -121,13 +121,39 @@ async function raceFirstSuccess<T>(promises: Promise<T>[]): Promise<T> {
 }
 
 const tryCobaltInstance = async (inst: string, videoId: string): Promise<string | null> => {
+  // Try new Cobalt v10+ API (POST /) first
+  try {
+    const res = await fetch(`${inst}/`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        downloadMode: 'audio',
+        audioFormat: 'mp3',
+        audioBitrate: '128'
+      }),
+      signal: getTimeoutSignal(6000)
+    });
+
+    if (res.ok) {
+      const data = await safelyParseJson<any>(res);
+      if (data?.url) {
+        console.log(`[Client Download Resolver] Cobalt v10+ success: ${inst}`);
+        return data.url;
+      }
+    }
+  } catch {}
+
+  // Fallback: try legacy endpoint (POST /api/json)
   try {
     const res = await fetch(`${inst}/api/json`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
       body: JSON.stringify({
         url: `https://www.youtube.com/watch?v=${videoId}`,
@@ -141,36 +167,12 @@ const tryCobaltInstance = async (inst: string, videoId: string): Promise<string 
     if (res.ok) {
       const data = await safelyParseJson<any>(res);
       if (data?.url) {
-        console.log(`[Client Download Resolver] Cobalt success: ${inst}`);
+        console.log(`[Client Download Resolver] Cobalt legacy success: ${inst}`);
         return data.url;
       }
     }
-  } catch (e: any) {
-    try {
-      const res = await fetch(`${inst}/api/json`, {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        },
-        body: JSON.stringify({
-          url: `https://www.youtube.com/watch?v=${videoId}`,
-          isAudioOnly: true,
-          audioFormat: 'mp3',
-          audioQuality: '128'
-        }),
-        signal: getTimeoutSignal(6000)
-      });
-      if (res.ok) {
-        const data = await safelyParseJson<any>(res);
-        if (data?.url) {
-          console.log(`[Client Download Resolver] Cobalt success (fallback): ${inst}`);
-          return data.url;
-        }
-      }
-    } catch {}
-  }
+  } catch {}
+
   return null;
 };
 
