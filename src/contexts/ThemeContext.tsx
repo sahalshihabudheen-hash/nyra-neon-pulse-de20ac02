@@ -132,12 +132,24 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const [gradient, setGradientState] = useState<GradientConfig>(() => {
     const saved = localStorage.getItem('nyra-gradient');
-    return saved ? JSON.parse(saved) : {
-      enabled: false,
-      startColor: '#ffd300',
-      endColor: '#ff6b00',
-      angle: 135,
-    };
+    if (!saved) {
+      return {
+        enabled: false,
+        startColor: '#ffd300',
+        endColor: '#ff6b00',
+        angle: 135,
+      };
+    }
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return {
+        enabled: false,
+        startColor: '#ffd300',
+        endColor: '#ff6b00',
+        angle: 135,
+      };
+    }
   });
 
   const [settings, setSettings] = useState<AppSettings>(() => {
