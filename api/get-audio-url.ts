@@ -210,6 +210,42 @@ export default async function handler(req: Request) {
 
   try {
     const url = new URL(req.url);
+    const proxyUrl = url.searchParams.get('proxyUrl');
+    if (proxyUrl) {
+      try {
+        const decodedUrl = decodeURIComponent(proxyUrl);
+        const range = req.headers.get('range');
+        const upstreamHeaders: Record<string, string> = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': '*/*',
+        };
+        if (range) upstreamHeaders['Range'] = range;
+
+        const upstream = await fetch(decodedUrl, { headers: upstreamHeaders });
+        
+        const responseHeaders = new Headers(corsHeaders);
+        responseHeaders.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
+        responseHeaders.set('Accept-Ranges', 'bytes');
+        responseHeaders.set('Cache-Control', 'no-cache');
+
+        const contentLength = upstream.headers.get('content-length');
+        const contentRange = upstream.headers.get('content-range');
+        if (contentLength) responseHeaders.set('Content-Length', contentLength);
+        if (contentRange) responseHeaders.set('Content-Range', contentRange);
+
+        return new Response(upstream.body, {
+          status: upstream.status,
+          headers: responseHeaders,
+        });
+      } catch (proxyErr: any) {
+        console.error('API proxyUrl routing error:', proxyErr);
+        return new Response(JSON.stringify({ error: proxyErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     let videoId = url.searchParams.get('videoId') || url.searchParams.get('id') || '';
     const shouldStream = url.searchParams.get('stream') === '1';
     const shouldDownload = url.searchParams.get('download') === '1';

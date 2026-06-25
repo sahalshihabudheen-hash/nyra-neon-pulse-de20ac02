@@ -88,131 +88,66 @@ const safelyParseJson = async <T = any>(response: Response): Promise<T | null> =
   }
 };
 
-const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean = false): Promise<string | null> => {
-  console.log(`[Client Download Resolver] Resolving backup audio stream for ${videoId} (isDownloadMode: ${isDownloadMode})...`);
+async function raceFirstSuccess<T>(promises: Promise<T>[]): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+    let failedCount = 0;
+    const total = promises.length;
 
-  // If download mode, run Cobalt first since it yields direct downloadable MP3 links bypass CORS & IP limits
-  if (isDownloadMode) {
-    // Attempt 0: Cobalt Instances
-    const shuffledCobalt = shuffle(COBALT_INSTANCES);
-    for (const inst of shuffledCobalt.slice(0, 5)) {
-      try {
-        let res = await fetch(`${inst}/api/json`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          body: JSON.stringify({
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            downloadMode: 'audio',
-            audioFormat: 'mp3',
-            audioQuality: '128'
-          }),
-          signal: getTimeoutSignal(8000)
-        });
+    if (total === 0) {
+      reject(new Error('No promises to race'));
+      return;
+    }
 
-        if (!res.ok) {
-          res = await fetch(`${inst}/api/json`, {
-            method: 'POST',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
-            body: JSON.stringify({
-              url: `https://www.youtube.com/watch?v=${videoId}`,
-              isAudioOnly: true,
-              audioFormat: 'mp3',
-              audioQuality: '128'
-            }),
-            signal: getTimeoutSignal(8000)
-          });
-        }
-
-        if (res.ok) {
-          const data = await safelyParseJson<any>(res);
-          if (data?.url) {
-            console.log(`[Client Download Resolver] Cobalt success: ${inst}`);
-            return data.url;
+    promises.forEach(p => {
+      p.then(val => {
+        if (val && !resolved) {
+          resolved = true;
+          resolve(val);
+        } else {
+          failedCount++;
+          if (failedCount === total && !resolved) {
+            reject(new Error('All raced promises failed'));
           }
         }
-      } catch (e: any) {
-        console.warn(`[Client Download Resolver] Cobalt inst ${inst} failed:`, e?.message);
-      }
-    }
-  }
-  
-  // Attempt 0: Prioritized proven high-performance Invidious Instance
-  const prioritizedInvidious = [
-    'https://inv.thepixora.com',
-    'https://yewtu.be',
-    'https://invidious.projectsegfau.lt'
-  ];
-
-  for (const inst of prioritizedInvidious) {
-    try {
-      const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
-      const testRes = await fetch(testUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        },
-        signal: getTimeoutSignal(5000)
+      }).catch(err => {
+        failedCount++;
+        if (failedCount === total && !resolved) {
+          reject(new Error('All raced promises failed'));
+        }
       });
-      if (testRes.status === 200 || testRes.status === 206) {
-        console.log(`[Client Download Resolver] Priority success via Invidious latest_version proxy: ${inst}`);
-        return testRes.url;
-      }
-    } catch (e: any) {
-      console.warn(`[Client Download Resolver] Priority Invidious inst ${inst} failed:`, e?.message);
-    }
-  }
+    });
+  });
+}
 
-  // Attempt 1: Dynamic Invidious Registry Fallback
+const tryCobaltInstance = async (inst: string, videoId: string): Promise<string | null> => {
   try {
-    const regRes = await fetch('https://api.invidious.io/instances.json', { signal: getTimeoutSignal(5000) });
-    if (regRes.ok) {
-      const data = await safelyParseJson<any>(regRes);
-      if (data) {
-        const upInstances = data
-          .map((item: any) => ({
-            domain: item[0],
-            uri: item[1].uri || `https://${item[0]}`,
-            down: item[1].monitor?.down,
-            status: item[1].monitor?.last_status
-          }))
-          .filter((inst: any) => !inst.down && inst.status === 200 && !prioritizedInvidious.includes(inst.uri));
+    const res = await fetch(`${inst}/api/json`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: JSON.stringify({
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        downloadMode: 'audio',
+        audioFormat: 'mp3',
+        audioQuality: '128'
+      }),
+      signal: getTimeoutSignal(6000)
+    });
 
-        const shuffledUp = shuffle(upInstances.map((x: any) => x.uri));
-        for (const inst of shuffledUp.slice(0, 4)) {
-          try {
-            const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
-            const testRes = await fetch(testUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-              },
-              signal: getTimeoutSignal(5000)
-            });
-            if (testRes.status === 200 || testRes.status === 206) {
-              console.log(`[Client Download Resolver] Dynamic success via Invidious latest_version proxy: ${inst}`);
-              return testRes.url;
-            }
-          } catch (e: any) {
-            console.warn(`[Client Download Resolver] Dynamic Invidious inst ${inst} failed:`, e?.message);
-          }
-        }
+    if (res.ok) {
+      const data = await safelyParseJson<any>(res);
+      if (data?.url) {
+        console.log(`[Client Download Resolver] Cobalt success: ${inst}`);
+        return data.url;
       }
     }
-  } catch (err: any) {
-    console.error('[Client Download Resolver] Dynamic registry fetch failed:', err.message);
-  }
-
-  // Attempt 2: Cobalt Instances (Extremely high quality MP3 streams, very fast)
-  const shuffledCobalt = shuffle(COBALT_INSTANCES);
-  for (const inst of shuffledCobalt.slice(0, 4)) {
+  } catch (e: any) {
     try {
-      let res = await fetch(`${inst}/api/json`, {
+      const res = await fetch(`${inst}/api/json`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -221,66 +156,88 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
         },
         body: JSON.stringify({
           url: `https://www.youtube.com/watch?v=${videoId}`,
-          downloadMode: 'audio',
+          isAudioOnly: true,
           audioFormat: 'mp3',
           audioQuality: '128'
         }),
-        signal: getTimeoutSignal(8000)
+        signal: getTimeoutSignal(6000)
       });
-
-      if (!res.ok) {
-        res = await fetch(`${inst}/api/json`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          body: JSON.stringify({
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            isAudioOnly: true,
-            audioFormat: 'mp3',
-            audioQuality: '128'
-          }),
-          signal: getTimeoutSignal(8000)
-        });
-      }
-
       if (res.ok) {
         const data = await safelyParseJson<any>(res);
         if (data?.url) {
+          console.log(`[Client Download Resolver] Cobalt success (fallback): ${inst}`);
           return data.url;
         }
       }
-    } catch (e: any) {
-      console.warn(`[Client Download Resolver] Cobalt inst ${inst} failed:`, e?.message);
-    }
+    } catch {}
   }
+  return null;
+};
 
-  // Attempt 3: Piped Instances (Shuffled race)
-  const shuffledPiped = shuffle(PIPED_INSTANCES);
-  for (const inst of shuffledPiped.slice(0, 5)) {
-    try {
-      const res = await fetch(`${inst}/streams/${videoId}`, {
-        signal: getTimeoutSignal(6000),
-        headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
-      });
-      if (res.ok) {
-        const data = await safelyParseJson<any>(res);
-        if (!data) continue;
+const tryInvidiousInstance = async (inst: string, videoId: string): Promise<string | null> => {
+  try {
+    const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+    const res = await fetch(testUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      },
+      signal: getTimeoutSignal(5000)
+    });
+    if (res.status === 200 || res.status === 206) {
+      console.log(`[Client Download Resolver] Invidious success: ${inst}`);
+      return res.url;
+    }
+  } catch {}
+  return null;
+};
+
+const tryPipedInstance = async (inst: string, videoId: string): Promise<string | null> => {
+  try {
+    const res = await fetch(`${inst}/streams/${videoId}`, {
+      signal: getTimeoutSignal(5000),
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (res.ok) {
+      const data = await safelyParseJson<any>(res);
+      if (data) {
         const audioStreams = data.audioStreams || [];
         const best = audioStreams.find((s: any) => s.mimeType?.includes('audio/mp4')) ||
                      audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
         if (best?.url) {
+          console.log(`[Client Download Resolver] Piped success: ${inst}`);
           return best.url;
         }
       }
-    } catch (e: any) {
-      console.warn(`[Client Download Resolver] Piped inst ${inst} failed:`, e?.message);
     }
-  }
-
+  } catch {}
   return null;
+};
+
+const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean = false): Promise<string | null> => {
+  console.log(`[Client Download Resolver] Resolving backup audio stream for ${videoId} in parallel...`);
+
+  const cobaltPromises = shuffle(COBALT_INSTANCES).slice(0, 4).map(inst => tryCobaltInstance(inst, videoId));
+  const invidiousPromises = shuffle([
+    'https://inv.thepixora.com',
+    'https://yewtu.be',
+    'https://invidious.projectsegfau.lt',
+    'https://inv.nadeko.net',
+    'https://invidious.flokinet.to',
+    'https://invidious.lre.yt'
+  ]).slice(0, 4).map(inst => tryInvidiousInstance(inst, videoId));
+  const pipedPromises = shuffle(PIPED_INSTANCES).slice(0, 4).map(inst => tryPipedInstance(inst, videoId));
+
+  try {
+    const url = await raceFirstSuccess([
+      ...cobaltPromises,
+      ...invidiousPromises,
+      ...pipedPromises
+    ]);
+    return url;
+  } catch (err) {
+    console.error('[Client Download Resolver] All parallel resolution attempts failed:', err);
+    return null;
+  }
 };
 
 // Helper to sanitize filenames
@@ -316,15 +273,9 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
     // Always route through local container server's high-speed API to ensure stable Node.js streaming
     const baseUrl = '/api/get-audio-url';
 
-    // Candidate 1: Standard server-side download endpoint (fully managed, same-origin, CORS-free, proxies stream)
-    candidates.push({
-      name: 'Server Audio Proxy (download mode)',
-      url: `${baseUrl}?videoId=${videoId}&download=1&title=${encodeURIComponent(track.title)}`
-    });
-
-    // Candidate 2: Client-side robust resolution (Cobalt / Piped / Invidious) proxied through server (immune to GCP IP blocks)
+    // Try client-side resolution first since client's residential IP has high success rates and avoids Vercel backend rate-limiting/timeouts
     try {
-      console.log('[Download Manager] Preparing client-resolved stream candidates...');
+      console.log('[Download Manager] Resolving audio stream url on client first...');
       const clientUrl = await resolveAudioUrlOnClient(videoId, true);
       if (clientUrl) {
         candidates.push({
@@ -337,16 +288,22 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         });
       }
     } catch (e) {
-      console.warn('[Download Manager] Client resolution failed or timed out:', e);
+      console.warn('[Download Manager] Client-side resolution failed:', e);
     }
 
-    // Candidate 3: Standard server-side streaming endpoint
+    // Candidate: Standard server-side download endpoint (fully managed, same-origin, CORS-free, proxies stream)
+    candidates.push({
+      name: 'Server Audio Proxy (download mode)',
+      url: `${baseUrl}?videoId=${videoId}&download=1&title=${encodeURIComponent(track.title)}`
+    });
+
+    // Candidate: Standard server-side streaming endpoint
     candidates.push({
       name: 'Server Audio Proxy (stream mode)',
       url: `${baseUrl}?videoId=${videoId}&stream=1`
     });
 
-    // Candidate 4: Get direct url via JSON fetch first, then proxy via server
+    // Candidate: Get direct url via JSON fetch first, then proxy via server
     try {
       const jsonRes = await fetch(`${baseUrl}?videoId=${videoId}`);
       if (jsonRes.ok) {
@@ -369,7 +326,8 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         console.log(`[Download Manager] Attempting fetch: ${cand.name}`);
         onProgress(10);
 
-        const response = await fetch(cand.url, { signal: getTimeoutSignal(10000) });
+        // Increase fetch connection and stream timeout to 120 seconds for large files
+        const response = await fetch(cand.url, { signal: getTimeoutSignal(120000) });
         if (!response.ok) {
           throw new Error(`HTTP status ${response.status}`);
         }

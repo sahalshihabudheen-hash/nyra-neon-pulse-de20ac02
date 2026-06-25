@@ -22,142 +22,66 @@ const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; down
 const DJ_STREAM_TOAST_ID = 'dj-stream-resolve';
 const PLAYBACK_START_TIMEOUT_MS = 6500;
 
-// Robust, high-speed client-side resolver that bypasses server proxies
-const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> => {
-  console.log(`[Client Resolver] Resolving backup audio stream for ${videoId}...`);
-  
-  const COBALT_INSTANCES = [
-    'https://api.cobalt.tools',
-    'https://co.wuk.sh',
-    'https://cobalt.api.ryboflops.lol',
-    'https://cobalt.k6.ovh',
-    'https://cobalt.shite.xyz',
-    'https://cobalt.smartit.nu',
-    'https://cobalt.drgns.space',
-    'https://c.onon.app',
-    'https://co.v6.sh',
-    'https://cobalt.instgrm.lol',
-    'https://cobalt.nyx.moe',
-    'https://cobalt.q69.de',
-    'https://co.dispp.li'
-  ];
-  
-  const PIPED_INSTANCES = [
-    'https://pipedapi.kavin.rocks',
-    'https://api.piped.private.coffee',
-    'https://piped-api.lre.yt',
-    'https://pipedapi.cl7.it',
-    'https://piped-api.hostux.net',
-    'https://pipedapi.adminforge.de',
-    'https://api-piped.mha.fi',
-    'https://pipedapi.swish.re',
-    'https://pipedapi.spirit.com.de',
-    'https://pipedapi.leptons.xyz',
-    'https://api.piped.projectsegfau.lt',
-    'https://pipedapi.moomoo.me',
-    'https://pipedapi.river.rocks'
-  ];
+async function raceFirstSuccess<T>(promises: Promise<T>[]): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+    let failedCount = 0;
+    const total = promises.length;
 
-  const shuffle = (array: string[]): string[] => {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+    if (total === 0) {
+      reject(new Error('No promises to race'));
+      return;
     }
-    return arr;
-  };
 
-  const getTimeoutSignal = (ms: number) => {
-    try {
-      return AbortSignal.timeout(ms);
-    } catch {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), ms);
-      return controller.signal;
-    }
-  };
-
-  const safelyParseJson = async <T = any>(response: Response): Promise<T | null> => {
-    try {
-      const text = await response.text();
-      if (!text || text.trim() === '') return null;
-      return JSON.parse(text) as T;
-    } catch {
-      return null;
-    }
-  };
-
-  // Attempt 0: Prioritized proven high-performance Invidious Instance
-  const prioritizedInvidious = [
-    'https://inv.thepixora.com',
-    'https://yewtu.be',
-    'https://invidious.projectsegfau.lt'
-  ];
-
-  for (const inst of prioritizedInvidious) {
-    try {
-      const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
-      const testRes = await fetch(testUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-        },
-        signal: getTimeoutSignal(5000)
-      });
-      if (testRes.status === 200 || testRes.status === 206) {
-        console.log(`[Client Resolver] Priority success using Invidious latest_version from ${inst}`);
-        return testRes.url;
-      }
-    } catch (e: any) {
-      console.warn(`[Client Resolver] Priority Invidious inst ${inst} failed:`, e?.message);
-    }
-  }
-
-  // Attempt 1: Dynamic Invidious Registry Fallback
-  try {
-    console.log('[Client Resolver] Fetching dynamic live Invidious registry...');
-    const regRes = await fetch('https://api.invidious.io/instances.json', { signal: getTimeoutSignal(3500) });
-    if (regRes.ok) {
-      const data = await safelyParseJson<any>(regRes);
-      if (data) {
-        const upInstances = data
-          .map((item: any) => ({
-            domain: item[0],
-            uri: item[1].uri || `https://${item[0]}`,
-            down: item[1].monitor?.down,
-            status: item[1].monitor?.last_status
-          }))
-          .filter((inst: any) => !inst.down && inst.status === 200 && !prioritizedInvidious.includes(inst.uri));
-
-        const shuffledUp = shuffle(upInstances.map((x: any) => x.uri));
-        for (const inst of shuffledUp.slice(0, 4)) {
-          try {
-            const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
-            const testRes = await fetch(testUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
-              },
-              signal: getTimeoutSignal(5000)
-            });
-            if (testRes.status === 200 || testRes.status === 206) {
-              console.log(`[Client Resolver] Dynamic success using Invidious latest_version from ${inst}`);
-              return testRes.url;
-            }
-          } catch (e: any) {
-            console.warn(`[Client Resolver] Dynamic Invidious inst ${inst} failed:`, e?.message);
+    promises.forEach(p => {
+      p.then(val => {
+        if (val && !resolved) {
+          resolved = true;
+          resolve(val);
+        } else {
+          failedCount++;
+          if (failedCount === total && !resolved) {
+            reject(new Error('All raced promises failed'));
           }
         }
+      }).catch(err => {
+        failedCount++;
+        if (failedCount === total && !resolved) {
+          reject(new Error('All raced promises failed'));
+        }
+      });
+    });
+  });
+}
+
+const tryCobaltInstance = async (inst: string, videoId: string): Promise<string | null> => {
+  try {
+    const res = await fetch(`${inst}/api/json`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      body: JSON.stringify({
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        downloadMode: 'audio',
+        audioFormat: 'mp3',
+        audioQuality: '128'
+      }),
+      signal: getTimeoutSignal(5000)
+    });
+
+    if (res.ok) {
+      const data = await safelyParseJson<any>(res);
+      if (data?.url) {
+        console.log(`[Client Resolver] Cobalt success: ${inst}`);
+        return data.url;
       }
     }
-  } catch (err: any) {
-    console.error('[Client Resolver] Dynamic registry fetch failed:', err.message);
-  }
-
-  // Attempt 2: Cobalt Instances (Extremely high quality MP3 streams, very fast)
-  const shuffledCobalt = shuffle(COBALT_INSTANCES);
-  for (const inst of shuffledCobalt.slice(0, 4)) {
+  } catch (e: any) {
     try {
-      // Modern Cobalt v10 API formats prefer simplified audio options and error on old keys, legacy v7 formats want isAudioOnly
-      let res = await fetch(`${inst}/api/json`, {
+      const res = await fetch(`${inst}/api/json`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -166,71 +90,88 @@ const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> 
         },
         body: JSON.stringify({
           url: `https://www.youtube.com/watch?v=${videoId}`,
-          downloadMode: 'audio',
+          isAudioOnly: true,
           audioFormat: 'mp3',
           audioQuality: '128'
         }),
-        signal: getTimeoutSignal(3500)
+        signal: getTimeoutSignal(5000)
       });
-
-      if (!res.ok) {
-        // Fallback to legacy parameters
-        res = await fetch(`${inst}/api/json`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          body: JSON.stringify({
-            url: `https://www.youtube.com/watch?v=${videoId}`,
-            isAudioOnly: true,
-            audioFormat: 'mp3',
-            audioQuality: '128'
-          }),
-          signal: getTimeoutSignal(3500)
-        });
-      }
-
       if (res.ok) {
         const data = await safelyParseJson<any>(res);
         if (data?.url) {
-          console.log(`[Client Resolver] Successfully resolved using Cobalt API from ${inst}`);
+          console.log(`[Client Resolver] Cobalt success (fallback): ${inst}`);
           return data.url;
         }
       }
-    } catch (e: any) {
-      console.warn(`[Client Resolver] Cobalt inst ${inst} failed:`, e?.message);
-    }
+    } catch {}
   }
+  return null;
+};
 
-  // Attempt 3: Piped Instances (Shuffled race)
-  const shuffledPiped = shuffle(PIPED_INSTANCES);
-  for (const inst of shuffledPiped.slice(0, 5)) {
-    try {
-      const res = await fetch(`${inst}/streams/${videoId}`, {
-        signal: getTimeoutSignal(3500),
-        headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
-      });
-      if (res.ok) {
-        const data = await safelyParseJson<any>(res);
-        if (!data) continue;
+const tryInvidiousInstance = async (inst: string, videoId: string): Promise<string | null> => {
+  try {
+    const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+    const res = await fetch(testUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      },
+      signal: getTimeoutSignal(5000)
+    });
+    if (res.status === 200 || res.status === 206) {
+      console.log(`[Client Resolver] Invidious success: ${inst}`);
+      return res.url;
+    }
+  } catch {}
+  return null;
+};
+
+const tryPipedInstance = async (inst: string, videoId: string): Promise<string | null> => {
+  try {
+    const res = await fetch(`${inst}/streams/${videoId}`, {
+      signal: getTimeoutSignal(5000),
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
+    });
+    if (res.ok) {
+      const data = await safelyParseJson<any>(res);
+      if (data) {
         const audioStreams = data.audioStreams || [];
-        // Prioritize audio/mp4 for Outstanding iOS/Safari/macOS compatibility
         const best = audioStreams.find((s: any) => s.mimeType?.includes('audio/mp4')) ||
                      audioStreams.sort((a: any, b: any) => (b.bitrate || 0) - (a.bitrate || 0))[0];
         if (best?.url) {
-          console.log(`[Client Resolver] Successfully resolved using Piped Instance from ${inst}`);
+          console.log(`[Client Resolver] Piped success: ${inst}`);
           return best.url;
         }
       }
-    } catch (e: any) {
-      console.warn(`[Client Resolver] Piped inst ${inst} failed:`, e?.message);
     }
-  }
-
-  console.error('[Client Resolver] All client-side resolutions failed.');
+  } catch {}
   return null;
+};
+
+const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> => {
+  console.log(`[Client Resolver] Resolving backup audio stream for ${videoId} in parallel...`);
+
+  const cobaltPromises = shuffle(COBALT_INSTANCES).slice(0, 4).map(inst => tryCobaltInstance(inst, videoId));
+  const invidiousPromises = shuffle([
+    'https://inv.thepixora.com',
+    'https://yewtu.be',
+    'https://invidious.projectsegfau.lt',
+    'https://inv.nadeko.net',
+    'https://invidious.flokinet.to',
+    'https://invidious.lre.yt'
+  ]).slice(0, 4).map(inst => tryInvidiousInstance(inst, videoId));
+  const pipedPromises = shuffle(PIPED_INSTANCES).slice(0, 4).map(inst => tryPipedInstance(inst, videoId));
+
+  try {
+    const url = await raceFirstSuccess([
+      ...cobaltPromises,
+      ...invidiousPromises,
+      ...pipedPromises
+    ]);
+    return url;
+  } catch (err) {
+    console.error('[Client Resolver] All parallel resolution attempts failed:', err);
+    return null;
+  }
 };
 
 export interface Track {
