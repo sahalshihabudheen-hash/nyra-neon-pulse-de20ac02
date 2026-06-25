@@ -19,6 +19,157 @@ interface Track {
   channel: string;
 }
 
+interface MusicTheme {
+  id: string;
+  name: string;
+  tagline: string;
+  bgGradients: string[];
+  ambientOrbs: Array<{
+    color: string;
+    size: string;
+    position: string;
+    duration: string;
+    delay: string;
+  }>;
+  orbitBorderColor: string;
+  pulsingColor: string;
+  visualizerAccent: string;
+}
+
+const getMusicTheme = (title: string = '', channel: string = ''): MusicTheme => {
+  const text = `${title} ${channel}`.toLowerCase();
+
+  // 1. Phonk / Trap / Bass / Remix -> Cyber Phonk
+  if (text.includes('phonk') || text.includes('bass') || text.includes('trap') || text.includes('remix') || text.includes('drift') || text.includes('sigma') || text.includes('house') || text.includes('edm') || text.includes('electro')) {
+    return {
+      id: 'cyberpunk',
+      name: 'Cyber Phonk',
+      tagline: 'High-octane neon cyberpunk vibes',
+      bgGradients: [
+        'from-purple-950/40 via-red-950/20 to-fuchsia-950/30',
+        'from-pink-900/30 via-transparent to-indigo-900/40',
+        'from-rose-950/20 via-violet-950/10 to-transparent'
+      ],
+      ambientOrbs: [
+        { color: 'bg-fuchsia-500/25', size: 'w-[450px] h-[450px]', position: 'top-[10%] left-[20%]', duration: '6s', delay: '0s' },
+        { color: 'bg-red-500/15', size: 'w-[500px] h-[500px]', position: 'bottom-[15%] right-[10%]', duration: '8s', delay: '1s' },
+        { color: 'bg-purple-600/15', size: 'w-[350px] h-[350px]', position: 'top-[45%] left-[55%]', duration: '10s', delay: '3s' }
+      ],
+      orbitBorderColor: 'border-fuchsia-500/20',
+      pulsingColor: 'bg-fuchsia-500',
+      visualizerAccent: 'text-fuchsia-400',
+    };
+  }
+
+  // 2. Lo-Fi / Chill / Sleep -> Cosmic Lo-Fi
+  if (text.includes('lofi') || text.includes('lo-fi') || text.includes('chill') || text.includes('sleep') || text.includes('relax') || text.includes('dream') || text.includes('night') || text.includes('ambient') || text.includes('cosmic') || text.includes('space') || text.includes('star') || text.includes('instrumental')) {
+    return {
+      id: 'cosmic',
+      name: 'Cosmic Lo-Fi',
+      tagline: 'Deep space ambient dreamscape',
+      bgGradients: [
+        'from-indigo-950/50 via-blue-950/20 to-violet-950/30',
+        'from-sky-900/20 via-transparent to-purple-950/25',
+        'from-indigo-950/30 via-amber-500/5 to-transparent'
+      ],
+      ambientOrbs: [
+        { color: 'bg-sky-500/25', size: 'w-[380px] h-[380px]', position: 'top-[25%] left-[15%]', duration: '10s', delay: '0s' },
+        { color: 'bg-violet-500/15', size: 'w-[450px] h-[450px]', position: 'bottom-[20%] right-[15%]', duration: '14s', delay: '2s' },
+        { color: 'bg-indigo-600/15', size: 'w-[320px] h-[320px]', position: 'top-[50%] left-[60%]', duration: '12s', delay: '4s' }
+      ],
+      orbitBorderColor: 'border-sky-500/20',
+      pulsingColor: 'bg-sky-400',
+      visualizerAccent: 'text-sky-300',
+    };
+  }
+
+  // 3. Acoustic / Folk / Nature / Piano -> Emerald Forest
+  if (text.includes('acoustic') || text.includes('guitar') || text.includes('piano') || text.includes('nature') || text.includes('forest') || text.includes('rain') || text.includes('calm') || text.includes('soft') || text.includes('folk') || text.includes('indie')) {
+    return {
+      id: 'emerald',
+      name: 'Emerald Forest',
+      tagline: 'Organic woodland chillout',
+      bgGradients: [
+        'from-emerald-950/40 via-teal-950/20 to-green-950/30',
+        'from-lime-900/15 via-transparent to-emerald-900/30',
+        'from-teal-950/20 via-yellow-500/5 to-transparent'
+      ],
+      ambientOrbs: [
+        { color: 'bg-emerald-500/20', size: 'w-[400px] h-[400px]', position: 'top-[15%] left-[25%]', duration: '12s', delay: '0s' },
+        { color: 'bg-teal-500/15', size: 'w-[420px] h-[420px]', position: 'bottom-[25%] right-[20%]', duration: '15s', delay: '3s' },
+        { color: 'bg-lime-500/15', size: 'w-[310px] h-[310px]', position: 'top-[55%] left-[55%]', duration: '11s', delay: '5s' }
+      ],
+      orbitBorderColor: 'border-emerald-500/20',
+      pulsingColor: 'bg-emerald-400',
+      visualizerAccent: 'text-emerald-400',
+    };
+  }
+
+  // 4. Pop / Vocal / Summer / Love -> Golden Sunset
+  if (text.includes('pop') || text.includes('vocal') || text.includes('summer') || text.includes('love') || text.includes('happy') || text.includes('sun') || text.includes('party') || text.includes('dance') || text.includes('rock') || text.includes('energetic')) {
+    return {
+      id: 'sunset',
+      name: 'Golden Sunset',
+      tagline: 'Warm energetic beach twilight',
+      bgGradients: [
+        'from-orange-950/40 via-rose-950/20 to-amber-950/30',
+        'from-amber-900/20 via-transparent to-rose-900/30',
+        'from-orange-950/25 via-yellow-500/10 to-transparent'
+      ],
+      ambientOrbs: [
+        { color: 'bg-amber-500/25', size: 'w-[420px] h-[420px]', position: 'top-[20%] left-[20%]', duration: '8s', delay: '0s' },
+        { color: 'bg-rose-500/15', size: 'w-[480px] h-[480px]', position: 'bottom-[15%] right-[15%]', duration: '11s', delay: '2s' },
+        { color: 'bg-orange-500/15', size: 'w-[330px] h-[330px]', position: 'top-[50%] left-[65%]', duration: '9s', delay: '4s' }
+      ],
+      orbitBorderColor: 'border-amber-500/20',
+      pulsingColor: 'bg-amber-400',
+      visualizerAccent: 'text-amber-400',
+    };
+  }
+
+  // 5. Synthwave / retro / electro -> Synthwave Cyber
+  if (text.includes('synthwave') || text.includes('synth') || text.includes('retro') || text.includes('wave') || text.includes('80s') || text.includes('future')) {
+    return {
+      id: 'synthwave',
+      name: 'Retro Synthwave',
+      tagline: 'Neon magenta 80s dreamwave',
+      bgGradients: [
+        'from-pink-950/40 via-blue-950/20 to-magenta-950/30',
+        'from-cyan-950/20 via-transparent to-pink-900/25',
+        'from-indigo-950/35 via-pink-500/5 to-transparent'
+      ],
+      ambientOrbs: [
+        { color: 'bg-pink-500/25', size: 'w-[400px] h-[400px]', position: 'top-[15%] left-[15%]', duration: '7s', delay: '0s' },
+        { color: 'bg-cyan-500/15', size: 'w-[440px] h-[440px]', position: 'bottom-[25%] right-[15%]', duration: '9s', delay: '2s' },
+        { color: 'bg-violet-600/15', size: 'w-[320px] h-[320px]', position: 'top-[45%] left-[55%]', duration: '11s', delay: '4.5s' }
+      ],
+      orbitBorderColor: 'border-pink-500/20',
+      pulsingColor: 'bg-pink-400',
+      visualizerAccent: 'text-pink-400',
+    };
+  }
+
+  // 6. Default Theme -> Northern Aurora
+  return {
+    id: 'default',
+    name: 'Northern Aurora',
+    tagline: 'Dynamic shifting celestial rays',
+    bgGradients: [
+      'from-teal-950/40 via-indigo-950/20 to-emerald-950/30',
+      'from-amber-900/10 via-transparent to-teal-900/25',
+      'from-emerald-950/20 via-amber-500/5 to-transparent'
+    ],
+    ambientOrbs: [
+      { color: 'bg-teal-500/25', size: 'w-[350px] h-[350px]', position: 'top-[20%] left-[30%]', duration: '7s', delay: '0s' },
+      { color: 'bg-amber-500/10', size: 'w-[400px] h-[400px]', position: 'bottom-[25%] right-[20%]', duration: '10s', delay: '2s' },
+      { color: 'bg-indigo-500/15', size: 'w-[300px] h-[300px]', position: 'top-[50%] left-[60%]', duration: '13s', delay: '4s' }
+    ],
+    orbitBorderColor: 'border-teal-500/20',
+    pulsingColor: 'bg-teal-400',
+    visualizerAccent: 'text-teal-400',
+  };
+};
+
 interface FullscreenPlayerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,6 +214,7 @@ const FullscreenPlayer = ({
   const { settings } = useTheme();
   const [isOnline, setIsOnline] = useState(() => typeof window !== 'undefined' ? navigator.onLine : true);
   const [isOfflineTrack, setIsOfflineTrack] = useState(false);
+  const musicTheme = getMusicTheme(currentTrack?.title, currentTrack?.channel);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -199,37 +351,53 @@ const FullscreenPlayer = ({
                 />
               </div>
             ) : (
-              <div className="absolute inset-0 overflow-hidden opacity-40 pointer-events-none">
-                {/* Slow shifting cosmic fluid ambient color gradients */}
+              <div className="absolute inset-0 overflow-hidden opacity-45 pointer-events-none">
+                {/* Dynamic fluid ambient gradients according to music theme */}
                 <div 
-                  className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-orange-500/10 to-indigo-500/20 mix-blend-screen animate-pulse"
-                  style={{ animationDuration: '8s' }}
+                  className={cn("absolute inset-0 bg-gradient-to-tr mix-blend-screen animate-pulse", musicTheme.bgGradients[0])}
+                  style={{ animationDuration: '10s' }}
                 />
                 <div 
-                  className="absolute inset-0 bg-gradient-to-bl from-rose-500/20 via-transparent to-primary/25 mix-blend-screen animate-pulse"
-                  style={{ animationDuration: '12s', animationDelay: '1.5s' }}
+                  className={cn("absolute inset-0 bg-gradient-to-bl mix-blend-screen animate-pulse", musicTheme.bgGradients[1])}
+                  style={{ animationDuration: '14s', animationDelay: '2s' }}
                 />
                 <div 
-                  className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-amber-500/5 to-transparent mix-blend-color-dodge animate-pulse"
-                  style={{ animationDuration: '16s', animationDelay: '3s' }}
+                  className={cn("absolute inset-0 bg-gradient-to-br mix-blend-color-dodge animate-pulse", musicTheme.bgGradients[2])}
+                  style={{ animationDuration: '18s', animationDelay: '4s' }}
                 />
                 
-                {/* Glowing moving ambient light fields */}
-                <div className="absolute top-[20%] left-[30%] w-[350px] h-[350px] rounded-full bg-primary/20 blur-[100px] animate-pulse" style={{ animationDuration: '7s' }} />
-                <div className="absolute bottom-[25%] right-[20%] w-[400px] h-[400px] rounded-full bg-orange-500/10 blur-[120px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-                <div className="absolute top-[50%] left-[60%] w-[300px] h-[300px] rounded-full bg-indigo-500/15 blur-[90px] animate-pulse" style={{ animationDuration: '13s', animationDelay: '4s' }} />
+                {/* Glowing moving ambient light fields from theme */}
+                {musicTheme.ambientOrbs.map((orb, idx) => (
+                  <div 
+                    key={idx}
+                    className={cn("absolute rounded-full blur-[110px] animate-pulse", orb.color, orb.size, orb.position)}
+                    style={{ animationDuration: orb.duration, animationDelay: orb.delay }}
+                  />
+                ))}
 
-                {/* Aesthetic spinning orbital lines / sound wave circles projecting from the center album art */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full border border-primary/20 opacity-40 animate-spin" style={{ animationDuration: '45s' }}>
-                  <div className="absolute inset-6 rounded-full border border-dashed border-primary/10" />
-                  <div className="absolute inset-16 rounded-full border border-primary/5" />
-                  <div className="absolute inset-32 rounded-full border border-dashed border-primary/10" />
+                {/* Dynamic concentric orbital spinning rings matching theme colors */}
+                <div className={cn("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full border opacity-45 animate-spin", musicTheme.orbitBorderColor)} style={{ animationDuration: '50s' }}>
+                  <div className={cn("absolute inset-6 rounded-full border border-dashed opacity-40", musicTheme.orbitBorderColor)} />
+                  <div className={cn("absolute inset-16 rounded-full border opacity-30", musicTheme.orbitBorderColor)} />
+                  <div className={cn("absolute inset-32 rounded-full border border-dashed opacity-40", musicTheme.orbitBorderColor)} />
                 </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[750px] rounded-full border border-orange-500/10 opacity-30 animate-spin" style={{ animationDuration: '65s', animationDirection: 'reverse' }}>
-                  <div className="absolute inset-14 rounded-full border border-dashed border-orange-500/5" />
-                  <div className="absolute inset-28 rounded-full border border-primary/5 animate-pulse" />
+                <div className={cn("absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[750px] rounded-full border opacity-35 animate-spin", musicTheme.orbitBorderColor)} style={{ animationDuration: '75s', animationDirection: 'reverse' }}>
+                  <div className={cn("absolute inset-14 rounded-full border border-dashed opacity-25", musicTheme.orbitBorderColor)} />
+                  <div className={cn("absolute inset-28 rounded-full border opacity-30 animate-pulse", musicTheme.orbitBorderColor)} />
                 </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[950px] h-[950px] rounded-full border border-dashed border-white/5 opacity-10 animate-spin" style={{ animationDuration: '100s' }} />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[950px] h-[950px] rounded-full border border-dashed border-white/5 opacity-10 animate-spin" style={{ animationDuration: '120s' }} />
+
+                {/* Ambient dynamic micro-star constellation floating particles */}
+                <div className="absolute inset-0 opacity-25">
+                  <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="15%" cy="25%" r="2" className="fill-white animate-pulse" style={{ animationDuration: '2.5s' }} />
+                    <circle cx="85%" cy="15%" r="1.5" className="fill-white animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '0.8s' }} />
+                    <circle cx="12%" cy="75%" r="3" className="fill-white animate-pulse" style={{ animationDuration: '4.5s', animationDelay: '1.2s' }} />
+                    <circle cx="88%" cy="70%" r="2.5" className="fill-white animate-pulse" style={{ animationDuration: '3s', animationDelay: '1.8s' }} />
+                    <circle cx="50%" cy="10%" r="1" className="fill-white animate-pulse" style={{ animationDuration: '5.5s' }} />
+                    <circle cx="40%" cy="90%" r="2" className="fill-white animate-pulse" style={{ animationDuration: '4s', animationDelay: '2.2s' }} />
+                  </svg>
+                </div>
               </div>
             )}
 
@@ -304,11 +472,20 @@ const FullscreenPlayer = ({
           </div>
 
           {/* Title & Artist */}
-          <div className="text-center mb-4 md:mb-5 max-w-xl px-4">
+          <div className="text-center mb-4 md:mb-5 max-w-xl px-4 flex flex-col items-center">
              <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-foreground mb-1.5 tracking-tight italic uppercase line-clamp-2 leading-tight">
                {currentTrack?.title || 'Not Selected'}
              </h2>
              <p className="text-[10px] md:text-xs font-bold text-primary uppercase tracking-[0.35em]">{currentTrack?.channel || 'Unknown Artist'}</p>
+             
+             {/* Dynamic Theme Badge in offline ambient mode - only for custom themes */}
+             {(!isOnline || isOfflineTrack) && currentTrack && musicTheme.id !== 'default' && (
+               <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-3.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-foreground/80 shadow-md backdrop-blur-md animate-fade-in">
+                 <span className={cn("w-1.5 h-1.5 rounded-full animate-ping absolute", musicTheme.pulsingColor)} />
+                 <span className={cn("w-1.5 h-1.5 rounded-full relative", musicTheme.pulsingColor)} />
+                 <span>{musicTheme.name} Theme</span>
+               </div>
+             )}
           </div>
 
           {/* Soundwave */}

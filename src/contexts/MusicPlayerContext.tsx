@@ -96,32 +96,16 @@ const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> 
 
   for (const inst of prioritizedInvidious) {
     try {
-      const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+      const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+      const testRes = await fetch(testUrl, {
         headers: {
-          'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         },
-        signal: getTimeoutSignal(4000)
+        signal: getTimeoutSignal(5000)
       });
-      if (res.ok) {
-        const data = await safelyParseJson<any>(res);
-        if (!data) continue;
-        const formats = data?.adaptiveFormats || [];
-        // Prioritize audio/mp4 for outstanding iOS, iPadOS and Safari compatibility, then fall back to any audio
-        const format = formats.find((f: any) => f.type?.includes('audio/mp4')) ||
-                       formats.find((f: any) => f.type?.startsWith('audio/'));
-        if (format?.url) {
-          try {
-            const host = new URL(inst).host;
-            const googleUrl = new URL(format.url);
-            const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
-            console.log(`[Client Resolver] Priority success using Invidious Instance from ${inst} with proxy:`, proxyUrl.substring(0, 100));
-            return proxyUrl;
-          } catch {
-            console.log(`[Client Resolver] Priority success using Invidious Instance from ${inst} (raw fallback)`);
-            return format.url;
-          }
-        }
+      if (testRes.status === 200 || testRes.status === 206) {
+        console.log(`[Client Resolver] Priority success using Invidious latest_version from ${inst}`);
+        return testRes.url;
       }
     } catch (e: any) {
       console.warn(`[Client Resolver] Priority Invidious inst ${inst} failed:`, e?.message);
@@ -147,32 +131,16 @@ const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> 
         const shuffledUp = shuffle(upInstances.map((x: any) => x.uri));
         for (const inst of shuffledUp.slice(0, 4)) {
           try {
-            const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+            const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+            const testRes = await fetch(testUrl, {
               headers: {
-                'Accept': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
               },
-              signal: getTimeoutSignal(3500)
+              signal: getTimeoutSignal(5000)
             });
-            if (res.ok) {
-              const detail = await safelyParseJson<any>(res);
-              if (!detail) continue;
-              const formats = detail?.adaptiveFormats || [];
-              // Prioritize audio/mp4 for outstanding iOS, iPadOS and Safari compatibility, then fall back to any audio
-              const format = formats.find((f: any) => f.type?.includes('audio/mp4')) ||
-                             formats.find((f: any) => f.type?.startsWith('audio/'));
-              if (format?.url) {
-                try {
-                  const host = new URL(inst).host;
-                  const googleUrl = new URL(format.url);
-                  const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
-                  console.log(`[Client Resolver] Dynamic success using Invidious Instance from ${inst} with proxy:`, proxyUrl.substring(0, 100));
-                  return proxyUrl;
-                } catch {
-                  console.log(`[Client Resolver] Dynamic success using Invidious Instance from ${inst} (raw fallback)`);
-                  return format.url;
-                }
-              }
+            if (testRes.status === 200 || testRes.status === 206) {
+              console.log(`[Client Resolver] Dynamic success using Invidious latest_version from ${inst}`);
+              return testRes.url;
             }
           } catch (e: any) {
             console.warn(`[Client Resolver] Dynamic Invidious inst ${inst} failed:`, e?.message);
@@ -352,7 +320,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [useBackgroundAudioMode, setUseBackgroundAudioModeState] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('nyra-bg-audio-mode');
-      // Default to true now as requested by the user, providing full DJ features (EQ, split channels, crossfading) via Web Audio API.
+      // Default to true now as requested by the user, providing full advanced features (EQ, split channels, crossfading) via Web Audio API.
       return saved !== 'false';
     }
     return true;
@@ -362,7 +330,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setUseBackgroundAudioModeState(val);
     localStorage.setItem('nyra-bg-audio-mode', String(val));
     if (val) {
-      toast.info('DJ Music Engine activated (direct cloud stream rendering with full Web Audio EQ & crossfade).');
+      toast.info('Advanced Music Engine activated (direct cloud stream rendering with full Web Audio EQ & crossfade).');
     } else {
       toast.info('Standard Music Engine activated (hybrid background fallback player).');
     }
@@ -395,8 +363,11 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     localStorage.setItem('nyra-volume', volume.toString());
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume / 100;
+    if (primaryAudioRef.current) {
+      primaryAudioRef.current.volume = isMuted ? 0 : volume / 100;
+    }
+    if (secondaryAudioRef.current) {
+      secondaryAudioRef.current.volume = isMuted ? 0 : volume / 100;
     }
     if (ytPlayerRef.current && ytPlayerRef.current.setVolume) {
       ytPlayerRef.current.setVolume(isMuted ? 0 : volume);
@@ -416,6 +387,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
   const ytPlayerRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const primaryAudioRef = useRef<HTMLAudioElement | null>(null);
+  const secondaryAudioRef = useRef<HTMLAudioElement | null>(null);
   const handleNextRef = useRef<() => void>();
   const audioPlayAttemptRef = useRef(0);
 
@@ -426,20 +399,63 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setActiveSource(source);
   }, []);
 
+  const switchToAudioElement = useCallback((target: 'primary' | 'secondary') => {
+    const current = audioRef.current;
+    const targetAudio = target === 'primary' ? primaryAudioRef.current : secondaryAudioRef.current;
+    
+    if (!current || !targetAudio || current === targetAudio) return;
+
+    console.log(`[Audio Element Switch] Seamlessly transferring playback from ${current.id || 'unknown'} to ${target}`);
+
+    const wasPlaying = isPlaying && !current.paused;
+    const currentTime = current.currentTime;
+    const src = current.src;
+
+    if (wasPlaying) {
+      try { current.pause(); } catch {}
+    }
+
+    // Transfer source, position, parameters
+    targetAudio.src = src;
+    targetAudio.currentTime = currentTime;
+    targetAudio.volume = isMuted ? 0 : volume / 100;
+    targetAudio.loop = loopMode === 'one';
+
+    // Point the context-wide active audioRef to the target
+    audioRef.current = targetAudio;
+
+    if (wasPlaying) {
+      targetAudio.play().then(() => {
+        setIsPlaying(true);
+        if (target === 'primary') {
+          try {
+            djAudio.init();
+          } catch (err) {
+            console.warn('djAudio.init() on primary audio switch-back failed:', err);
+          }
+        }
+      }).catch(err => {
+        console.warn('[Audio Element Switch] Resume failed on target:', err);
+      });
+    }
+  }, [isPlaying, volume, isMuted, loopMode, djAudio]);
+
   const safePlay = useCallback(async (audio: HTMLAudioElement, shouldApply: () => boolean = () => true) => {
     try {
       await audio.play();
       if (!shouldApply()) return false;
       setIsPlaying(true);
-      try {
-        djAudio.init();
-      } catch (err) {
-        console.warn('djAudio.init() in safePlay failed:', err);
+      if (audio === primaryAudioRef.current) {
+        try {
+          djAudio.init();
+        } catch (err) {
+          console.warn('djAudio.init() in safePlay failed:', err);
+        }
       }
       return true;
     } catch (e: any) {
       if (e?.name === 'NotAllowedError') {
-        toast.info('Tap Play once to start DJ audio.');
+        toast.info('Tap Play once to start audio.');
         return false;
       }
       if (!useBackgroundAudioOnlyRef.current && (e.name === 'NotSupportedError' || e.message?.includes('suitable') || e.message?.includes('CORS'))) {
@@ -464,7 +480,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     if (!audio) return false;
     const attemptId = ++audioPlayAttemptRef.current;
 
-    if (crossOriginSetting) {
+    if (crossOriginSetting && audio === primaryAudioRef.current) {
       audio.crossOrigin = crossOriginSetting;
     } else {
       audio.removeAttribute('crossOrigin');
@@ -514,36 +530,56 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
     // Create background audio element on mount
     useEffect(() => {
-      if (!audioRef.current) {
+      if (!primaryAudioRef.current) {
         const audio = new Audio();
+        audio.id = 'primary-audio';
         audio.preload = 'auto';
         audio.crossOrigin = 'anonymous'; // Critical for Web Audio API
         (audio as any).playsInline = true;
         audio.setAttribute('playsinline', 'true');
         audio.setAttribute('webkit-playsinline', 'true');
-        audioRef.current = audio;
+        primaryAudioRef.current = audio;
       }
+      if (!secondaryAudioRef.current) {
+        const audio = new Audio();
+        audio.id = 'secondary-audio';
+        audio.preload = 'auto';
+        (audio as any).playsInline = true;
+        audio.setAttribute('playsinline', 'true');
+        audio.setAttribute('webkit-playsinline', 'true');
+        secondaryAudioRef.current = audio;
+      }
+
+      // Point main audioRef to primary initially
+      audioRef.current = primaryAudioRef.current;
   
       return () => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.src = '';
+        if (primaryAudioRef.current) {
+          primaryAudioRef.current.pause();
+          primaryAudioRef.current.src = '';
+        }
+        if (secondaryAudioRef.current) {
+          secondaryAudioRef.current.pause();
+          secondaryAudioRef.current.src = '';
         }
       };
     }, []);
 
 
-    // Sync loop mode with audio element
+    // Sync loop mode with audio elements
     useEffect(() => {
-      if (audioRef.current) {
-        audioRef.current.loop = loopMode === 'one';
+      if (primaryAudioRef.current) {
+        primaryAudioRef.current.loop = loopMode === 'one';
+      }
+      if (secondaryAudioRef.current) {
+        secondaryAudioRef.current.loop = loopMode === 'one';
       }
     }, [loopMode]);
 
-  // Audio event listeners
+  // Audio event listeners bound to both elements to track state seamlessly
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
+    const primary = primaryAudioRef.current;
+    const secondary = secondaryAudioRef.current;
 
     const handleEnded = () => {
       if (loopMode === 'one') {
@@ -574,21 +610,40 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       if (!useBackgroundAudioOnlyRef.current) {
         setUseBackgroundAudioMode(false);
       } else {
-        toast.error('DJ Stream playback interrupted. Reconnecting...');
+        toast.error('Stream playback interrupted. Reconnecting...');
       }
     };
 
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('playing', handlePlay);
-    audio.addEventListener('pause', handlePause);
+    if (primary) {
+      primary.addEventListener('ended', handleEnded);
+      primary.addEventListener('error', handleError);
+      primary.addEventListener('play', handlePlay);
+      primary.addEventListener('playing', handlePlay);
+      primary.addEventListener('pause', handlePause);
+    }
+    if (secondary) {
+      secondary.addEventListener('ended', handleEnded);
+      secondary.addEventListener('error', handleError);
+      secondary.addEventListener('play', handlePlay);
+      secondary.addEventListener('playing', handlePlay);
+      secondary.addEventListener('pause', handlePause);
+    }
+
     return () => {
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('playing', handlePlay);
-      audio.removeEventListener('pause', handlePause);
+      if (primary) {
+        primary.removeEventListener('ended', handleEnded);
+        primary.removeEventListener('error', handleError);
+        primary.removeEventListener('play', handlePlay);
+        primary.removeEventListener('playing', handlePlay);
+        primary.removeEventListener('pause', handlePause);
+      }
+      if (secondary) {
+        secondary.removeEventListener('ended', handleEnded);
+        secondary.removeEventListener('error', handleError);
+        secondary.removeEventListener('play', handlePlay);
+        secondary.removeEventListener('playing', handlePlay);
+        secondary.removeEventListener('pause', handlePause);
+      }
     };
   }, [settings.autoPlayNext]);
 
@@ -849,7 +904,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             if (!useBackgroundAudioOnlyRef.current) {
               success = await playAudioUrl(directAudioUrl, null);
               if (success) {
-                toast.warning('DJ effects disabled for this track (raw stream fallback).');
+                toast.warning('Audio filters disabled for this track (raw stream fallback).');
                 isResolvingStreamRef.current = false;
                 return true;
               }
@@ -861,12 +916,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
         // 3. Fallback to high-performance client-side resolver (Cobalt / Piped / Invidious)
         try {
-          toast.info('Finding a DJ-compatible stream...', { id: DJ_STREAM_TOAST_ID });
+          toast.info('Finding an optimal audio stream...', { id: DJ_STREAM_TOAST_ID });
           const clientUrl = await resolveAudioUrlOnClient(videoId);
           if (clientUrl) {
             success = await playAudioUrl(clientUrl, 'anonymous');
             if (success) {
-              toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
+              toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
               isResolvingStreamRef.current = false;
               return true;
             }
@@ -875,7 +930,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
             success = await playAudioUrl(proxiedUrl, 'anonymous');
             if (success) {
-              toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
+              toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
               isResolvingStreamRef.current = false;
               return true;
             }
@@ -883,7 +938,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             if (!useBackgroundAudioOnlyRef.current) {
               success = await playAudioUrl(clientUrl, null);
               if (success) {
-                toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
+                toast.warning('Audio filters disabled for this track (CORS cloud fallback).');
                 isResolvingStreamRef.current = false;
                 return true;
               }
@@ -968,17 +1023,21 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         console.log('[Visibility Change] Page hidden. Seamlessly switching to background audio element to guarantee uninterrupted play.');
+        switchToAudioElement('secondary');
         // If we are playing on YouTube player, seamlessly switch to Background Audio Mode!
         if (isPlaying && activeSourceRef.current === 'youtube' && currentTrack) {
           playWithBackgroundAudio(currentTrack.id);
         }
+      } else if (document.visibilityState === 'visible') {
+        console.log('[Visibility Change] Page visible. Seamlessly switching back to primary audio element for full Web Audio visualizers and DJ capabilities.');
+        switchToAudioElement('primary');
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isPlaying, currentTrack, playWithBackgroundAudio]);
+  }, [isPlaying, currentTrack, playWithBackgroundAudio, switchToAudioElement]);
 
   const forceBackgroundPlayback = useCallback(async (track = currentTrack, options?: { trackList?: Track[]; fromPlaylist?: boolean }): Promise<boolean> => {
     if (!track || !audioRef.current) {
@@ -1046,7 +1105,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               if (!useBackgroundAudioOnlyRef.current) {
                 success = await playAudioUrl(directAudioUrl, null);
                 if (success) {
-                  toast.warning('DJ effects disabled for this track (raw stream fallback).');
+                  toast.warning('Audio filters disabled for this track (raw stream fallback).');
                   isResolvingStreamRef.current = false;
                   return true;
                 }
@@ -1058,12 +1117,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
           // 3. Fallback to client-side resolver
           try {
-            toast.info('Finding a DJ-compatible stream...', { id: DJ_STREAM_TOAST_ID });
+            toast.info('Finding an optimal audio stream...', { id: DJ_STREAM_TOAST_ID });
             const clientUrl = await resolveAudioUrlOnClient(track.id);
             if (clientUrl) {
               success = await playAudioUrl(clientUrl, 'anonymous');
               if (success) {
-                toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
+                toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
                 isResolvingStreamRef.current = false;
                 return true;
               }
@@ -1072,7 +1131,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
               success = await playAudioUrl(proxiedUrl, 'anonymous');
               if (success) {
-                toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
+                toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
                 isResolvingStreamRef.current = false;
                 return true;
               }
@@ -1080,7 +1139,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               if (!useBackgroundAudioOnlyRef.current) {
                 success = await playAudioUrl(clientUrl, null);
                 if (success) {
-                  toast.warning('DJ effects disabled for this track (CORS cloud fallback).');
+                  toast.warning('Audio filters disabled for this track (CORS cloud fallback).');
                   isResolvingStreamRef.current = false;
                   return true;
                 }
@@ -1101,7 +1160,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       }
 
       if (useBackgroundAudioOnlyRef.current) {
-        toast.error('DJ Audio stream failed. Try another song.');
+        toast.error('Audio stream failed. Try another song.');
         return false;
       }
 
@@ -1113,13 +1172,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return true;
 
     } catch (error: any) {
-      console.warn('Force DJ source failed:', error);
+      console.warn('Force audio source failed:', error);
       if (useBackgroundAudioOnlyRef.current) {
-        toast.error(`DJ Audio failed: ${error?.message || 'Network error'}`);
+        toast.error(`Audio failed: ${error?.message || 'Network error'}`);
         return false;
       }
       setPlaybackSource('youtube');
-      toast.error(`Could not start DJ audio: ${error?.message || 'Network error'}`);
+      toast.error(`Could not start audio: ${error?.message || 'Network error'}`);
       return false;
     }
   }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, playAudioUrl]);

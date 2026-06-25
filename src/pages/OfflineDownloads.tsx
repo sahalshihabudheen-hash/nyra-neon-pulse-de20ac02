@@ -223,57 +223,6 @@ export default function OfflineDownloads() {
           ) : (
             <div className="space-y-6">
               
-              {/* Telemetry Dashboard: Stats & Quick Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Visualizer Stat 1: Total Tracks */}
-                <div className="p-5 bg-card/60 backdrop-blur-md border border-border/80 rounded-2xl flex flex-col justify-between hover:border-primary/20 transition-all">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Total Local Vault</span>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-black text-foreground">{offlineTracks.length}</span>
-                    <span className="text-xs text-muted-foreground">songs saved</span>
-                  </div>
-                  <div className="mt-3 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                    <FolderHeart className="w-3.5 h-3.5 text-primary" />
-                    <span>Always accessible offline</span>
-                  </div>
-                </div>
-
-                {/* Visualizer Stat 2: Space Occupied */}
-                <div className="p-5 bg-card/60 backdrop-blur-md border border-border/80 rounded-2xl flex flex-col justify-between hover:border-primary/20 transition-all">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Local Space Occupied</span>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-black text-foreground">{formatSize(totalBytes)}</span>
-                    <span className="text-xs text-muted-foreground">IndexedDB usage</span>
-                  </div>
-                  <div className="mt-3">
-                    {/* Glowing progress bar representation */}
-                    <div className="w-full h-1.5 rounded-full bg-muted-foreground/10 overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full" 
-                        style={{ width: `${Math.min(100, (totalBytes / (500 * 1024 * 1024)) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Instant Actions (Play/Shuffle) */}
-                <div className="p-5 bg-card/60 backdrop-blur-md border border-border/80 rounded-2xl flex flex-col justify-between hover:border-primary/20 transition-all">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Instant Playback</span>
-                  <div className="mt-2">
-                    <button
-                      onClick={handleShufflePlayAll}
-                      className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-md shadow-primary/10"
-                    >
-                      <Shuffle className="w-3.5 h-3.5" />
-                      Shuffle Play All Cached
-                    </button>
-                  </div>
-                  <div className="mt-3 text-[10px] text-muted-foreground text-center">
-                    Initiates high-performance offline sequence
-                  </div>
-                </div>
-              </div>
-
               {/* Filtering Controls */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -286,6 +235,15 @@ export default function OfflineDownloads() {
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-card/40 border border-border/60 hover:border-border/100 focus:border-primary focus:outline-none text-sm transition-all placeholder:text-muted-foreground/60"
                   />
                 </div>
+                {offlineTracks.length > 0 && (
+                  <button
+                    onClick={handleShufflePlayAll}
+                    className="py-2.5 px-5 rounded-xl bg-primary text-primary-foreground font-bold text-xs flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-md shadow-primary/10 shrink-0"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                    Shuffle Play All
+                  </button>
+                )}
               </div>
 
               {/* Tracks List */}

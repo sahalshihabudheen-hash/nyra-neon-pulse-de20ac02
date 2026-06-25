@@ -94,7 +94,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     <>
       {/* Sleek Mobile Bottom Navigation Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-sidebar/95 backdrop-blur-xl border-t border-border z-[140] px-2 flex items-center justify-around pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        {(userSettings.mobileNavItems || ['home', 'playlists', 'ai-dj', 'settings']).map((itemId) => {
+        {(userSettings.mobileNavItems || ['home', 'playlists', 'favorites', 'settings']).map((itemId) => {
           const item = allMenuItems.find(m => m.id === itemId);
           if (!item) return null;
           const Icon = item.icon;

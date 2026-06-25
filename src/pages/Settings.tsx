@@ -100,7 +100,7 @@ const Settings = () => {
     }
   }, [isMobile, settingsTab]);
 
-  const currentNavItems = settings.mobileNavItems || ['home', 'playlists', 'ai-dj', 'settings'];
+  const currentNavItems = settings.mobileNavItems || ['home', 'playlists', 'favorites', 'settings'];
 
   const handleMoveItem = (index: number, direction: 'left' | 'right') => {
     const newItems = [...currentNavItems];
@@ -1018,13 +1018,13 @@ const Settings = () => {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          updateSettings({ mobileNavItems: ['home', 'playlists', 'ai-dj', 'settings'] });
+                          updateSettings({ mobileNavItems: ['home', 'playlists', 'favorites', 'settings'] });
                           toast.success('Default Layout applied!');
                         }}
                         className="text-xs py-2 active:scale-95 text-center flex flex-col items-center justify-center gap-1 h-auto"
                       >
                         <span className="font-bold text-primary text-[10px]">Default Classic</span>
-                        <span className="text-[9px] text-muted-foreground">Home, Playlists, AI DJ, Settings</span>
+                        <span className="text-[9px] text-muted-foreground">Home, Playlists, Favorites, Settings</span>
                       </Button>
                       <Button
                         variant="outline"
@@ -1040,13 +1040,13 @@ const Settings = () => {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          updateSettings({ mobileNavItems: ['home', 'ai-dj', 'games', 'settings'] });
+                          updateSettings({ mobileNavItems: ['home', 'favorites', 'games', 'settings'] });
                           toast.success('Fun & Play Layout applied!');
                         }}
                         className="text-xs py-2 active:scale-95 text-center flex flex-col items-center justify-center gap-1 h-auto"
                       >
-                        <span className="font-bold text-primary text-[10px]">Entertaining DJ</span>
-                        <span className="text-[9px] text-muted-foreground">Home, AI DJ, Games, Settings</span>
+                        <span className="font-bold text-primary text-[10px]">Entertaining Gamer</span>
+                        <span className="text-[9px] text-muted-foreground">Home, Favorites, Games, Settings</span>
                       </Button>
                     </div>
                   </div>

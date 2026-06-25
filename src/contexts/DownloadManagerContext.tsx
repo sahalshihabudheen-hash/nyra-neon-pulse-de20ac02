@@ -110,7 +110,7 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
             audioFormat: 'mp3',
             audioQuality: '128'
           }),
-          signal: getTimeoutSignal(3500)
+          signal: getTimeoutSignal(8000)
         });
 
         if (!res.ok) {
@@ -127,7 +127,7 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
               audioFormat: 'mp3',
               audioQuality: '128'
             }),
-            signal: getTimeoutSignal(3500)
+            signal: getTimeoutSignal(8000)
           });
         }
 
@@ -153,29 +153,16 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
 
   for (const inst of prioritizedInvidious) {
     try {
-      const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+      const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+      const testRes = await fetch(testUrl, {
         headers: {
-          'Accept': 'application/json',
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         },
-        signal: getTimeoutSignal(4000)
+        signal: getTimeoutSignal(5000)
       });
-      if (res.ok) {
-        const data = await safelyParseJson<any>(res);
-        if (!data) continue;
-        const formats = data?.adaptiveFormats || [];
-        const format = formats.find((f: any) => f.type?.includes('audio/mp4')) ||
-                       formats.find((f: any) => f.type?.startsWith('audio/'));
-        if (format?.url) {
-          try {
-            const host = new URL(inst).host;
-            const googleUrl = new URL(format.url);
-            const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
-            return proxyUrl;
-          } catch {
-            return format.url;
-          }
-        }
+      if (testRes.status === 200 || testRes.status === 206) {
+        console.log(`[Client Download Resolver] Priority success via Invidious latest_version proxy: ${inst}`);
+        return testRes.url;
       }
     } catch (e: any) {
       console.warn(`[Client Download Resolver] Priority Invidious inst ${inst} failed:`, e?.message);
@@ -184,7 +171,7 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
 
   // Attempt 1: Dynamic Invidious Registry Fallback
   try {
-    const regRes = await fetch('https://api.invidious.io/instances.json', { signal: getTimeoutSignal(3500) });
+    const regRes = await fetch('https://api.invidious.io/instances.json', { signal: getTimeoutSignal(5000) });
     if (regRes.ok) {
       const data = await safelyParseJson<any>(regRes);
       if (data) {
@@ -200,29 +187,16 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
         const shuffledUp = shuffle(upInstances.map((x: any) => x.uri));
         for (const inst of shuffledUp.slice(0, 4)) {
           try {
-            const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
+            const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+            const testRes = await fetch(testUrl, {
               headers: {
-                'Accept': 'application/json',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
               },
-              signal: getTimeoutSignal(3500)
+              signal: getTimeoutSignal(5000)
             });
-            if (res.ok) {
-              const detail = await safelyParseJson<any>(res);
-              if (!detail) continue;
-              const formats = detail?.adaptiveFormats || [];
-              const format = formats.find((f: any) => f.type?.includes('audio/mp4')) ||
-                             formats.find((f: any) => f.type?.startsWith('audio/'));
-              if (format?.url) {
-                try {
-                  const host = new URL(inst).host;
-                  const googleUrl = new URL(format.url);
-                  const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
-                  return proxyUrl;
-                } catch {
-                  return format.url;
-                }
-              }
+            if (testRes.status === 200 || testRes.status === 206) {
+              console.log(`[Client Download Resolver] Dynamic success via Invidious latest_version proxy: ${inst}`);
+              return testRes.url;
             }
           } catch (e: any) {
             console.warn(`[Client Download Resolver] Dynamic Invidious inst ${inst} failed:`, e?.message);
@@ -251,7 +225,7 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
           audioFormat: 'mp3',
           audioQuality: '128'
         }),
-        signal: getTimeoutSignal(3500)
+        signal: getTimeoutSignal(8000)
       });
 
       if (!res.ok) {
@@ -268,7 +242,7 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
             audioFormat: 'mp3',
             audioQuality: '128'
           }),
-          signal: getTimeoutSignal(3500)
+          signal: getTimeoutSignal(8000)
         });
       }
 
@@ -288,7 +262,7 @@ const resolveAudioUrlOnClient = async (videoId: string, isDownloadMode: boolean 
   for (const inst of shuffledPiped.slice(0, 5)) {
     try {
       const res = await fetch(`${inst}/streams/${videoId}`, {
-        signal: getTimeoutSignal(3500),
+        signal: getTimeoutSignal(6000),
         headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' }
       });
       if (res.ok) {
@@ -395,7 +369,7 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         console.log(`[Download Manager] Attempting fetch: ${cand.name}`);
         onProgress(10);
 
-        const response = await fetch(cand.url);
+        const response = await fetch(cand.url, { signal: getTimeoutSignal(10000) });
         if (!response.ok) {
           throw new Error(`HTTP status ${response.status}`);
         }

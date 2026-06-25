@@ -49,14 +49,6 @@ const steps: TutorialStep[] = [
     highlightLabels: ['Tap here to create a playlist', 'Your playlists appear here'],
   },
   {
-    title: "🤖 AI DJ — Your Mood, Your Music",
-    message: "Welcome to AI DJ! Pick a quick mood button above, or type exactly how you're feeling in the text box below. Hit 'Generate AI Playlist' and the AI will create a perfect playlist for your vibe!",
-    cardPosition: 'bottom-left',
-    navigateTo: '/ai-dj',
-    highlightSelectors: ['button:has(.lucide-sparkles):not(aside button)', 'input[placeholder*="mood"], input[placeholder*="feeling"], textarea'],
-    highlightLabels: ['Generate your playlist', 'Type your mood here'],
-  },
-  {
     title: "❤️ Your Favorites",
     message: "This is your Favorites! Whenever you hear a song you love, tap the heart icon ❤️ on any track card. All your liked songs will show up right here.",
     cardPosition: 'center',

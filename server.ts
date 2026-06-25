@@ -4,6 +4,10 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
+import { exec, spawn } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 function getServerPort() {
   const cliPortIndex = process.argv.findIndex((arg) => arg === '--port' || arg === '-p');
@@ -96,29 +100,16 @@ async function getInvidiousStreamInfo(videoId: string): Promise<{ url: string; m
 
   for (const inst of prioritizedInvidious) {
     try {
-      const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
-        headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        signal: getTimeoutSignal(4000)
+      const testUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=140`;
+      const testRes = await fetch(testUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        },
+        signal: getTimeoutSignal(5000)
       });
-      if (res.ok) {
-        const data = await safelyParseJson(res);
-        if (!data) continue;
-        const formats = data?.adaptiveFormats || [];
-        // Prioritize audio/mp4 for extreme iOS/Safari/macOS compatibility, fallback to audio/webm
-        const format = formats.find((f: any) => f.type?.includes('audio/mp4')) || 
-                       formats.find((f: any) => f.type?.startsWith('audio/'));
-        if (format?.url) {
-          try {
-            const host = new URL(inst).host;
-            const googleUrl = new URL(format.url);
-            const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
-            console.log(`[Express Server] Priority success via Invidious proxy: ${inst}`);
-            return { url: proxyUrl, mimeType: format.type || 'audio/webm' };
-          } catch {
-            console.log(`[Express Server] Priority success via Invidious (no-transform): ${inst}`);
-            return { url: format.url, mimeType: format.type || 'audio/webm' };
-          }
-        }
+      if (testRes.status === 200 || testRes.status === 206) {
+        console.log(`[Express Server] Priority success via Invidious latest_version proxy: ${inst}`);
+        return { url: testRes.url, mimeType: 'audio/mp4' };
       }
     } catch (e: any) {
       console.warn(`[Express Server] Priority fallback instance ${inst} failed: ${e.message}`);
@@ -128,7 +119,7 @@ async function getInvidiousStreamInfo(videoId: string): Promise<{ url: string; m
   // Layer 1: Dynamic Invidious Registry Fallback
   try {
     console.log(`[Express Server] Fetching live Invidious registry...`);
-    const regRes = await fetch('https://api.invidious.io/instances.json', { signal: getTimeoutSignal(3500) });
+    const regRes = await fetch('https://api.invidious.io/instances.json', { signal: getTimeoutSignal(5000) });
     if (regRes.ok) {
       const data = await safelyParseJson<any>(regRes);
       if (data) {
@@ -145,29 +136,16 @@ async function getInvidiousStreamInfo(videoId: string): Promise<{ url: string; m
         const shuffledUp = shuffle(upInstances);
         for (const inst of shuffledUp.slice(0, 4)) {
           try {
-            const res = await fetch(`${inst.uri}/api/v1/videos/${videoId}`, {
-              headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-              signal: getTimeoutSignal(3500)
+            const testUrl = `${inst.uri}/latest_version?id=${videoId}&local=true&itag=140`;
+            const testRes = await fetch(testUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+              },
+              signal: getTimeoutSignal(5000)
             });
-            if (res.ok) {
-              const detail = await safelyParseJson<any>(res);
-              if (!detail) continue;
-              const formats = detail?.adaptiveFormats || [];
-              // Prioritize audio/mp4 for extreme iOS/Safari/macOS compatibility, fallback to audio/webm
-              const format = formats.find((f: any) => f.type?.includes('audio/mp4')) || 
-                             formats.find((f: any) => f.type?.startsWith('audio/'));
-              if (format?.url) {
-                try {
-                  const host = new URL(inst.uri).host;
-                  const googleUrl = new URL(format.url);
-                  const proxyUrl = `https://${host}${googleUrl.pathname}${googleUrl.search}`;
-                  console.log(`[Express Server] Dynamic success via Invidious proxy: ${inst.uri}`);
-                  return { url: proxyUrl, mimeType: format.type || 'audio/webm' };
-                } catch {
-                  console.log(`[Express Server] Dynamic success via Invidious (no-transform): ${inst.uri}`);
-                  return { url: format.url, mimeType: format.type || 'audio/webm' };
-                }
-              }
+            if (testRes.status === 200 || testRes.status === 206) {
+              console.log(`[Express Server] Dynamic success via Invidious latest_version proxy: ${inst.uri}`);
+              return { url: testRes.url, mimeType: 'audio/mp4' };
             }
           } catch (e: any) {
             console.warn(`[Express Server] Dynamic instance ${inst.uri} failed: ${e.message}`);
@@ -204,7 +182,7 @@ async function getCobaltStreamInfo(videoId: string): Promise<{ url: string; mime
             audioFormat: 'mp3',
             audioQuality: '128'
           }),
-          signal: getTimeoutSignal(2200)
+          signal: getTimeoutSignal(8000)
         });
 
         if (!res.ok) {
@@ -222,7 +200,7 @@ async function getCobaltStreamInfo(videoId: string): Promise<{ url: string; mime
               audioFormat: 'mp3',
               audioQuality: '128'
             }),
-            signal: getTimeoutSignal(2200)
+            signal: getTimeoutSignal(8000)
           });
         }
 
@@ -249,7 +227,7 @@ async function getPipedStreamInfo(videoId: string): Promise<{ url: string; mimeT
     try {
       const res = await fetch(`${inst}/streams/${videoId}`, {
         headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' },
-        signal: getTimeoutSignal(3500)
+        signal: getTimeoutSignal(6000)
       });
       if (res.ok) {
         const data = await safelyParseJson<any>(res);
@@ -270,16 +248,159 @@ async function getPipedStreamInfo(videoId: string): Promise<{ url: string; mimeT
   return null;
 }
 
+async function getYtDlpStreamInfo(videoId: string): Promise<{ url: string; mimeType: string } | null> {
+  const cleanId = videoId.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 11);
+  if (!cleanId || cleanId.length !== 11) {
+    return null;
+  }
+
+  try {
+    await ensureYtDlpInstalled();
+  } catch (err) {
+    console.warn('[Express Server] Dynamic yt-dlp installation check failed during stream resolution:', err);
+  }
+
+  console.log(`[Express Server] Attempting yt-dlp stream resolution for ${cleanId}`);
+
+  // 1. Cookies file authentication mechanism
+  const cookiesPath = path.join(process.cwd(), 'cookies.txt');
+  let cookiesArg = '';
+  if (fs.existsSync(cookiesPath)) {
+    cookiesArg = `--cookies "${cookiesPath}"`;
+    console.log(`[Express Server] [yt-dlp] Using local cookies.txt found at: ${cookiesPath}`);
+  } else {
+    console.log(`[Express Server] [yt-dlp] No cookies.txt found at ${cookiesPath}. Proceeding without cookie authentication.`);
+  }
+
+  // 2. Extractor arguments to spoof legitimate clients (iOS, Web, Android)
+  const extractorArgs = '--extractor-args "youtube:player_client=ios,web,android"';
+
+  // 3. Appropriate HTTP Headers to mimic a real web browser
+  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  const headersArgs = `--user-agent "${userAgent}" --add-header "Accept-Language: en-US,en;q=0.9"`;
+
+  // 4. CONFIGURATION PLACEHOLDER: Set your proxy URL here to bypass 429 Too Many Requests errors.
+  // Example: 'http://username:password@proxy-host:port' or 'socks5://127.0.0.1:1080'
+  const PROXY_URL = ''; 
+  const proxyArg = PROXY_URL ? `--proxy "${PROXY_URL}"` : '';
+
+  // 5. Strictly audio-only (preferring high-quality M4A or high-bitrate audio format)
+  const formatArg = '-f "bestaudio[ext=m4a]/bestaudio/best"';
+
+  // Build the yt-dlp command to extract the direct URL using python3 and absolute path to yt-dlp
+  const command = `python3 "${path.join(process.cwd(), 'yt-dlp')}" ${cookiesArg} ${extractorArgs} ${headersArgs} ${proxyArg} ${formatArg} -g "https://www.youtube.com/watch?v=${cleanId}"`;
+
+  try {
+    const { stdout } = await execAsync(command);
+    const resolvedUrl = stdout.trim();
+    if (resolvedUrl && resolvedUrl.startsWith('http')) {
+      console.log(`[Express Server] yt-dlp successfully resolved direct stream URL for ${cleanId}`);
+      // Detect mime type based on extension or default to audio/mp4 (best audio)
+      const mimeType = resolvedUrl.includes('ext=m4a') || resolvedUrl.includes('.m4a') ? 'audio/mp4' : 'audio/webm';
+      return { url: resolvedUrl, mimeType };
+    }
+  } catch (err: any) {
+    console.warn(`[Express Server] yt-dlp stream resolution failed for ${cleanId}:`, err.message || err);
+  }
+
+  return null;
+}
+
+async function streamYtDlpDirectly(videoId: string, res: any, shouldDownload: boolean, title: string) {
+  const cleanId = videoId.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 11);
+  if (!cleanId || cleanId.length !== 11) {
+    if (!res.headersSent) {
+      res.status(400).json({ error: 'Invalid Video ID' });
+    }
+    return;
+  }
+
+  try {
+    await ensureYtDlpInstalled();
+  } catch (err) {
+    console.warn('[Express Server] Dynamic yt-dlp installation check failed during stream start:', err);
+  }
+
+  console.log(`[Express Server] Spawning direct yt-dlp process to transcode/stream ${cleanId}`);
+
+  // 1. Cookies file authentication mechanism
+  const cookiesPath = path.join(process.cwd(), 'cookies.txt');
+  const args: string[] = [];
+  if (fs.existsSync(cookiesPath)) {
+    args.push('--cookies', cookiesPath);
+    console.log(`[Express Server] [Direct yt-dlp Stream] Using local cookies.txt found at: ${cookiesPath}`);
+  }
+
+  // 2. Extractor arguments to spoof legitimate clients
+  args.push('--extractor-args', 'youtube:player_client=ios,web,android');
+
+  // 3. Appropriate HTTP Headers to mimic a real web browser
+  const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  args.push('--user-agent', userAgent);
+  args.push('--add-header', 'Accept-Language: en-US,en;q=0.9');
+
+  // 4. CONFIGURATION PLACEHOLDER: Set your proxy URL here to bypass 429 Too Many Requests errors.
+  const PROXY_URL = ''; 
+  if (PROXY_URL) {
+    args.push('--proxy', PROXY_URL);
+  }
+
+  // 5. Strictly audio-only with high-quality bitrate processing (MP3/M4A)
+  args.push('-f', 'bestaudio/best');
+  args.push('--extract-audio');
+  args.push('--audio-format', 'mp3');
+  args.push('--audio-quality', '0'); // highest quality Variable Bit Rate (VBR)
+  args.push('-o', '-'); // Output to stdout
+  args.push(`https://www.youtube.com/watch?v=${cleanId}`);
+
+  // Set headers on response
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Content-Type', 'audio/mpeg');
+  res.setHeader('Cache-Control', 'no-cache');
+  if (shouldDownload) {
+    const cleanTitle = title.replace(/[^\w\s-]/g, '') || 'audio';
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanTitle}.mp3"`);
+  }
+
+  const child = spawn('python3', [path.join(process.cwd(), 'yt-dlp'), ...args]);
+
+  child.stdout.pipe(res);
+
+  child.stderr.on('data', (data) => {
+    const msg = data.toString().trim();
+    if (msg.includes('[download]') || msg.includes('[ExtractAudio]')) {
+      console.log(`[yt-dlp stream process] ${msg}`);
+    }
+  });
+
+  child.on('close', (code) => {
+    console.log(`[Express Server] Direct yt-dlp stream process finished with code ${code}`);
+    res.end();
+  });
+
+  child.on('error', (err) => {
+    console.error(`[Express Server] Direct yt-dlp spawn error:`, err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Direct yt-dlp audio extraction failed' });
+    }
+  });
+}
+
 async function getStreamInfo(videoId: string): Promise<{ url: string; mimeType: string } | null> {
-  // Try Invidious first
+  // Try yt-dlp first (highly optimized with client spoofing, headers, cookies, etc.)
+  const ytdlp = await getYtDlpStreamInfo(videoId);
+  if (ytdlp) return ytdlp;
+
+  // Try Invidious second
   const invidious = await getInvidiousStreamInfo(videoId);
   if (invidious) return invidious;
 
-  // Try Cobalt second
+  // Try Cobalt third
   const cobalt = await getCobaltStreamInfo(videoId);
   if (cobalt) return cobalt;
 
-  // Try Piped third
+  // Try Piped fourth
   const piped = await getPipedStreamInfo(videoId);
   if (piped) return piped;
 
@@ -287,8 +408,40 @@ async function getStreamInfo(videoId: string): Promise<{ url: string; mimeType: 
   return null;
 }
 
+async function ensureYtDlpInstalled(): Promise<string> {
+  const ytdlpPath = path.join(process.cwd(), 'yt-dlp');
+  if (fs.existsSync(ytdlpPath)) {
+    console.log(`[Express Server] [yt-dlp] Standalone yt-dlp binary already exists at ${ytdlpPath}`);
+    return ytdlpPath;
+  }
+
+  console.log(`[Express Server] [yt-dlp] Standalone yt-dlp binary not found. Downloading the latest release dynamically...`);
+  try {
+    const res = await fetch('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp');
+    if (!res.ok) {
+      throw new Error(`Failed to download yt-dlp: HTTP status ${res.status}`);
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    fs.writeFileSync(ytdlpPath, buffer);
+    fs.chmodSync(ytdlpPath, 0o755);
+    console.log(`[Express Server] [yt-dlp] Successfully downloaded and configured yt-dlp standalone binary.`);
+    return ytdlpPath;
+  } catch (err: any) {
+    console.error(`[Express Server] [yt-dlp] Error downloading yt-dlp standalone binary:`, err.message || err);
+    throw err;
+  }
+}
+
 async function startServer() {
   const app = express();
+
+  // Ensure yt-dlp standalone binary is downloaded on boot
+  try {
+    await ensureYtDlpInstalled();
+  } catch (e) {
+    console.warn(`[Express Server] Pre-boot yt-dlp check failed. Will retry lazily when download/streaming is initiated.`);
+  }
 
   // Setup loose CORS for local app consumption
   app.use(cors({ origin: '*' }));
@@ -361,15 +514,17 @@ async function startServer() {
 
     let streamInfo = null;
     if (shouldDownload) {
-      console.log(`[Express Server /get-audio-url] Download mode requested. Resolving with Cobalt first...`);
-      streamInfo = await getCobaltStreamInfo(videoId);
+      console.log(`[Express Server /get-audio-url] Download mode requested. Resolving with yt-dlp first...`);
+      streamInfo = await getYtDlpStreamInfo(videoId);
     }
     if (!streamInfo) {
       streamInfo = await getStreamInfo(videoId);
     }
 
+    // Fallback directly to spawning yt-dlp live transcode stream if URL resolution completely failed
     if (!streamInfo) {
-      return res.status(500).json({ error: 'Audio stream unavailable', videoId });
+      console.log(`[Express Server /get-audio-url] Stream resolution failed. Falling back to live transcoding/streaming with yt-dlp...`);
+      return streamYtDlpDirectly(videoId, res, shouldDownload, title);
     }
 
     console.log(`[Express Server /get-audio-url] Resolved initial streamInfo:`, {
@@ -381,7 +536,7 @@ async function startServer() {
       try {
         const range = req.headers.range;
         const upstreamHeaders: Record<string, string> = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': '*/*',
         };
         if (range) upstreamHeaders['Range'] = range;
@@ -394,60 +549,9 @@ async function startServer() {
           
           let fallbackSucceeded = false;
 
-          // Fallback 1: Try Cobalt (very highly compatible MP3 stream resolver)
-          console.log(`[Express Server] Engine switch path - Cobalt...`);
-          const cobaltStream = await getCobaltStreamInfo(videoId);
-          if (cobaltStream && cobaltStream.url !== streamInfo.url) {
-            const fbUpstream = await fetch(cobaltStream.url, { headers: upstreamHeaders });
-            if (fbUpstream.ok || fbUpstream.status === 206) {
-              console.log(`[Express Server] Engine switch - Cobalt selected`);
-              upstream = fbUpstream;
-              streamInfo = cobaltStream;
-              fallbackSucceeded = true;
-            } else {
-              console.log(`[Express Server] Cobalt engine code: ${fbUpstream.status}`);
-            }
-          }
-
-          // Fallback 2: Try Piped if Cobalt fails
-          if (!fallbackSucceeded) {
-            console.log(`[Express Server] Engine switch path - Piped...`);
-            const pipedStream = await getPipedStreamInfo(videoId);
-            if (pipedStream && pipedStream.url !== streamInfo.url) {
-              const fbUpstream = await fetch(pipedStream.url, { headers: upstreamHeaders });
-              if (fbUpstream.ok || fbUpstream.status === 206) {
-                console.log(`[Express Server] Engine switch - Piped selected`);
-                upstream = fbUpstream;
-                streamInfo = pipedStream;
-                fallbackSucceeded = true;
-              } else {
-                console.log(`[Express Server] Piped engine code: ${fbUpstream.status}`);
-              }
-            }
-          }
-        }
-
-        // If we are in download mode and the upstream is STILL failing, try Piped as a last resort
-        if (upstream.status !== 200 && upstream.status !== 206 && shouldDownload) {
-          console.log(`[Express Server] Download upstream still failing (${upstream.status}). Trying Piped fallback...`);
-          const pipedStream = await getPipedStreamInfo(videoId);
-          if (pipedStream) {
-            const fbUpstream = await fetch(pipedStream.url, { headers: upstreamHeaders });
-            if (fbUpstream.ok || fbUpstream.status === 206) {
-              upstream = fbUpstream;
-              streamInfo = pipedStream;
-            }
-          }
-        }
-
-        // Final streaming fallback to browser redirect (allows browser IP to pull directly, bypasses server geoblock for 200/206 status codes)
-        if (upstream.status !== 200 && upstream.status !== 206) {
-          if (streamInfo.url.includes('googlevideo.com') || streamInfo.url.includes('youtube.com')) {
-            console.log(`[Express Server] Refusing to redirect download/stream fetch to IP-locked Googlevideo URL.`);
-            return res.status(upstream.status || 403).json({ error: 'Failed to proxy audio stream securely (IP blocked)' });
-          }
-          console.log(`[Express Server] Activating direct-to-browser redirection for stream resolution`);
-          return res.redirect(307, streamInfo.url);
+          // Fallback 1: Try yt-dlp directly
+          console.log(`[Express Server] Engine switch path - yt-dlp direct stream...`);
+          return streamYtDlpDirectly(videoId, res, shouldDownload, title);
         }
 
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -479,9 +583,9 @@ async function startServer() {
           res.end();
         }
       } catch (e: any) {
-        console.log('[Express Proxy] Stream redirection handled.');
+        console.log('[Express Proxy] Upstream stream error. Spawning live yt-dlp transcode stream as reliable fallback.', e.message || e);
         if (!res.headersSent) {
-          res.redirect(streamInfo.url);
+          return streamYtDlpDirectly(videoId, res, shouldDownload, title);
         }
       }
     } else {

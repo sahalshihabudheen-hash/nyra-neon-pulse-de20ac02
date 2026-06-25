@@ -69,7 +69,7 @@ export function useDjAudio(
   }, []);
 
   const init = useCallback(() => {
-    if (!audioRef.current) return false;
+    if (!audioRef.current || (audioRef.current as any).id === 'secondary-audio') return false;
     try {
       if (!ctx) ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       if (ctx.state === 'suspended') ctx.resume();

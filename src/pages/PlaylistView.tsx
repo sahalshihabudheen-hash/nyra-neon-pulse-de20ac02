@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search, Music2 } from 'lucide-react';
+import { Play, Pause, Trash2, Shuffle, Repeat, Repeat1, ArrowLeft, Search, Music2, Download, Check } from 'lucide-react';
 import { getFunctionAuthHeaders } from '@/lib/functionAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -14,6 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+import { useDownloadManager } from '@/contexts/DownloadManagerContext';
+import { isTrackDownloadedOffline } from '@/lib/offlineStore';
 
 interface Track {
   id: string;
@@ -50,8 +52,10 @@ const PlaylistView = () => {
     queue, removeFromQueue,
   } = useMusicPlayer();
 
+  const { downloads, startDownload, isDownloading } = useDownloadManager();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [playlistTracks, setPlaylistTracks] = useState<Track[]>([]);
+  const [downloadedTrackIds, setDownloadedTrackIds] = useState<Set<string>>(new Set());
   const [navSearchQuery, setNavSearchQuery] = useState('');
   const [playlistSearchQuery, setPlaylistSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Track[]>([]);
@@ -62,6 +66,52 @@ const PlaylistView = () => {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchDragIndex, setTouchDragIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    const checkDownloadedTracks = async () => {
+      const downloaded = new Set<string>();
+      for (const track of playlistTracks) {
+        const isDownloaded = await isTrackDownloadedOffline(track.id);
+        if (isDownloaded) {
+          downloaded.add(track.id);
+        }
+      }
+      setDownloadedTrackIds(downloaded);
+    };
+    if (playlistTracks.length > 0) {
+      checkDownloadedTracks();
+    } else {
+      setDownloadedTrackIds(new Set());
+    }
+  }, [playlistTracks, downloads]);
+
+  const handleDownloadAll = () => {
+    if (playlistTracks.length === 0) {
+      toast.info('No tracks to download!');
+      return;
+    }
+    
+    const tracksToDownload = playlistTracks.filter(track => {
+      const isDownloaded = downloadedTrackIds.has(track.id);
+      const downloading = isDownloading(track.id);
+      return !isDownloaded && !downloading;
+    });
+
+    if (tracksToDownload.length === 0) {
+      toast.info('All tracks in this playlist are already downloaded or downloading!');
+      return;
+    }
+
+    toast.success(`Starting download for ${tracksToDownload.length} tracks to Download Page...`);
+    tracksToDownload.forEach(track => {
+      startDownload({
+        id: track.id,
+        title: track.title,
+        thumbnail: track.thumbnail,
+        artist: track.channel,
+      });
+    });
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -358,6 +408,18 @@ const PlaylistView = () => {
               >
                 {getLoopIcon()}
               </button>
+
+              <button
+                onClick={handleDownloadAll}
+                disabled={playlistTracks.length === 0}
+                className={cn(
+                  'w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-lg border border-white/5',
+                  'bg-white/5 text-muted-foreground hover:text-primary hover:border-primary/20 disabled:opacity-50'
+                )}
+                title="Download entire playlist"
+              >
+                <Download className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
@@ -521,6 +583,38 @@ const PlaylistView = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        const isDownloaded = downloadedTrackIds.has(track.id);
+                        if (isDownloaded) {
+                          toast.info('Track is already downloaded and available offline!');
+                          return;
+                        }
+                        startDownload({
+                          id: track.id,
+                          title: track.title,
+                          thumbnail: track.thumbnail,
+                          artist: track.channel,
+                        });
+                      }}
+                      disabled={isDownloading(track.id)}
+                      className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90",
+                        downloadedTrackIds.has(track.id)
+                          ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/10"
+                          : isDownloading(track.id)
+                          ? "bg-amber-500/15 text-amber-400 animate-pulse border border-amber-500/10"
+                          : "bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground border border-transparent"
+                      )}
+                      title={downloadedTrackIds.has(track.id) ? "Downloaded offline" : isDownloading(track.id) ? "Downloading..." : "Download to offline"}
+                    >
+                      {downloadedTrackIds.has(track.id) ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
+                    </button>
+
                     <button
                       onClick={() => handleRemoveTrack(track.id)}
                       className="w-10 h-10 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-white transition-all active:scale-90"

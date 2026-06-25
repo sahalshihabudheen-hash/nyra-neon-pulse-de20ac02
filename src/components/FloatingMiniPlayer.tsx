@@ -63,7 +63,6 @@ const FloatingMiniPlayer = () => {
     location.pathname === '/' || 
     location.pathname.startsWith('/playlist/') || 
     location.pathname === '/favorites' || 
-    location.pathname === '/dj' ||
     location.pathname === '/offline' ||
     location.pathname === '/ai-dj' ||
     location.pathname === '/games' ||
