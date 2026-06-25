@@ -16,14 +16,18 @@ const PORT = getServerPort();
 
 const COBALT_INSTANCES = [
   'https://api.cobalt.tools',
+  'https://co.wuk.sh',
   'https://cobalt.api.ryboflops.lol',
   'https://cobalt.k6.ovh',
   'https://cobalt.shite.xyz',
-  'https://co.wuk.sh',
   'https://cobalt.smartit.nu',
   'https://cobalt.drgns.space',
   'https://c.onon.app',
-  'https://co.v6.sh'
+  'https://co.v6.sh',
+  'https://cobalt.instgrm.lol',
+  'https://cobalt.nyx.moe',
+  'https://cobalt.q69.de',
+  'https://co.dispp.li'
 ];
 
 const PIPED_INSTANCES = [
@@ -182,7 +186,7 @@ async function getCobaltStreamInfo(videoId: string): Promise<{ url: string; mime
   // Layer 2: Cobalt Extractors
   console.log(`[Express Server] Attempting Cobalt resolution for ${videoId}`);
   const shuffledCobalt = shuffle(COBALT_INSTANCES);
-  for (const inst of shuffledCobalt.slice(0, 4)) {
+  for (const inst of shuffledCobalt.slice(0, 7)) {
     const endpoints = [`${inst}/api/json`, `${inst}/`].filter(Boolean);
     for (const endpoint of endpoints) {
       try {
@@ -200,7 +204,7 @@ async function getCobaltStreamInfo(videoId: string): Promise<{ url: string; mime
             audioFormat: 'mp3',
             audioQuality: '128'
           }),
-          signal: getTimeoutSignal(3500)
+          signal: getTimeoutSignal(2200)
         });
 
         if (!res.ok) {
@@ -218,7 +222,7 @@ async function getCobaltStreamInfo(videoId: string): Promise<{ url: string; mime
               audioFormat: 'mp3',
               audioQuality: '128'
             }),
-            signal: getTimeoutSignal(3500)
+            signal: getTimeoutSignal(2200)
           });
         }
 
@@ -355,7 +359,15 @@ async function startServer() {
     if (match) videoId = match[1];
     videoId = videoId.trim().substring(0, 11);
 
-    let streamInfo = await getStreamInfo(videoId);
+    let streamInfo = null;
+    if (shouldDownload) {
+      console.log(`[Express Server /get-audio-url] Download mode requested. Resolving with Cobalt first...`);
+      streamInfo = await getCobaltStreamInfo(videoId);
+    }
+    if (!streamInfo) {
+      streamInfo = await getStreamInfo(videoId);
+    }
+
     if (!streamInfo) {
       return res.status(500).json({ error: 'Audio stream unavailable', videoId });
     }
@@ -377,7 +389,7 @@ async function startServer() {
         let upstream = await fetch(streamInfo.url, { headers: upstreamHeaders });
 
         // Fallback strategy: If upstream fails (e.g. 403 Forbidden geolock or IP block), try alternative engines
-        if (upstream.status === 403 || upstream.status === 401 || upstream.status === 404) {
+        if (upstream.status === 403 || upstream.status === 401 || upstream.status === 404 || upstream.status >= 500) {
           console.log(`[Express Server] Optimizing stream parameters for videoId: ${videoId}`);
           
           let fallbackSucceeded = false;
@@ -415,8 +427,25 @@ async function startServer() {
           }
         }
 
+        // If we are in download mode and the upstream is STILL failing, try Piped as a last resort
+        if (upstream.status !== 200 && upstream.status !== 206 && shouldDownload) {
+          console.log(`[Express Server] Download upstream still failing (${upstream.status}). Trying Piped fallback...`);
+          const pipedStream = await getPipedStreamInfo(videoId);
+          if (pipedStream) {
+            const fbUpstream = await fetch(pipedStream.url, { headers: upstreamHeaders });
+            if (fbUpstream.ok || fbUpstream.status === 206) {
+              upstream = fbUpstream;
+              streamInfo = pipedStream;
+            }
+          }
+        }
+
         // Final streaming fallback to browser redirect (allows browser IP to pull directly, bypasses server geoblock for 200/206 status codes)
-        if (upstream.status !== 200 && upstream.status !== 206 && !shouldDownload) {
+        if (upstream.status !== 200 && upstream.status !== 206) {
+          if (streamInfo.url.includes('googlevideo.com') || streamInfo.url.includes('youtube.com')) {
+            console.log(`[Express Server] Refusing to redirect download/stream fetch to IP-locked Googlevideo URL.`);
+            return res.status(upstream.status || 403).json({ error: 'Failed to proxy audio stream securely (IP blocked)' });
+          }
           console.log(`[Express Server] Activating direct-to-browser redirection for stream resolution`);
           return res.redirect(307, streamInfo.url);
         }

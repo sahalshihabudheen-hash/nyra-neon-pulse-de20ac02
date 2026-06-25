@@ -71,7 +71,7 @@ const RecentlyPlayedSection = ({
         }
         setRecentTracks(unique);
       } catch (err) {
-        console.error('Failed to fetch recently played:', err);
+        console.warn('Failed to fetch recently played:', err);
       } finally {
         setLoading(false);
       }

@@ -8,9 +8,10 @@ import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTabTitle } from '@/hooks/useTabTitle';
 import { useDjAudio } from '@/hooks/useDjAudio';
+import { getTrackOffline, isTrackDownloadedOffline } from '@/lib/offlineStore';
 
 const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
-  const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
+  const baseUrl = '/api/get-audio-url';
   const params = new URLSearchParams({ videoId });
   if (options?.stream) params.append('stream', '1');
   if (options?.download) params.append('download', '1');
@@ -27,14 +28,18 @@ const resolveAudioUrlOnClient = async (videoId: string): Promise<string | null> 
   
   const COBALT_INSTANCES = [
     'https://api.cobalt.tools',
+    'https://co.wuk.sh',
     'https://cobalt.api.ryboflops.lol',
     'https://cobalt.k6.ovh',
     'https://cobalt.shite.xyz',
-    'https://co.wuk.sh',
     'https://cobalt.smartit.nu',
     'https://cobalt.drgns.space',
     'https://c.onon.app',
-    'https://co.v6.sh'
+    'https://co.v6.sh',
+    'https://cobalt.instgrm.lol',
+    'https://cobalt.nyx.moe',
+    'https://cobalt.q69.de',
+    'https://co.dispp.li'
   ];
   
   const PIPED_INSTANCES = [
@@ -565,7 +570,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         console.warn('Audio element error ignored during active background resolution/retry phase');
         return;
       }
-      console.error('Audio error, falling back to YouTube player', e);
+      console.warn('Audio error, falling back to YouTube player', e);
       if (!useBackgroundAudioOnlyRef.current) {
         setUseBackgroundAudioMode(false);
       } else {
@@ -588,6 +593,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   }, [settings.autoPlayNext]);
 
   // Sync isPlaying with actual audio or youtube playing state periodically to avoid state desyncs
+  // Also updates lockscreen Media Session position progress
   useEffect(() => {
     const syncInterval = setInterval(() => {
       if (activeSourceRef.current === 'background') {
@@ -596,6 +602,23 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
           const actuallyPlaying = !audio.paused;
           if (actuallyPlaying !== isPlaying) {
             setIsPlaying(actuallyPlaying);
+          }
+
+          // Update lockscreen Media Session seek/position state
+          if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            try {
+              const dur = audio.duration;
+              const pos = audio.currentTime;
+              if (!isNaN(dur) && dur > 0 && !isNaN(pos) && pos >= 0 && pos <= dur) {
+                navigator.mediaSession.setPositionState({
+                  duration: dur,
+                  playbackRate: audio.playbackRate || 1.0,
+                  position: pos,
+                });
+              }
+            } catch (err) {
+              console.error('Error setting media session position state:', err);
+            }
           }
         }
       } else if (activeSourceRef.current === 'youtube') {
@@ -607,12 +630,27 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             if (actuallyPlaying !== isPlaying) {
               setIsPlaying(actuallyPlaying);
             }
+
+            // Sync media session for YouTube source
+            if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+              try {
+                const dur = ytPlayer.getDuration() || 0;
+                const pos = ytPlayer.getCurrentTime() || 0;
+                if (dur > 0 && pos >= 0 && pos <= dur) {
+                  navigator.mediaSession.setPositionState({
+                    duration: dur,
+                    playbackRate: 1.0,
+                    position: pos,
+                  });
+                }
+              } catch (err) {}
+            }
           } catch (e) {
             // Player might not be initialized or destroyed
           }
         }
       }
-    }, 500);
+    }, 1000);
 
     return () => clearInterval(syncInterval);
   }, [isPlaying]);
@@ -680,15 +718,110 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     });
   }, [settings.autoPlayNext]);
 
+  const nextTrackResolvedUrlRef = useRef<{ id: string, url: string, crossOriginSetting: 'anonymous' | null } | null>(null);
+
+  const preloadNextTrack = useCallback(async () => {
+    // Determine what track is next
+    if (!currentTrack) return;
+    let nextTrack: Track | null = null;
+
+    // Check queue first
+    const nextFromQueue = getNextFromQueue(playlist);
+    if (nextFromQueue) {
+      nextTrack = nextFromQueue;
+    } else if (playingFromPlaylist) {
+      nextTrack = getNextTrack(currentTrack.id);
+      if (!nextTrack && loopMode === 'all' && playlist.length > 0) {
+        nextTrack = playlist[0];
+      }
+    } else if (tracks.length > 0) {
+      const nextIndex = currentTrackIndex + 1;
+      if (nextIndex < tracks.length) {
+        nextTrack = tracks[nextIndex];
+      } else if (loopMode === 'all') {
+        nextTrack = tracks[0];
+      }
+    }
+
+    if (!nextTrack) return;
+    const nextId = nextTrack.id;
+
+    // Avoid redundant preload
+    if (nextTrackResolvedUrlRef.current && nextTrackResolvedUrlRef.current.id === nextId) {
+      return;
+    }
+
+    try {
+      console.log('[Background Preload] Pre-resolving next track:', nextId);
+      // Check offline cache first
+      const offlineTrack = await getTrackOffline(nextId);
+      if (offlineTrack && offlineTrack.audioBlob) {
+        const localUrl = URL.createObjectURL(offlineTrack.audioBlob);
+        nextTrackResolvedUrlRef.current = { id: nextId, url: localUrl, crossOriginSetting: null };
+        console.log('[Background Preload] Next track cached offline pre-resolved.');
+        return;
+      }
+
+      // Resolve via proxy endpoint
+      const proxyStreamUrl = getAudioUrlEndpoint(nextId, { stream: true });
+      nextTrackResolvedUrlRef.current = { id: nextId, url: proxyStreamUrl, crossOriginSetting: 'anonymous' };
+      console.log('[Background Preload] Next track stream proxy url pre-resolved.');
+    } catch (e) {
+      console.error('[Background Preload] Failed to pre-resolve next track:', e);
+    }
+  }, [currentTrack, playlist, playingFromPlaylist, getNextTrack, getNextFromQueue, tracks, currentTrackIndex, loopMode]);
+
+  // Preload next song as soon as current song starts
+  useEffect(() => {
+    if (currentTrack) {
+      preloadNextTrack();
+    }
+  }, [currentTrack, preloadNextTrack]);
+
   const playWithBackgroundAudio = useCallback(async (videoId: string) => {
+    // If we have a preloaded url matching this videoId, play it synchronously!
+    if (nextTrackResolvedUrlRef.current && nextTrackResolvedUrlRef.current.id === videoId) {
+      console.log('[Offline/Background Playback] Playing preloaded track instantly:', videoId);
+      const preloaded = nextTrackResolvedUrlRef.current;
+      // Clear preload ref so we don't play it twice
+      nextTrackResolvedUrlRef.current = null;
+      
+      setPlaybackSource('background');
+      if (ytPlayerRef.current) {
+        try { ytPlayerRef.current.pauseVideo(); } catch {}
+      }
+      const success = await playAudioUrl(preloaded.url, preloaded.crossOriginSetting);
+      if (success) {
+        return;
+      }
+      console.warn('Preloaded playback failed, falling back to full resolution');
+    }
+
+    // Keep media session alive with a tiny slice of silence before setting src to empty
     if (activeSourceRef.current === 'background') {
-      audioRef.current?.pause();
-      if (audioRef.current) audioRef.current.src = '';
+      if (audioRef.current) {
+        try {
+          audioRef.current.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAAGRhdGEAAAAA';
+          audioRef.current.play().catch(() => {});
+        } catch {}
+      }
     }
 
     const tryRobustResolution = async (): Promise<boolean> => {
       isResolvingStreamRef.current = true;
       try {
+        // 0. Check local offline cache first
+        const offlineTrack = await getTrackOffline(videoId);
+        if (offlineTrack && offlineTrack.audioBlob) {
+          console.log('[Offline Playback] Playing cached track:', videoId);
+          const localUrl = URL.createObjectURL(offlineTrack.audioBlob);
+          const success = await playAudioUrl(localUrl, null);
+          if (success) {
+            isResolvingStreamRef.current = false;
+            return true;
+          }
+        }
+
         // 1. Try local/Supabase stream proxy
         console.log('Resolving stream via edge proxy...');
         const proxyStreamUrl = getAudioUrlEndpoint(videoId, { stream: true });
@@ -739,7 +872,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             }
 
             // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-            const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+            const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
             success = await playAudioUrl(proxiedUrl, 'anonymous');
             if (success) {
               toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
@@ -765,14 +898,17 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return false;
     };
 
-    if (useBackgroundAudioOnlyRef.current) {
+    const isDownloaded = await isTrackDownloadedOffline(videoId);
+    const forceBackground = useBackgroundAudioOnlyRef.current || isDownloaded || !navigator.onLine;
+
+    if (forceBackground) {
       setPlaybackSource('background');
       if (ytPlayerRef.current) {
         try { ytPlayerRef.current.pauseVideo(); } catch {}
       }
       const resolved = await tryRobustResolution();
       if (!resolved) {
-        toast.error('DJ Audio failed to load. Tap play to retry.');
+        toast.error('Local audio failed to load. Tap play to retry.');
       }
       return;
     }
@@ -827,6 +963,23 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [ytApiReady, createPlayer, setPlaybackSource, playAudioUrl]);
 
+  // Handle visibility change (swipe home / lock phone / open game) to keep playback alive by forcing standard audio stream
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        console.log('[Visibility Change] Page hidden. Seamlessly switching to background audio element to guarantee uninterrupted play.');
+        // If we are playing on YouTube player, seamlessly switch to Background Audio Mode!
+        if (isPlaying && activeSourceRef.current === 'youtube' && currentTrack) {
+          playWithBackgroundAudio(currentTrack.id);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying, currentTrack, playWithBackgroundAudio]);
+
   const forceBackgroundPlayback = useCallback(async (track = currentTrack, options?: { trackList?: Track[]; fromPlaylist?: boolean }): Promise<boolean> => {
     if (!track || !audioRef.current) {
       toast.error('Play or select a song first');
@@ -856,6 +1009,18 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       const tryRobustResolution = async (): Promise<boolean> => {
         isResolvingStreamRef.current = true;
         try {
+          // 0. Check local offline cache first
+          const offlineTrack = await getTrackOffline(track.id);
+          if (offlineTrack && offlineTrack.audioBlob) {
+            console.log('[Offline Playback] Playing cached track force:', track.id);
+            const localUrl = URL.createObjectURL(offlineTrack.audioBlob);
+            const success = await playAudioUrl(localUrl, null);
+            if (success) {
+              isResolvingStreamRef.current = false;
+              return true;
+            }
+          }
+
           // 1. Try local/Supabase stream proxy
           console.log('Resolving force stream via edge proxy...');
           const streamUrl = getAudioUrlEndpoint(track.id, { stream: true });
@@ -904,7 +1069,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               }
 
               // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-              const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+              const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
               success = await playAudioUrl(proxiedUrl, 'anonymous');
               if (success) {
                 toast.success('DJ Stream connected!', { id: DJ_STREAM_TOAST_ID });
@@ -959,7 +1124,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, playAudioUrl]);
 
-  const handlePlayTrack = useCallback((track: Track, trackList?: Track[]) => {
+  const handlePlayTrack = useCallback(async (track: Track, trackList?: Track[]) => {
     if (trackList) {
       setTracks(trackList);
       const idx = trackList.findIndex(t => t.id === track.id);
@@ -974,7 +1139,15 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setShowMiniPlayer(true);
     recordPlay(track);
     
-    if (useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
+    const isDownloaded = await isTrackDownloadedOffline(track.id);
+
+    if (!navigator.onLine && !isDownloaded) {
+      toast.error('You are offline, and this track has not been downloaded for offline playback.');
+      return;
+    }
+
+    if (isDownloaded || useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
+      setUseBackgroundAudioMode(true);
       playWithBackgroundAudio(track.id);
     } else {
       setPlaybackSource('youtube');
@@ -982,14 +1155,22 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [tracks, playWithBackgroundAudio, useBackgroundAudioMode, ytApiReady, createPlayer, setLastPlayed, recordPlay, setPlaybackSource]);
 
-  const handlePlayFromPlaylist = useCallback((track: Track) => {
+  const handlePlayFromPlaylist = useCallback(async (track: Track) => {
     setCurrentTrack(track);
     setPlayingFromPlaylist(true);
     setLastPlayed(track.id);
     setShowMiniPlayer(true);
     recordPlay(track);
     
-    if (useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
+    const isDownloaded = await isTrackDownloadedOffline(track.id);
+
+    if (!navigator.onLine && !isDownloaded) {
+      toast.error('You are offline, and this track has not been downloaded for offline playback.');
+      return;
+    }
+
+    if (isDownloaded || useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
+      setUseBackgroundAudioMode(true);
       playWithBackgroundAudio(track.id);
     } else {
       setPlaybackSource('youtube');
@@ -997,22 +1178,21 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [playWithBackgroundAudio, useBackgroundAudioMode, ytApiReady, createPlayer, setLastPlayed, recordPlay, setPlaybackSource]);
 
-  const handlePlayPause = useCallback(() => {
+  const handlePlayPause = useCallback(async () => {
     // If we have a track but no active source is playing it yet, start it up!
+    const isDownloaded = currentTrack ? await isTrackDownloadedOffline(currentTrack.id) : false;
+    const forceBackground = useBackgroundAudioOnlyRef.current || isDownloaded || !navigator.onLine;
+
     if (currentTrack && (
       !activeSourceRef.current || 
-      (useBackgroundAudioOnlyRef.current && activeSourceRef.current !== 'background') ||
+      (forceBackground && activeSourceRef.current !== 'background') ||
       (activeSourceRef.current === 'background' && audioRef.current && !audioRef.current.src)
     )) {
-      if (useBackgroundAudioOnlyRef.current) {
+      if (forceBackground || useBackgroundAudioMode) {
         playWithBackgroundAudio(currentTrack.id);
       } else {
-        if (useBackgroundAudioMode) {
-          playWithBackgroundAudio(currentTrack.id);
-        } else {
-          setPlaybackSource('youtube');
-          if (ytApiReady) createPlayer(currentTrack.id);
-        }
+        setPlaybackSource('youtube');
+        if (ytApiReady) createPlayer(currentTrack.id);
       }
       return;
     }
@@ -1025,8 +1205,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         safePlay(audioRef.current).then(success => {
           if (!success) {
             toast.error("Playback failed. Reconnecting...");
-            // Switch to YouTube as last resort
-            if (!useBackgroundAudioOnlyRef.current) {
+            // Switch to YouTube as last resort if we are online and not forcing background
+            if (!forceBackground) {
               setPlaybackSource('youtube');
             }
           }

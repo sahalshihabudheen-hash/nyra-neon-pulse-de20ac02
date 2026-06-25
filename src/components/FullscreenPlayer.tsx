@@ -10,6 +10,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
 import { useDownloadManager } from '@/contexts/DownloadManagerContext';
 import { useMusicPlayer } from '@/contexts/MusicPlayerContext';
+import { isTrackDownloadedOffline } from '@/lib/offlineStore';
 
 interface Track {
   id: string;
@@ -60,6 +61,30 @@ const FullscreenPlayer = ({
   audioRef,
 }: FullscreenPlayerProps) => {
   const { settings } = useTheme();
+  const [isOnline, setIsOnline] = useState(() => typeof window !== 'undefined' ? navigator.onLine : true);
+  const [isOfflineTrack, setIsOfflineTrack] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOffline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currentTrack) {
+      isTrackDownloadedOffline(currentTrack.id).then(res => {
+        setIsOfflineTrack(res);
+      });
+    } else {
+      setIsOfflineTrack(false);
+    }
+  }, [currentTrack]);
+
   const { 
     playlist,
     queue: ctxQueue,
@@ -162,16 +187,51 @@ const FullscreenPlayer = ({
       <div className="absolute inset-0 bg-[#050505] overflow-hidden">
         {currentTrack && (
           <>
-            {/* Ambient Background Video */}
-            <div className="absolute inset-0 w-full h-full opacity-30 pointer-events-none scale-[1.35]">
-              <iframe
-                className="w-full h-full object-cover pointer-events-none select-none"
-                src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&disablekb=1`}
-                title="Fullscreen Video Background"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
-            </div>
+            {/* Ambient Background Video or Offline/Downloaded Music Theme Visualizer */}
+            {isOnline && !isOfflineTrack ? (
+              <div className="absolute inset-0 w-full h-full opacity-30 pointer-events-none scale-[1.35]">
+                <iframe
+                  className="w-full h-full object-cover pointer-events-none select-none"
+                  src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&disablekb=1`}
+                  title="Fullscreen Video Background"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                />
+              </div>
+            ) : (
+              <div className="absolute inset-0 overflow-hidden opacity-40 pointer-events-none">
+                {/* Slow shifting cosmic fluid ambient color gradients */}
+                <div 
+                  className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-orange-500/10 to-indigo-500/20 mix-blend-screen animate-pulse"
+                  style={{ animationDuration: '8s' }}
+                />
+                <div 
+                  className="absolute inset-0 bg-gradient-to-bl from-rose-500/20 via-transparent to-primary/25 mix-blend-screen animate-pulse"
+                  style={{ animationDuration: '12s', animationDelay: '1.5s' }}
+                />
+                <div 
+                  className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-amber-500/5 to-transparent mix-blend-color-dodge animate-pulse"
+                  style={{ animationDuration: '16s', animationDelay: '3s' }}
+                />
+                
+                {/* Glowing moving ambient light fields */}
+                <div className="absolute top-[20%] left-[30%] w-[350px] h-[350px] rounded-full bg-primary/20 blur-[100px] animate-pulse" style={{ animationDuration: '7s' }} />
+                <div className="absolute bottom-[25%] right-[20%] w-[400px] h-[400px] rounded-full bg-orange-500/10 blur-[120px] animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+                <div className="absolute top-[50%] left-[60%] w-[300px] h-[300px] rounded-full bg-indigo-500/15 blur-[90px] animate-pulse" style={{ animationDuration: '13s', animationDelay: '4s' }} />
+
+                {/* Aesthetic spinning orbital lines / sound wave circles projecting from the center album art */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] rounded-full border border-primary/20 opacity-40 animate-spin" style={{ animationDuration: '45s' }}>
+                  <div className="absolute inset-6 rounded-full border border-dashed border-primary/10" />
+                  <div className="absolute inset-16 rounded-full border border-primary/5" />
+                  <div className="absolute inset-32 rounded-full border border-dashed border-primary/10" />
+                </div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[750px] h-[750px] rounded-full border border-orange-500/10 opacity-30 animate-spin" style={{ animationDuration: '65s', animationDirection: 'reverse' }}>
+                  <div className="absolute inset-14 rounded-full border border-dashed border-orange-500/5" />
+                  <div className="absolute inset-28 rounded-full border border-primary/5 animate-pulse" />
+                </div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[950px] h-[950px] rounded-full border border-dashed border-white/5 opacity-10 animate-spin" style={{ animationDuration: '100s' }} />
+              </div>
+            )}
 
             <div 
               className="absolute inset-0 opacity-40 blur-[120px] scale-150 transition-all duration-[1500ms]"
@@ -179,7 +239,8 @@ const FullscreenPlayer = ({
                 backgroundImage: `url(${currentTrack.thumbnail})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-              }}
+                referrerPolicy: 'no-referrer',
+              } as any}
             />
             {/* Animated ambient orbs */}
             <div className="absolute top-[-15%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[140px] animate-pulse" style={{ animationDuration: '6s' }} />

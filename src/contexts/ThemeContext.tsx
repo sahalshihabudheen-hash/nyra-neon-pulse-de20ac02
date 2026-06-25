@@ -72,6 +72,8 @@ interface AppSettings {
   soundwaveShape: SoundwaveShape;
   progressBarStyle: ProgressBarStyle;
   rgbConfig: RgbConfig;
+  mobileNavItems?: string[];
+  downloadPreference?: 'ask' | 'device' | 'app';
 }
 
 interface ThemeContextType {
@@ -151,6 +153,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         isGradient: true,
         speed: 1,
       },
+      downloadPreference: 'ask' as 'ask' | 'device' | 'app',
     };
     const saved = localStorage.getItem('nyra-settings');
     if (!saved) return defaults;
@@ -335,4 +338,4 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </ThemeContext.Provider>
   );
-};
+};

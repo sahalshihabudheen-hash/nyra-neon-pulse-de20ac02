@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2, RotateCcw, Sliders, Shield, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Palette, Volume2, ListMusic, Trash2, Waves, Blend, User, Camera, KeyRound, Loader2, RotateCcw, Sliders, Shield, Sparkles, Smartphone, Home, Search, Users, Heart, Gamepad2, Settings as SettingsIcon, Menu, Download } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme, themes, ThemeName, ProgressBarStyle } from '@/contexts/ThemeContext';
 import { Switch } from '@/components/ui/switch';
@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getAllOfflineTracks, clearAllOfflineTracks } from '@/lib/offlineStore';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const themePreview: Record<ThemeName, { label: string; color: string }> = {
   yellow: { label: 'Neon Yellow', color: 'hsl(50 100% 50%)' },
@@ -44,9 +46,88 @@ const Settings = () => {
     gradient,
     setGradient,
   } = useTheme();
+  
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'theme' | 'player' | 'navigation' | 'system'>('profile');
   const [activeTab, setActiveTab] = useState('settings');
   const [searchQuery, setSearchQuery] = useState('');
   const [previewPlaying, setPreviewPlaying] = useState(true);
+
+  const [offlineTrackCount, setOfflineTrackCount] = useState(0);
+  const [offlineTrackSize, setOfflineTrackSize] = useState(0);
+
+  // Load offline storage info
+  useEffect(() => {
+    const fetchOfflineInfo = async () => {
+      try {
+        const tracks = await getAllOfflineTracks();
+        setOfflineTrackCount(tracks.length);
+        const totalSize = tracks.reduce((acc, curr) => acc + curr.size, 0);
+        setOfflineTrackSize(totalSize);
+      } catch (err) {
+        console.error('Failed to query IndexedDB:', err);
+      }
+    };
+    fetchOfflineInfo();
+  }, [settingsTab]);
+
+  // Metadata for bottom navigation buttons
+  const navItemMetadata: Record<string, { label: string; icon: any }> = {
+    home: { label: 'Home', icon: Home },
+    search: { label: 'Search', icon: Search },
+    artists: { label: 'Artists', icon: Users },
+    playlists: { label: 'Playlists', icon: ListMusic },
+    favorites: { label: 'Favorites', icon: Heart },
+    offline: { label: 'Downloads', icon: Download },
+    'ai-dj': { label: 'AI DJ', icon: Sparkles },
+    games: { label: 'Games', icon: Gamepad2 },
+    settings: { label: 'Settings', icon: SettingsIcon },
+    admin: { label: 'Admin', icon: Shield },
+  };
+
+  const isMobile = useIsMobile();
+
+  const categories = [
+    { id: 'profile', label: '👤 Profile & Security', icon: User, description: 'Manage account, username, password and genres' },
+    { id: 'theme', label: '🎨 Theme & Lights', icon: Palette, description: 'Configure custom colors, angles, and RGB modes' },
+    { id: 'player', label: '🎵 Player Customizer', icon: Sliders, description: 'Tailor progress bars, soundwaves, and animations' },
+    ...(isMobile ? [{ id: 'navigation', label: '📱 Bottom Nav Bar', icon: Smartphone, description: 'Reorder bottom navigation buttons for mobile' }] : []),
+    { id: 'system', label: '💾 Backup & Cache', icon: RotateCcw, description: 'Clear player cache, export ZIP backups, and download APKs' },
+  ];
+
+  useEffect(() => {
+    if (!isMobile && settingsTab === 'navigation') {
+      setSettingsTab('profile');
+    }
+  }, [isMobile, settingsTab]);
+
+  const currentNavItems = settings.mobileNavItems || ['home', 'playlists', 'ai-dj', 'settings'];
+
+  const handleMoveItem = (index: number, direction: 'left' | 'right') => {
+    const newItems = [...currentNavItems];
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex >= 0 && targetIndex < newItems.length) {
+      const temp = newItems[index];
+      newItems[index] = newItems[targetIndex];
+      newItems[targetIndex] = temp;
+      updateSettings({ mobileNavItems: newItems });
+      toast.success('Navigation bar order updated successfully!');
+    }
+  };
+
+  const handleReplaceItem = (indexToReplace: number, newItemId: string) => {
+    const newItems = [...currentNavItems];
+    const existingIndex = newItems.indexOf(newItemId);
+    if (existingIndex !== -1) {
+      // Swap positions if it already exists to prevent duplicate entries!
+      const temp = newItems[indexToReplace];
+      newItems[indexToReplace] = newItems[existingIndex];
+      newItems[existingIndex] = temp;
+    } else {
+      newItems[indexToReplace] = newItemId;
+    }
+    updateSettings({ mobileNavItems: newItems });
+    toast.success('Button slots updated successfully!');
+  };
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -221,8 +302,36 @@ const Settings = () => {
             <SettingsSoundwave className="h-8" />
           </div>
 
-          {/* Account Section */}
-          <section className="mb-10">
+          {/* Beautiful Responsive Category Tabs */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3 mb-8">
+            {categories.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = settingsTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setSettingsTab(tab.id as any)}
+                  className={cn(
+                    "flex flex-col md:flex-row items-center md:items-start gap-2.5 p-3 rounded-xl border text-center md:text-left transition-all duration-300 cursor-pointer active:scale-95 touch-manipulation hover:bg-card/60",
+                    isActive
+                      ? "bg-primary/10 border-primary/40 text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.15)]"
+                      : "bg-card/30 border-border text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className={cn("w-4 h-4 shrink-0 mt-0.5", isActive ? "text-primary animate-pulse" : "text-muted-foreground")} />
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm font-semibold truncate leading-none md:leading-tight">{tab.label.split(' ').slice(1).join(' ')}</p>
+                    <p className="hidden md:block text-[10px] text-muted-foreground truncate mt-0.5">{tab.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {settingsTab === 'profile' && (
+            <div className="animate-fade-in space-y-6">
+              {/* Account Section */}
+              <section className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <User className="w-6 h-6 text-primary" />
               <h2 className="text-xl md:text-2xl font-semibold text-foreground">Account</h2>
@@ -416,9 +525,13 @@ const Settings = () => {
               </div>
             </div>
           </section>
+          </div>
+          )}
 
-          {/* Theme Selection */}
-          <section className="mb-10">
+          {settingsTab === 'theme' && (
+            <div className="animate-fade-in space-y-8">
+              {/* Theme Selection */}
+              <section className="mb-10">
             <div className="flex items-center gap-3 mb-6 flex-wrap">
               <Palette className="w-6 h-6 text-primary" />
               <h2 className="text-xl md:text-2xl font-semibold text-foreground">Theme</h2>
@@ -600,9 +713,13 @@ const Settings = () => {
               </div>
             </div>
           </section>
+          </div>
+          )}
 
-          {/* Progress Bar Style */}
-          <section className="mb-10">
+          {settingsTab === 'player' && (
+            <div className="animate-fade-in space-y-8">
+              {/* Progress Bar Style */}
+              <section className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <Sliders className="w-6 h-6 text-primary" />
               <h2 className="text-xl md:text-2xl font-semibold text-foreground">Progress Bar Style</h2>
@@ -756,9 +873,267 @@ const Settings = () => {
               </div>
             </div>
           </section>
+          </div>
+          )}
 
-          {/* Playlist Settings */}
-          <section className="mb-10">
+          {/* Mobile Bottom Navigation Bar customizer (NEW FEATURE) */}
+          {settingsTab === 'navigation' && (
+            <section className="mb-10 animate-fade-in">
+              <div className="flex items-center gap-3 mb-6">
+                <Smartphone className="w-6 h-6 text-primary" />
+                <h2 className="text-xl md:text-2xl font-semibold text-foreground">Bottom Nav Bar (Mobile Customizer)</h2>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Side: Mockup Preview of Phone Bottom Bar */}
+                <div className="lg:col-span-5 flex flex-col items-center">
+                  <div className="w-full max-w-[340px] bg-black/95 rounded-[2.5rem] border-[6px] border-[#222] p-4 pt-12 pb-6 shadow-[0_25px_60px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col justify-between aspect-[9/16] min-h-[480px]">
+                    {/* Speaker & Sensor */}
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-4 bg-[#222] rounded-full flex items-center justify-center gap-2">
+                      <div className="w-8 h-1 bg-[#111] rounded-full" />
+                      <div className="w-2 h-2 bg-[#111] rounded-full" />
+                    </div>
+
+                    {/* App Screen Content Mock */}
+                    <div className="flex-1 flex flex-col justify-center items-center p-6 text-center">
+                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mb-4 animate-pulse">
+                        <Smartphone className="w-6 h-6 text-primary" />
+                      </div>
+                      <h4 className="text-sm font-bold text-foreground mb-2">Live Mobile Preview</h4>
+                      <p className="text-xs text-muted-foreground">This is how your actual bottom navigation looks on mobile viewports. Customize and reorder the buttons below!</p>
+                    </div>
+
+                    {/* The Live Navigation Bar Inside Mock */}
+                    <div className="mt-auto bg-[#0a0a0c] border-t border-white/5 rounded-2xl h-16 px-1 flex items-center justify-around relative">
+                      {currentNavItems.map((itemId) => {
+                        const item = navItemMetadata[itemId] || navItemMetadata.home;
+                        const Icon = item.icon;
+                        return (
+                          <div
+                            key={itemId}
+                            className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground opacity-90"
+                          >
+                            <Icon className="w-4 h-4 mb-0.5 text-primary animate-pulse" />
+                            <span className="text-[8px] truncate max-w-[50px] leading-none">{item.label}</span>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* More Button */}
+                      <div className="flex flex-col items-center justify-center flex-1 h-full py-1 text-muted-foreground opacity-60">
+                        <Menu className="w-4 h-4 mb-0.5" />
+                        <span className="text-[8px] leading-none">More</span>
+                      </div>
+                    </div>
+
+                    {/* Home Indicator line */}
+                    <div className="w-32 h-1 bg-white/40 rounded-full mx-auto mt-4" />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-4 text-center max-w-[280px]">
+                    Changes are saved instantly and apply across all mobile layouts.
+                  </p>
+                </div>
+
+                {/* Right Side: Reordering & Replacement Controls */}
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
+                    <h3 className="text-base font-semibold text-foreground mb-2">Configure Slots</h3>
+                    <p className="text-xs text-muted-foreground mb-6">
+                      You can display exactly 4 buttons on your mobile bottom bar. Use the arrows to reorder, or click any available option to swap.
+                    </p>
+
+                    <div className="space-y-4">
+                      {currentNavItems.map((itemId, idx) => {
+                        const item = navItemMetadata[itemId] || navItemMetadata.home;
+                        const Icon = item.icon;
+                        return (
+                          <div 
+                            key={itemId} 
+                            className="flex items-center justify-between p-3 rounded-xl bg-background/50 border border-border hover:border-primary/20 transition-all gap-4"
+                          >
+                            {/* Slot Identifier & Content */}
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-xs font-bold text-primary bg-primary/10 w-6 h-6 rounded-lg flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <div className="w-8 h-8 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0">
+                                <Icon className="w-4 h-4 text-foreground" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground truncate">{item.label}</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Slot {idx + 1}</p>
+                              </div>
+                            </div>
+
+                            {/* Actions: Reorder & Select */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              {/* Move Left / Up */}
+                              <button
+                                onClick={() => handleMoveItem(idx, 'left')}
+                                disabled={idx === 0}
+                                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:text-primary transition-all cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none bg-card"
+                                title="Move Left"
+                              >
+                                <ArrowLeft className="w-4 h-4" />
+                              </button>
+
+                              {/* Move Right / Down */}
+                              <button
+                                onClick={() => handleMoveItem(idx, 'right')}
+                                disabled={idx === currentNavItems.length - 1}
+                                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:text-primary transition-all cursor-pointer active:scale-95 disabled:opacity-30 disabled:pointer-events-none bg-card"
+                                title="Move Right"
+                              >
+                                <ArrowRight className="w-4 h-4" />
+                              </button>
+
+                              {/* Replace options dropdown */}
+                              <select
+                                value={itemId}
+                                onChange={(e) => handleReplaceItem(idx, e.target.value)}
+                                className="h-8 text-xs bg-background border border-border rounded-lg px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                              >
+                                {Object.entries(navItemMetadata)
+                                  .filter(([key]) => key !== 'admin' || isAdmin)
+                                  .map(([key, meta]) => (
+                                    <option key={key} value={key}>
+                                      Replace with: {meta.label}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Preset Quick Actions */}
+                  <div className="bg-card rounded-xl p-4 md:p-6 border border-border">
+                    <h3 className="text-base font-semibold text-foreground mb-2">Quick Presets</h3>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Choose one of our hand-crafted button presets to instantly configure your layout:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          updateSettings({ mobileNavItems: ['home', 'playlists', 'ai-dj', 'settings'] });
+                          toast.success('Default Layout applied!');
+                        }}
+                        className="text-xs py-2 active:scale-95 text-center flex flex-col items-center justify-center gap-1 h-auto"
+                      >
+                        <span className="font-bold text-primary text-[10px]">Default Classic</span>
+                        <span className="text-[9px] text-muted-foreground">Home, Playlists, AI DJ, Settings</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          updateSettings({ mobileNavItems: ['home', 'search', 'favorites', 'playlists'] });
+                          toast.success('Discovery Layout applied!');
+                        }}
+                        className="text-xs py-2 active:scale-95 text-center flex flex-col items-center justify-center gap-1 h-auto"
+                      >
+                        <span className="font-bold text-primary text-[10px]">Active Listener</span>
+                        <span className="text-[9px] text-muted-foreground">Home, Search, Favorites, Playlists</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          updateSettings({ mobileNavItems: ['home', 'ai-dj', 'games', 'settings'] });
+                          toast.success('Fun & Play Layout applied!');
+                        }}
+                        className="text-xs py-2 active:scale-95 text-center flex flex-col items-center justify-center gap-1 h-auto"
+                      >
+                        <span className="font-bold text-primary text-[10px]">Entertaining DJ</span>
+                        <span className="text-[9px] text-muted-foreground">Home, AI DJ, Games, Settings</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {settingsTab === 'system' && (
+            <div className="animate-fade-in space-y-8">
+              {/* Offline Music Storage Settings */}
+              <section className="mb-10">
+                <div className="flex items-center gap-3 mb-6">
+                  <Download className="w-6 h-6 text-primary animate-pulse" />
+                  <h2 className="text-xl md:text-2xl font-semibold text-foreground">Offline Storage & Downloads</h2>
+                </div>
+
+                <div className="bg-card rounded-2xl p-6 border border-border space-y-6">
+                  {/* Download Preference Customizer */}
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground mb-1">Default Download Action</h3>
+                    <p className="text-xs text-muted-foreground mb-4">Choose what action to perform when clicking download on a song.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {[
+                        { id: 'ask', label: 'Ask Every Time', desc: 'Prompts to save inside app or direct device .mp3 download.' },
+                        { id: 'device', label: 'Always Device', desc: 'Triggers direct browser download as an .mp3 audio file.' },
+                        { id: 'app', label: 'Always App Cache', desc: 'Saves inside app database for completely offline player use.' }
+                      ].map((opt) => {
+                        const isSelected = (settings.downloadPreference || 'ask') === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            onClick={() => {
+                              updateSettings({ downloadPreference: opt.id as any });
+                              toast.success(`Download preference updated to: ${opt.label}`);
+                            }}
+                            className={`p-4 rounded-xl border text-left cursor-pointer transition-all ${
+                              isSelected 
+                                ? 'bg-primary/10 border-primary/40' 
+                                : 'bg-background border-border hover:border-muted-foreground/30'
+                            }`}
+                          >
+                            <h4 className="text-xs font-bold text-foreground mb-1">{opt.label}</h4>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">{opt.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-border/80" />
+
+                  {/* Cache and Storage Stats */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-foreground text-sm md:text-base">Manage Cached Music</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed max-w-lg mt-0.5">
+                        These tracks are saved inside IndexedDB browser cache. You currently have <strong className="text-foreground">{offlineTrackCount} tracks</strong> taking up <strong className="text-foreground">{(offlineTrackSize / (1024 * 1024)).toFixed(1)} MB</strong> of offline storage.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="destructive"
+                        onClick={async () => {
+                          if (offlineTrackCount === 0) {
+                            toast.info('No tracks to clear!');
+                            return;
+                          }
+                          if (confirm('Are you sure you want to delete ALL offline cached tracks?')) {
+                            await clearAllOfflineTracks();
+                            setOfflineTrackCount(0);
+                            setOfflineTrackSize(0);
+                            toast.success('Offline cache cleared successfully!');
+                          }
+                        }}
+                        className="flex items-center gap-2 active:scale-95 w-full sm:w-auto"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Clear Cached Music
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Playlist Settings */}
+              <section className="mb-10">
             <div className="flex items-center gap-3 mb-6">
               <ListMusic className="w-6 h-6 text-primary" />
               <h2 className="text-xl md:text-2xl font-semibold text-foreground">Playlist & Queue</h2>
@@ -863,6 +1238,8 @@ const Settings = () => {
               <p className="text-xs md:text-sm text-muted-foreground">NYRA - Feel the Pulse</p>
             </div>
           </section>
+            </div>
+          )}
         </main>
       </div>
     </div>

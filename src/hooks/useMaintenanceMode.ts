@@ -27,7 +27,7 @@ export function useMaintenanceMode() {
         });
       }
     } catch (err) {
-      console.error('Failed to fetch maintenance mode:', err);
+      console.warn('Failed to fetch maintenance mode:', err);
     } finally {
       setLoading(false);
     }

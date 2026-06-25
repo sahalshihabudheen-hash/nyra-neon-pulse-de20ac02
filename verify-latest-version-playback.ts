@@ -3,6 +3,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 async function verifyPlayback() {
   const videoId = 'kJQP7kiw5Fk'; // Despacito
   const backends = [
+    'https://inv.thepixora.com',
     'https://invidious.f5.si',
     'https://invidious.nerdvpn.de'
   ];

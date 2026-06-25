@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "NYRA Neon Pulse",
+  "description": "An interactive, ultra-responsive music player and audio streaming hub with dynamic visualizers, multi-source stream resolving, custom playlists, and DJ capabilities.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

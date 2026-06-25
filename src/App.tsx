@@ -24,6 +24,7 @@ import Games from "./pages/Games";
 import AiDj from "./pages/AiDj";
 import DjMode from "./pages/DjMode";
 import YouTubeArtistPage from "./pages/YouTubeArtistPage";
+import OfflineDownloads from "./pages/OfflineDownloads";
 
 import NotFound from "./pages/NotFound";
 
@@ -54,6 +55,7 @@ const App = () => (
                 <Route path="/dj" element={<DjMode />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/yt-artist/:channelId" element={<YouTubeArtistPage />} />
+                <Route path="/offline" element={<OfflineDownloads />} />
                 
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

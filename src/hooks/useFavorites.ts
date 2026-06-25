@@ -42,7 +42,7 @@ export function useFavorites() {
       if (error) throw error;
       setFavorites(data || []);
     } catch (error) {
-      console.error('Error fetching favorites:', error);
+      console.warn('Error fetching favorites:', error);
     } finally {
       setLoading(false);
     }

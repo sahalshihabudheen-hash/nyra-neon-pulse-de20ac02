@@ -1,1 +1,0 @@
-ALTER TABLE public.admin_chat_messages ADD COLUMN nameplate TEXT DEFAULT NULL;

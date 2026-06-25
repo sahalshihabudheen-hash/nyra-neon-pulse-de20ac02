@@ -59,7 +59,15 @@ const FloatingMiniPlayer = () => {
   const location = useLocation();
 
   // Hide mini player on pages that have their own full player
-  const hasFullPlayer = location.pathname === '/' || location.pathname.startsWith('/playlist/') || location.pathname === '/favorites' || location.pathname === '/dj';
+  const hasFullPlayer = 
+    location.pathname === '/' || 
+    location.pathname.startsWith('/playlist/') || 
+    location.pathname === '/favorites' || 
+    location.pathname === '/dj' ||
+    location.pathname === '/offline' ||
+    location.pathname === '/ai-dj' ||
+    location.pathname === '/games' ||
+    location.pathname.startsWith('/yt-artist/');
 
   const [isMobileSize, setIsMobileSize] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 640 : false);
   const [position, setPosition] = useState(() => ({

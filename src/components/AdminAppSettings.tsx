@@ -81,7 +81,7 @@ const AdminAppSettings = () => {
       });
       setSettings(newSettings);
     } catch (err) {
-      console.error('Failed to fetch app settings:', err);
+      console.warn('Failed to fetch app settings:', err);
     } finally {
       setLoading(false);
     }

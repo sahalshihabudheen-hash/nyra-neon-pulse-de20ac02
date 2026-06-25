@@ -52,7 +52,7 @@ export function useUserPreferences() {
         setShowTutorial(!data.tutorial_complete);
       }
     } catch (err) {
-      console.error('Failed to fetch preferences:', err);
+      console.warn('Failed to fetch preferences:', err);
     } finally {
       setLoading(false);
     }

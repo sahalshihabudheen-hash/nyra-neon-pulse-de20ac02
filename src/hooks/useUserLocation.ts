@@ -30,7 +30,7 @@ export function useUserLocation() {
         if (error) throw error;
         setLocation(data || null);
       } catch (err) {
-        console.error('Failed to fetch user location:', err);
+        console.warn('Failed to fetch user location:', err);
       } finally {
         setLoading(false);
       }

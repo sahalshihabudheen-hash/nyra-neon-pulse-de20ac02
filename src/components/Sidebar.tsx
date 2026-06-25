@@ -1,4 +1,4 @@
-import { Home, Search, ListMusic, Heart, Settings, Menu, X, Users, Shield, Gamepad2, Sparkles, AlertTriangle, Wand2, Headphones, Play, Disc3 } from 'lucide-react';
+import { Home, Search, ListMusic, Heart, Settings, Menu, X, Users, Shield, Gamepad2, Sparkles, AlertTriangle, Wand2, Headphones, Play, Disc3, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { gradient } = useTheme();
+  const { gradient, settings: userSettings } = useTheme();
   const { user } = useAuth();
   const { maintenance } = useMaintenanceMode();
   const { settings: appSettings } = useAppSettings();
@@ -45,6 +45,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     { id: 'artists', label: 'Artists', icon: Users, path: '/artists' },
     { id: 'playlists', label: 'Playlists', icon: ListMusic, path: '/playlists' },
     { id: 'favorites', label: 'Favorites', icon: Heart, path: '/favorites' },
+    { id: 'offline', label: 'Downloads', icon: Download, path: '/offline' },
     { id: 'ai-dj', label: 'AI DJ', icon: Sparkles, path: '/ai-dj' },
     { id: 'games', label: 'Games', icon: Gamepad2, path: '/games' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
@@ -75,6 +76,7 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
   const isItemActive = (item: typeof menuItems[0]) => {
     if (item.path === '/admin' && location.pathname === '/admin') return true;
     if (item.path === '/settings' && location.pathname === '/settings') return true;
+    if (item.path === '/offline' && location.pathname === '/offline') return true;
     if (item.path === '/games' && location.pathname === '/games') return true;
     if (item.path === '/ai-dj' && location.pathname === '/ai-dj') return true;
     if (item.id === 'playlists' && location.pathname.startsWith('/playlist')) return true;
@@ -92,7 +94,9 @@ const Sidebar = ({ activeTab, onTabChange }: SidebarProps) => {
     <>
       {/* Sleek Mobile Bottom Navigation Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-sidebar/95 backdrop-blur-xl border-t border-border z-[140] px-2 flex items-center justify-around pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        {allMenuItems.filter(item => ['home', 'playlists', 'ai-dj', 'settings'].includes(item.id)).map((item) => {
+        {(userSettings.mobileNavItems || ['home', 'playlists', 'ai-dj', 'settings']).map((itemId) => {
+          const item = allMenuItems.find(m => m.id === itemId);
+          if (!item) return null;
           const Icon = item.icon;
           const isActive = isItemActive(item) && !moreExpanded;
           return (

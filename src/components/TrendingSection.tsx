@@ -57,7 +57,7 @@ const TrendingSection = ({ onPlayTrack, currentTrack, isPlaying, onAddToQueue, i
 
       setTrendingTracks(results.slice(0, 20));
     } catch (error) {
-      console.error('Trending fetch error:', error);
+      console.warn('Trending fetch error:', error);
       // Fallback to youtube-search if get-trending fails
       try {
         const fallbackResponse = await fetch(
