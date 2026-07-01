@@ -39,7 +39,7 @@ interface Playlist {
 }
 
 const PlaylistView = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
 
