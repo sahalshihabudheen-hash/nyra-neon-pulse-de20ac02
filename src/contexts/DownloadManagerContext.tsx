@@ -343,17 +343,11 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
 
       try {
         toast.loading('Finding audio stream…', { id: `dl-app-${track.id}` });
-        const audioUrl = await resolveAudioUrl(track.id);
-        toast.dismiss(`dl-app-${track.id}`);
-
-        if (!audioUrl) {
-          throw new Error('Could not resolve audio stream. Try again in a moment.');
-        }
-
-        const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}`;
-        const audioBlob = await fetchAudioBlob(proxiedUrl, (p) =>
+        const streamUrl = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&stream=1`;
+        const { blob: audioBlob } = await fetchAudioBlob(streamUrl, (p) =>
           updateItem(track.id, { progress: Math.round(10 + p * 0.85) })
         );
+        toast.dismiss(`dl-app-${track.id}`);
 
         await saveTrackOffline(track, audioBlob);
         updateItem(track.id, { status: 'done', progress: 100 });
