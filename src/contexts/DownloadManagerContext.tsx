@@ -283,25 +283,22 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
       updateItem(track.id, { status: 'downloading', progress: 15 });
 
       try {
-        toast.loading('Finding audio stream…', { id: `dl-${track.id}` });
-        const audioUrl = await resolveAudioUrl(track.id);
-        toast.dismiss(`dl-${track.id}`);
+        // The edge function resolves the stream server-side and proxies it with CORS,
+        // so the browser never has to reach the IP-locked source directly.
+        toast.loading('Preparing download…', { id: `dl-${track.id}` });
+        const streamUrl = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&stream=1`;
 
-        if (!audioUrl) {
-          throw new Error('Could not resolve audio stream. Try again in a moment.');
-        }
-
-        updateItem(track.id, { progress: 80 });
-
-        // Try blob download first (gives proper .mp3 filename in most browsers)
+        // Try blob download first (gives a proper filename + progress in most browsers)
         let blobSuccess = false;
         try {
-          const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}`;
-          const blob = await fetchAudioBlob(proxiedUrl, (p) => updateItem(track.id, { progress: Math.round(10 + p * 0.7) }));
+          const { blob, mimeType } = await fetchAudioBlob(streamUrl, (p) =>
+            updateItem(track.id, { progress: Math.round(10 + p * 0.85) })
+          );
+          toast.dismiss(`dl-${track.id}`);
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = blobUrl;
-          link.download = `${sanitizeFilename(track.title)}.mp3`;
+          link.download = `${sanitizeFilename(track.title)}.${extForMime(mimeType)}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -311,11 +308,11 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
           console.warn('[Download] Blob fetch failed, falling back to direct link:', blobErr);
         }
 
-        // Fallback: direct browser link — browser handles download natively (no CORS restriction)
+        // Fallback: direct browser link — browser handles download natively
         if (!blobSuccess) {
+          toast.dismiss(`dl-${track.id}`);
           const link = document.createElement('a');
-          const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}&download=1&title=${encodeURIComponent(track.title)}`;
-          link.href = proxiedUrl;
+          link.href = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&download=1&title=${encodeURIComponent(track.title)}`;
           link.download = `${sanitizeFilename(track.title)}.mp3`;
           link.target = '_blank';
           link.rel = 'noreferrer noopener';
