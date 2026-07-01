@@ -23,6 +23,25 @@ const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; down
 const DJ_STREAM_TOAST_ID = 'dj-stream-resolve';
 const PLAYBACK_START_TIMEOUT_MS = 6500;
 
+const getTimeoutSignal = (ms: number): AbortSignal => AbortSignal.timeout(ms);
+
+const safelyParseJson = async <T,>(res: Response): Promise<T | null> => {
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+};
+
+const shuffle = <T,>(arr: T[]): T[] => {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
+
 async function raceFirstSuccess<T>(promises: Promise<T>[]): Promise<T> {
   return new Promise((resolve, reject) => {
     let resolved = false;
