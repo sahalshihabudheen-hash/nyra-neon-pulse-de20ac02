@@ -1001,7 +1001,7 @@ const Admin = () => {
                 <label className="text-sm font-medium">Email</label>
                 <Input
                   type="email"
-                  placeholder="admin@gmail.com"
+                  placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -1131,7 +1131,7 @@ const Admin = () => {
               <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">Health</span>
             </TabsTrigger>
-            {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && (
+            {isAdminLoggedIn && (
               <TabsTrigger value="logs" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
                 <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline">Logs</span>
@@ -1403,7 +1403,7 @@ const Admin = () => {
                                     {roleLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
                                   </Button>
                                 )}
-                                {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && u.email !== 'admin@gmail.com' && u.email !== 'sahalshihabudheen@gmail.com' && (
+                                {u.email !== user?.email && (
                                   <>
                                     <Button
                                       variant="ghost"
@@ -2113,7 +2113,7 @@ const Admin = () => {
                 </div>
 
                 {/* Auto-Maintenance - Main admin only */}
-                {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && (
+                {isAdminLoggedIn && (
                   <div className="pt-6 border-t border-border">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -2247,7 +2247,7 @@ const Admin = () => {
           </TabsContent>
 
           {/* Admin Activity Logs Tab - Main admin only */}
-          {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && (
+          {isAdminLoggedIn && (
             <TabsContent value="logs">
               <AdminActivityLogs />
             </TabsContent>
