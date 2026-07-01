@@ -115,6 +115,7 @@ export default function OfflineDownloads() {
       title: shuffled[0].title,
       thumbnail: shuffled[0].thumbnail,
       artist: shuffled[0].artist || 'Unknown Artist',
+      channel: shuffled[0].artist || 'Unknown Artist',
       duration: shuffled[0].duration || 0,
     };
     
@@ -123,6 +124,7 @@ export default function OfflineDownloads() {
       title: t.title,
       thumbnail: t.thumbnail,
       artist: t.artist || 'Unknown Artist',
+      channel: t.artist || 'Unknown Artist',
       duration: t.duration || 0,
     }));
     
