@@ -364,12 +364,7 @@ const Admin = () => {
         setLoading(false);
         return;
       }
-      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
-        setIsAdminLoggedIn(true);
-        setLoading(false);
-        return;
-      }
-      // Check database role
+      // Authorization is based solely on the database admin role.
       const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
       if (data) {
         setIsAdminLoggedIn(true);
