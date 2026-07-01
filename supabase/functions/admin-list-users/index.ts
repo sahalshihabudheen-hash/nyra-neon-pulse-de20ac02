@@ -36,7 +36,6 @@ serve(async (req) => {
       );
     }
 
-    const isAdminByEmail = user.email === "admin@gmail.com" || user.email === "sahalshihabudheen@gmail.com";
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
@@ -45,19 +44,13 @@ serve(async (req) => {
       .eq("role", "admin")
       .maybeSingle();
 
-    const isAdmin = isAdminByEmail || !!roleData;
+    const isAdmin = !!roleData;
 
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: "Access denied. Admin only." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    if (isAdminByEmail && !roleData) {
-      await supabaseAdmin
-        .from("user_roles")
-        .upsert({ user_id: user.id, role: "admin" }, { onConflict: "user_id,role" });
     }
 
     const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
