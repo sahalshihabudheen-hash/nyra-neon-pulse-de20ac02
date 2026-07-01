@@ -193,11 +193,12 @@ async function resolveAudioUrl(videoId: string): Promise<string | null> {
 async function fetchAudioBlob(
   audioUrl: string,
   onProgress: (p: number) => void
-): Promise<Blob> {
+): Promise<{ blob: Blob; mimeType: string }> {
   onProgress(10);
-  const response = await fetch(audioUrl, { signal: getTimeoutSignal(120_000) });
+  const response = await fetch(audioUrl, { signal: getTimeoutSignal(180_000) });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
+  const mimeType = (response.headers.get('content-type') || 'audio/webm').split(';')[0];
   const contentLength = response.headers.get('content-length');
   const total = contentLength ? parseInt(contentLength, 10) : 0;
   const reader = response.body?.getReader();
@@ -205,7 +206,7 @@ async function fetchAudioBlob(
   if (!reader) {
     const blob = await response.blob();
     if (blob.size < 50_000) throw new Error('File too small');
-    return blob;
+    return { blob, mimeType };
   }
 
   let received = 0;
@@ -219,10 +220,20 @@ async function fetchAudioBlob(
     else onProgress(50);
   }
 
-  const blob = new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
+  const blob = new Blob(chunks as BlobPart[], { type: mimeType });
   if (blob.size < 50_000) throw new Error('File too small');
-  return blob;
+  return { blob, mimeType };
 }
+
+// Edge-function endpoint that resolves + proxies YouTube audio server-side.
+// The browser's own IP can't reach the IP-locked stream, so we always go via the function.
+const AUDIO_FN_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
+
+const extForMime = (mimeType: string) => {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) return 'm4a';
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3';
+  return 'webm';
+};
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
