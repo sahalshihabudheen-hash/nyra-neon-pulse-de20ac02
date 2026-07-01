@@ -12,7 +12,7 @@ import { getTrackOffline, isTrackDownloadedOffline } from '@/lib/offlineStore';
 import { COBALT_INSTANCES, PIPED_INSTANCES } from '@/lib/instances';
 
 const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; download?: boolean; title?: string }) => {
-  const baseUrl = '/api/get-audio-url';
+  const baseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
   const params = new URLSearchParams({ videoId });
   if (options?.stream) params.append('stream', '1');
   if (options?.download) params.append('download', '1');
@@ -887,8 +887,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               return true;
             }
 
-            // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-            const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+            // Proxy the direct URL through our edge function to guarantee CORS compatibility!
+            const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
             success = await playAudioUrl(proxiedUrl, 'anonymous');
             if (success) {
               toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
@@ -1088,8 +1088,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
                 return true;
               }
 
-              // Proxy the direct URL through our Express server to guarantee CORS compatibility!
-              const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
+              // Proxy the direct URL through our edge function to guarantee CORS compatibility!
+              const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
               success = await playAudioUrl(proxiedUrl, 'anonymous');
               if (success) {
                 toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });

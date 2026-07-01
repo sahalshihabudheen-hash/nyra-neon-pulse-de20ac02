@@ -193,11 +193,12 @@ async function resolveAudioUrl(videoId: string): Promise<string | null> {
 async function fetchAudioBlob(
   audioUrl: string,
   onProgress: (p: number) => void
-): Promise<Blob> {
+): Promise<{ blob: Blob; mimeType: string }> {
   onProgress(10);
-  const response = await fetch(audioUrl, { signal: getTimeoutSignal(120_000) });
+  const response = await fetch(audioUrl, { signal: getTimeoutSignal(180_000) });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
+  const mimeType = (response.headers.get('content-type') || 'audio/webm').split(';')[0];
   const contentLength = response.headers.get('content-length');
   const total = contentLength ? parseInt(contentLength, 10) : 0;
   const reader = response.body?.getReader();
@@ -205,7 +206,7 @@ async function fetchAudioBlob(
   if (!reader) {
     const blob = await response.blob();
     if (blob.size < 50_000) throw new Error('File too small');
-    return blob;
+    return { blob, mimeType };
   }
 
   let received = 0;
@@ -219,10 +220,20 @@ async function fetchAudioBlob(
     else onProgress(50);
   }
 
-  const blob = new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
+  const blob = new Blob(chunks as BlobPart[], { type: mimeType });
   if (blob.size < 50_000) throw new Error('File too small');
-  return blob;
+  return { blob, mimeType };
 }
+
+// Edge-function endpoint that resolves + proxies YouTube audio server-side.
+// The browser's own IP can't reach the IP-locked stream, so we always go via the function.
+const AUDIO_FN_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
+
+const extForMime = (mimeType: string) => {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) return 'm4a';
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3';
+  return 'webm';
+};
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -272,25 +283,22 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
       updateItem(track.id, { status: 'downloading', progress: 15 });
 
       try {
-        toast.loading('Finding audio stream…', { id: `dl-${track.id}` });
-        const audioUrl = await resolveAudioUrl(track.id);
-        toast.dismiss(`dl-${track.id}`);
+        // The edge function resolves the stream server-side and proxies it with CORS,
+        // so the browser never has to reach the IP-locked source directly.
+        toast.loading('Preparing download…', { id: `dl-${track.id}` });
+        const streamUrl = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&stream=1`;
 
-        if (!audioUrl) {
-          throw new Error('Could not resolve audio stream. Try again in a moment.');
-        }
-
-        updateItem(track.id, { progress: 80 });
-
-        // Try blob download first (gives proper .mp3 filename in most browsers)
+        // Try blob download first (gives a proper filename + progress in most browsers)
         let blobSuccess = false;
         try {
-          const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}`;
-          const blob = await fetchAudioBlob(proxiedUrl, (p) => updateItem(track.id, { progress: Math.round(10 + p * 0.7) }));
+          const { blob, mimeType } = await fetchAudioBlob(streamUrl, (p) =>
+            updateItem(track.id, { progress: Math.round(10 + p * 0.85) })
+          );
+          toast.dismiss(`dl-${track.id}`);
           const blobUrl = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = blobUrl;
-          link.download = `${sanitizeFilename(track.title)}.mp3`;
+          link.download = `${sanitizeFilename(track.title)}.${extForMime(mimeType)}`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -300,11 +308,11 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
           console.warn('[Download] Blob fetch failed, falling back to direct link:', blobErr);
         }
 
-        // Fallback: direct browser link — browser handles download natively (no CORS restriction)
+        // Fallback: direct browser link — browser handles download natively
         if (!blobSuccess) {
+          toast.dismiss(`dl-${track.id}`);
           const link = document.createElement('a');
-          const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}&download=1&title=${encodeURIComponent(track.title)}`;
-          link.href = proxiedUrl;
+          link.href = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&download=1&title=${encodeURIComponent(track.title)}`;
           link.download = `${sanitizeFilename(track.title)}.mp3`;
           link.target = '_blank';
           link.rel = 'noreferrer noopener';
@@ -335,17 +343,11 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
 
       try {
         toast.loading('Finding audio stream…', { id: `dl-app-${track.id}` });
-        const audioUrl = await resolveAudioUrl(track.id);
-        toast.dismiss(`dl-app-${track.id}`);
-
-        if (!audioUrl) {
-          throw new Error('Could not resolve audio stream. Try again in a moment.');
-        }
-
-        const proxiedUrl = `/api/get-audio-url?proxyUrl=${encodeURIComponent(audioUrl)}`;
-        const audioBlob = await fetchAudioBlob(proxiedUrl, (p) =>
+        const streamUrl = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&stream=1`;
+        const { blob: audioBlob } = await fetchAudioBlob(streamUrl, (p) =>
           updateItem(track.id, { progress: Math.round(10 + p * 0.85) })
         );
+        toast.dismiss(`dl-app-${track.id}`);
 
         await saveTrackOffline(track, audioBlob);
         updateItem(track.id, { status: 'done', progress: 100 });
