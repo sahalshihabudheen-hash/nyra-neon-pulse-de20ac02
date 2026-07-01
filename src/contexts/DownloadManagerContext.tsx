@@ -235,6 +235,30 @@ const extForMime = (mimeType: string) => {
   return 'webm';
 };
 
+const resolveServerAudioUrl = async (track: { id: string; title: string }) => {
+  const response = await fetch(`${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}`, {
+    signal: getTimeoutSignal(25_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Audio link failed (HTTP ${response.status})`);
+  }
+  const data = await response.json();
+  const url = data?.audioUrl || data?.audioUrl1;
+  if (!url) throw new Error('No audio link found');
+  return { url, mimeType: data?.mimeType || 'audio/webm' };
+};
+
+const triggerBrowserDownload = (url: string, title: string, mimeType = 'audio/webm') => {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${sanitizeFilename(title)}.${extForMime(mimeType)}`;
+  link.target = '_blank';
+  link.rel = 'noreferrer noopener';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function DownloadManagerProvider({ children }: { children: React.ReactNode }) {
@@ -283,43 +307,16 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
       updateItem(track.id, { status: 'downloading', progress: 15 });
 
       try {
-        // The edge function resolves the stream server-side and proxies it with CORS,
-        // so the browser never has to reach the IP-locked source directly.
         toast.loading('Preparing download…', { id: `dl-${track.id}` });
-        const streamUrl = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&stream=1`;
+        let resolved = await resolveServerAudioUrl(track).catch(async () => {
+          const fallbackUrl = await resolveAudioUrl(track.id);
+          if (!fallbackUrl) throw new Error('Audio stream unavailable for this song');
+          return { url: fallbackUrl, mimeType: 'audio/webm' };
+        });
 
-        // Try blob download first (gives a proper filename + progress in most browsers)
-        let blobSuccess = false;
-        try {
-          const { blob, mimeType } = await fetchAudioBlob(streamUrl, (p) =>
-            updateItem(track.id, { progress: Math.round(10 + p * 0.85) })
-          );
-          toast.dismiss(`dl-${track.id}`);
-          const blobUrl = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = `${sanitizeFilename(track.title)}.${extForMime(mimeType)}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-          blobSuccess = true;
-        } catch (blobErr) {
-          console.warn('[Download] Blob fetch failed, falling back to direct link:', blobErr);
-        }
-
-        // Fallback: direct browser link — browser handles download natively
-        if (!blobSuccess) {
-          toast.dismiss(`dl-${track.id}`);
-          const link = document.createElement('a');
-          link.href = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&download=1&title=${encodeURIComponent(track.title)}`;
-          link.download = `${sanitizeFilename(track.title)}.mp3`;
-          link.target = '_blank';
-          link.rel = 'noreferrer noopener';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
+        toast.dismiss(`dl-${track.id}`);
+        updateItem(track.id, { progress: 95 });
+        triggerBrowserDownload(resolved.url, track.title, resolved.mimeType);
 
         updateItem(track.id, { status: 'done', progress: 100 });
         toast.success(`🎵 Download started: ${track.title}`);
@@ -343,10 +340,26 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
 
       try {
         toast.loading('Finding audio stream…', { id: `dl-app-${track.id}` });
-        const streamUrl = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&stream=1`;
-        const { blob: audioBlob } = await fetchAudioBlob(streamUrl, (p) =>
-          updateItem(track.id, { progress: Math.round(10 + p * 0.85) })
-        );
+        const resolved = await resolveServerAudioUrl(track).catch(async () => {
+          const fallbackUrl = await resolveAudioUrl(track.id);
+          if (!fallbackUrl) throw new Error('Audio stream unavailable for this song');
+          return { url: fallbackUrl, mimeType: 'audio/webm' };
+        });
+
+        let audioBlob: Blob | null = null;
+        try {
+          const result = await fetchAudioBlob(resolved.url, (p) =>
+            updateItem(track.id, { progress: Math.round(10 + p * 0.75) })
+          );
+          audioBlob = result.blob;
+        } catch (directErr) {
+          console.warn('[Download] Direct cache fetch failed, retrying via audio proxy:', directErr);
+          const streamUrl = `${AUDIO_FN_BASE}?videoId=${encodeURIComponent(track.id)}&stream=1`;
+          const result = await fetchAudioBlob(streamUrl, (p) =>
+            updateItem(track.id, { progress: Math.round(20 + p * 0.7) })
+          );
+          audioBlob = result.blob;
+        }
         toast.dismiss(`dl-app-${track.id}`);
 
         await saveTrackOffline(track, audioBlob);
@@ -357,7 +370,7 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
         console.error('[Download] In-app download failed:', err);
         toast.dismiss(`dl-app-${track.id}`);
         updateItem(track.id, { status: 'error', progress: 0 });
-        toast.error(err.message || 'Failed to save for offline. Please try again.');
+        toast.error(err.message || 'Failed to save for offline. Try Download to Device.');
         removeItem(track.id, 8_000);
       }
 

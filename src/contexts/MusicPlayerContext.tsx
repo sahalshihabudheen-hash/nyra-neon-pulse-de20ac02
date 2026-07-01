@@ -7,7 +7,6 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useListeningHistory } from '@/hooks/useListeningHistory';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTabTitle } from '@/hooks/useTabTitle';
-import { useDjAudio } from '@/hooks/useDjAudio';
 import { getTrackOffline, isTrackDownloadedOffline } from '@/lib/offlineStore';
 import { COBALT_INSTANCES, PIPED_INSTANCES } from '@/lib/instances';
 
@@ -20,7 +19,6 @@ const getAudioUrlEndpoint = (videoId: string, options?: { stream?: boolean; down
   return `${baseUrl}?${params.toString()}`;
 };
 
-const DJ_STREAM_TOAST_ID = 'dj-stream-resolve';
 const PLAYBACK_START_TIMEOUT_MS = 6500;
 
 const getTimeoutSignal = (ms: number): AbortSignal => AbortSignal.timeout(ms);
@@ -279,22 +277,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const [tracks, setTracks] = useState<Track[]>([]);
   const [playingFromPlaylist, setPlayingFromPlaylist] = useState(false);
   const [useBackgroundAudioMode, setUseBackgroundAudioModeState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('nyra-bg-audio-mode');
-      // Default to true now as requested by the user, providing full advanced features (EQ, split channels, crossfading) via Web Audio API.
-      return saved !== 'false';
-    }
-    return true;
+    return false;
   });
 
   const setUseBackgroundAudioMode = useCallback((val: boolean) => {
     setUseBackgroundAudioModeState(val);
     localStorage.setItem('nyra-bg-audio-mode', String(val));
-    if (val) {
-      toast.info('Advanced Music Engine activated (direct cloud stream rendering with full Web Audio EQ & crossfade).');
-    } else {
-      toast.info('Standard Music Engine activated (hybrid background fallback player).');
-    }
   }, []);
 
   const [useBackgroundAudioOnly, setUseBackgroundAudioOnlyState] = useState(false);
@@ -353,8 +341,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
   const handleNextRef = useRef<() => void>();
   const audioPlayAttemptRef = useRef(0);
 
-  const djAudio = useDjAudio(audioRef, isPlaying);
-
   const setPlaybackSource = useCallback((source: 'youtube' | 'background' | null) => {
     activeSourceRef.current = source;
     setActiveSource(source);
@@ -388,31 +374,17 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     if (wasPlaying) {
       targetAudio.play().then(() => {
         setIsPlaying(true);
-        if (target === 'primary') {
-          try {
-            djAudio.init();
-          } catch (err) {
-            console.warn('djAudio.init() on primary audio switch-back failed:', err);
-          }
-        }
       }).catch(err => {
         console.warn('[Audio Element Switch] Resume failed on target:', err);
       });
     }
-  }, [isPlaying, volume, isMuted, loopMode, djAudio]);
+  }, [isPlaying, volume, isMuted, loopMode]);
 
   const safePlay = useCallback(async (audio: HTMLAudioElement, shouldApply: () => boolean = () => true) => {
     try {
       await audio.play();
       if (!shouldApply()) return false;
       setIsPlaying(true);
-      if (audio === primaryAudioRef.current) {
-        try {
-          djAudio.init();
-        } catch (err) {
-          console.warn('djAudio.init() in safePlay failed:', err);
-        }
-      }
       return true;
     } catch (e: any) {
       if (e?.name === 'NotAllowedError') {
@@ -495,7 +467,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         const audio = new Audio();
         audio.id = 'primary-audio';
         audio.preload = 'auto';
-        audio.crossOrigin = 'anonymous'; // Critical for Web Audio API
         (audio as any).playsInline = true;
         audio.setAttribute('playsinline', 'true');
         audio.setAttribute('webkit-playsinline', 'true');
@@ -877,12 +848,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
         // 3. Fallback to high-performance client-side resolver (Cobalt / Piped / Invidious)
         try {
-          toast.info('Finding an optimal audio stream...', { id: DJ_STREAM_TOAST_ID });
+          toast.info('Finding an optimal audio stream...');
           const clientUrl = await resolveAudioUrlOnClient(videoId);
           if (clientUrl) {
             success = await playAudioUrl(clientUrl, 'anonymous');
             if (success) {
-              toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
+              toast.success('High-quality stream connected!');
               isResolvingStreamRef.current = false;
               return true;
             }
@@ -891,7 +862,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
             const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
             success = await playAudioUrl(proxiedUrl, 'anonymous');
             if (success) {
-              toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
+              toast.success('High-quality stream connected!');
               isResolvingStreamRef.current = false;
               return true;
             }
@@ -979,27 +950,6 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [ytApiReady, createPlayer, setPlaybackSource, playAudioUrl]);
 
-  // Handle visibility change (swipe home / lock phone / open game) to keep playback alive by forcing standard audio stream
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        console.log('[Visibility Change] Page hidden. Seamlessly switching to background audio element to guarantee uninterrupted play.');
-        switchToAudioElement('secondary');
-        // If we are playing on YouTube player, seamlessly switch to Background Audio Mode!
-        if (isPlaying && activeSourceRef.current === 'youtube' && currentTrack) {
-          playWithBackgroundAudio(currentTrack.id);
-        }
-      } else if (document.visibilityState === 'visible') {
-        console.log('[Visibility Change] Page visible. Seamlessly switching back to primary audio element for full Web Audio visualizers and DJ capabilities.');
-        switchToAudioElement('primary');
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isPlaying, currentTrack, playWithBackgroundAudio, switchToAudioElement]);
-
   const forceBackgroundPlayback = useCallback(async (track = currentTrack, options?: { trackList?: Track[]; fromPlaylist?: boolean }): Promise<boolean> => {
     if (!track || !audioRef.current) {
       toast.error('Play or select a song first');
@@ -1078,12 +1028,12 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
 
           // 3. Fallback to client-side resolver
           try {
-            toast.info('Finding an optimal audio stream...', { id: DJ_STREAM_TOAST_ID });
+            toast.info('Finding an optimal audio stream...');
             const clientUrl = await resolveAudioUrlOnClient(track.id);
             if (clientUrl) {
               success = await playAudioUrl(clientUrl, 'anonymous');
               if (success) {
-                toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
+                toast.success('High-quality stream connected!');
                 isResolvingStreamRef.current = false;
                 return true;
               }
@@ -1092,7 +1042,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
               const proxiedUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url?proxyUrl=${encodeURIComponent(clientUrl)}`;
               success = await playAudioUrl(proxiedUrl, 'anonymous');
               if (success) {
-                toast.success('High-quality stream connected!', { id: DJ_STREAM_TOAST_ID });
+                toast.success('High-quality stream connected!');
                 isResolvingStreamRef.current = false;
                 return true;
               }
@@ -1144,6 +1094,26 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, [currentTrack, setLastPlayed, recordPlay, setPlaybackSource, ytApiReady, createPlayer, playAudioUrl]);
 
+  const playStandardOrOffline = useCallback(async (trackId: string) => {
+    const isDownloaded = await isTrackDownloadedOffline(trackId);
+
+    if (isDownloaded || useBackgroundAudioOnlyRef.current || !navigator.onLine) {
+      playWithBackgroundAudio(trackId);
+      return;
+    }
+
+    if (audioRef.current) {
+      try {
+        audioRef.current.pause();
+        audioRef.current.removeAttribute('src');
+        audioRef.current.load();
+      } catch {}
+    }
+    setPlaybackSource('youtube');
+    if (ytApiReady) createPlayer(trackId);
+    else toast.error('Player not ready. Please try again.');
+  }, [playWithBackgroundAudio, ytApiReady, createPlayer, setPlaybackSource]);
+
   const handlePlayTrack = useCallback(async (track: Track, trackList?: Track[]) => {
     if (trackList) {
       setTracks(trackList);
@@ -1166,14 +1136,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return;
     }
 
-    if (isDownloaded || useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
-      setUseBackgroundAudioMode(true);
-      playWithBackgroundAudio(track.id);
-    } else {
-      setPlaybackSource('youtube');
-      if (ytApiReady) createPlayer(track.id);
-    }
-  }, [tracks, playWithBackgroundAudio, useBackgroundAudioMode, ytApiReady, createPlayer, setLastPlayed, recordPlay, setPlaybackSource]);
+    playStandardOrOffline(track.id);
+  }, [tracks, setLastPlayed, recordPlay, playStandardOrOffline]);
 
   const handlePlayFromPlaylist = useCallback(async (track: Track) => {
     setCurrentTrack(track);
@@ -1189,14 +1153,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       return;
     }
 
-    if (isDownloaded || useBackgroundAudioOnlyRef.current || useBackgroundAudioMode) {
-      setUseBackgroundAudioMode(true);
-      playWithBackgroundAudio(track.id);
-    } else {
-      setPlaybackSource('youtube');
-      if (ytApiReady) createPlayer(track.id);
-    }
-  }, [playWithBackgroundAudio, useBackgroundAudioMode, ytApiReady, createPlayer, setLastPlayed, recordPlay, setPlaybackSource]);
+    playStandardOrOffline(track.id);
+  }, [setLastPlayed, recordPlay, playStandardOrOffline]);
 
   const handlePlayPause = useCallback(async () => {
     // If we have a track but no active source is playing it yet, start it up!
@@ -1208,7 +1166,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       (forceBackground && activeSourceRef.current !== 'background') ||
       (activeSourceRef.current === 'background' && audioRef.current && !audioRef.current.src)
     )) {
-      if (forceBackground || useBackgroundAudioMode) {
+      if (forceBackground) {
         playWithBackgroundAudio(currentTrack.id);
       } else {
         setPlaybackSource('youtube');
@@ -1239,7 +1197,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       if (isPlaying) { ytPlayerRef.current.pauseVideo(); setIsPlaying(false); }
       else { ytPlayerRef.current.playVideo(); setIsPlaying(true); }
     } catch {}
-  }, [isPlaying, currentTrack, useBackgroundAudioMode, playWithBackgroundAudio, ytApiReady, createPlayer, safePlay]);
+  }, [isPlaying, currentTrack, playWithBackgroundAudio, ytApiReady, createPlayer, safePlay]);
 
   const cycleLoopMode = useCallback(() => {
     setLoopMode(prev => {
@@ -1249,7 +1207,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (loopMode === 'one' && currentTrack) {
       if (audioRef.current && audioRef.current.src) {
         audioRef.current.currentTime = 0;
@@ -1266,7 +1224,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       setCurrentTrack(nextFromQueue);
       setPlayingFromPlaylist(false);
       setLastPlayed(nextFromQueue.id);
-      playWithBackgroundAudio(nextFromQueue.id);
+      playStandardOrOffline(nextFromQueue.id);
       return;
     }
     if (playingFromPlaylist && currentTrack) {
@@ -1274,13 +1232,13 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       if (nextTrack) {
         setCurrentTrack(nextTrack);
         setLastPlayed(nextTrack.id);
-        playWithBackgroundAudio(nextTrack.id);
+        playStandardOrOffline(nextTrack.id);
         return;
       } else if (loopMode === 'all' && playlist.length > 0) {
         const firstTrack = playlist[0];
         setCurrentTrack(firstTrack);
         setLastPlayed(firstTrack.id);
-        playWithBackgroundAudio(firstTrack.id);
+        playStandardOrOffline(firstTrack.id);
         return;
       } else { setIsPlaying(false); toast.info('Playlist ended'); return; }
     }
@@ -1292,7 +1250,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
         setCurrentTrack(firstTrack);
         setCurrentTrackIndex(0);
         setLastPlayed(firstTrack.id);
-        playWithBackgroundAudio(firstTrack.id);
+        playStandardOrOffline(firstTrack.id);
         return;
       }
       setIsPlaying(false); toast.info('End of tracks'); return;
@@ -1302,8 +1260,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setCurrentTrackIndex(nextIndex);
     setPlayingFromPlaylist(false);
     setLastPlayed(nextTrack.id);
-    playWithBackgroundAudio(nextTrack.id);
-  }, [currentTrackIndex, tracks, playWithBackgroundAudio, playingFromPlaylist, currentTrack, getNextTrack, getNextFromQueue, playlist, setLastPlayed, loopMode, audioRef, ytPlayerRef]);
+    playStandardOrOffline(nextTrack.id);
+  }, [currentTrackIndex, tracks, playStandardOrOffline, playingFromPlaylist, currentTrack, getNextTrack, getNextFromQueue, playlist, setLastPlayed, loopMode, audioRef, ytPlayerRef]);
 
   useEffect(() => { handleNextRef.current = handleNext; }, [handleNext]);
 
@@ -1313,7 +1271,7 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
       if (prevTrack) {
         setCurrentTrack(prevTrack);
         setLastPlayed(prevTrack.id);
-        playWithBackgroundAudio(prevTrack.id);
+        playStandardOrOffline(prevTrack.id);
         return;
       }
     }
@@ -1324,8 +1282,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setCurrentTrackIndex(prevIndex);
     setPlayingFromPlaylist(false);
     setLastPlayed(prevTrack.id);
-    playWithBackgroundAudio(prevTrack.id);
-  }, [currentTrackIndex, tracks, playWithBackgroundAudio, playingFromPlaylist, currentTrack, getPreviousTrack, setLastPlayed, handleNext]);
+    playStandardOrOffline(prevTrack.id);
+  }, [currentTrackIndex, tracks, playStandardOrOffline, playingFromPlaylist, currentTrack, getPreviousTrack, setLastPlayed, handleNext]);
 
   useEffect(() => {
     handleNextRef.current = handleNext;
@@ -1358,8 +1316,8 @@ export function MusicPlayerProvider({ children }: { children: React.ReactNode })
     setCurrentTrack(track);
     setPlayingFromPlaylist(false);
     setLastPlayed(track.id);
-    playWithBackgroundAudio(track.id);
-  }, [removeFromQueue, setLastPlayed, playWithBackgroundAudio]);
+    playStandardOrOffline(track.id);
+  }, [removeFromQueue, setLastPlayed, playStandardOrOffline]);
 
   // Media Session API
   useEffect(() => {
