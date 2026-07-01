@@ -39,7 +39,7 @@ interface Playlist {
 }
 
 const PlaylistView = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
 
@@ -127,7 +127,7 @@ const PlaylistView = () => {
       const { data: playlistData, error: playlistError } = await supabase
         .from('playlists')
         .select('*')
-        .eq('id', id)
+        .eq('id', id!)
         .eq('user_id', user.id)
         .single();
 
@@ -137,7 +137,7 @@ const PlaylistView = () => {
       const { data: itemsData, error: itemsError } = await supabase
         .from('playlist_items')
         .select('*')
-        .eq('playlist_id', id)
+        .eq('playlist_id', id!)
         .order('position', { ascending: true });
 
       if (itemsError) throw itemsError;
@@ -202,7 +202,7 @@ const PlaylistView = () => {
       const { error } = await supabase
         .from('playlist_items')
         .delete()
-        .eq('playlist_id', id)
+        .eq('playlist_id', id!)
         .eq('track_id', trackId);
       if (error) throw error;
       toast.success('Track removed');
@@ -239,7 +239,7 @@ const PlaylistView = () => {
       if (exists) { toast.info('Track already in playlist'); return; }
       const nextPosition = playlistTracks.length;
       const { error } = await supabase.from('playlist_items').insert({
-        playlist_id: id,
+        playlist_id: id!,
         track_id: track.id,
         track_title: track.title,
         track_thumbnail: track.thumbnail,
@@ -286,7 +286,7 @@ const PlaylistView = () => {
     setDraggedIndex(null);
     try {
       for (let i = 0; i < reordered.length; i++) {
-        await supabase.from('playlist_items').update({ position: i }).eq('playlist_id', id).eq('track_id', reordered[i].id);
+        await supabase.from('playlist_items').update({ position: i }).eq('playlist_id', id!).eq('track_id', reordered[i].id);
       }
     } catch {}
   };
@@ -319,7 +319,7 @@ const PlaylistView = () => {
     if (touchDragIndex !== null) {
       try {
         for (let i = 0; i < playlistTracks.length; i++) {
-          await supabase.from('playlist_items').update({ position: i }).eq('playlist_id', id).eq('track_id', playlistTracks[i].id);
+          await supabase.from('playlist_items').update({ position: i }).eq('playlist_id', id!).eq('track_id', playlistTracks[i].id);
         }
       } catch {}
     }

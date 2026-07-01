@@ -364,12 +364,7 @@ const Admin = () => {
         setLoading(false);
         return;
       }
-      if (user.email === 'admin@gmail.com' || user.email === 'sahalshihabudheen@gmail.com') {
-        setIsAdminLoggedIn(true);
-        setLoading(false);
-        return;
-      }
-      // Check database role
+      // Authorization is based solely on the database admin role.
       const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' });
       if (data) {
         setIsAdminLoggedIn(true);
@@ -751,42 +746,23 @@ const Admin = () => {
     setError(null);
 
     try {
-      if (email !== 'admin@gmail.com' && email !== 'sahalshihabudheen@gmail.com') {
-        throw new Error('Invalid admin credentials. Only admin@gmail.com and sahalshihabudheen@gmail.com can access this.');
-      }
-
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) {
-        if (signInError.message?.includes('Invalid login credentials')) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: `${window.location.origin}/admin`,
-            },
-          });
+      if (signInError) throw signInError;
 
-          if (signUpError) throw signUpError;
-          
-          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
-          if (loginError) throw loginError;
-          
-          if (loginData.user) {
-            setIsAdminLoggedIn(true);
-            toast.success('Admin account created and logged in!');
-          }
-        } else {
-          throw signInError;
+      if (data.user) {
+        // Authorization is based solely on the database admin role.
+        const { data: hasAdmin } = await supabase.rpc('has_role', {
+          _user_id: data.user.id,
+          _role: 'admin',
+        });
+        if (!hasAdmin) {
+          await supabase.auth.signOut();
+          throw new Error('Access denied. You are not an admin.');
         }
-      } else if (data.user) {
         setIsAdminLoggedIn(true);
         toast.success('Logged in as admin');
         logAdminAction('login', 'Admin logged in to dashboard');
@@ -1025,7 +1001,7 @@ const Admin = () => {
                 <label className="text-sm font-medium">Email</label>
                 <Input
                   type="email"
-                  placeholder="admin@gmail.com"
+                  placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -1155,7 +1131,7 @@ const Admin = () => {
               <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden xs:inline">Health</span>
             </TabsTrigger>
-            {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && (
+            {isAdminLoggedIn && (
               <TabsTrigger value="logs" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
                 <ScrollText className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline">Logs</span>
@@ -1427,7 +1403,7 @@ const Admin = () => {
                                     {roleLoading === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
                                   </Button>
                                 )}
-                                {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && u.email !== 'admin@gmail.com' && u.email !== 'sahalshihabudheen@gmail.com' && (
+                                {u.email !== user?.email && (
                                   <>
                                     <Button
                                       variant="ghost"
@@ -2137,7 +2113,7 @@ const Admin = () => {
                 </div>
 
                 {/* Auto-Maintenance - Main admin only */}
-                {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && (
+                {isAdminLoggedIn && (
                   <div className="pt-6 border-t border-border">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -2271,7 +2247,7 @@ const Admin = () => {
           </TabsContent>
 
           {/* Admin Activity Logs Tab - Main admin only */}
-          {(user?.email === 'admin@gmail.com' || user?.email === 'sahalshihabudheen@gmail.com') && (
+          {isAdminLoggedIn && (
             <TabsContent value="logs">
               <AdminActivityLogs />
             </TabsContent>

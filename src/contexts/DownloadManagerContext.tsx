@@ -219,7 +219,7 @@ async function fetchAudioBlob(
     else onProgress(50);
   }
 
-  const blob = new Blob(chunks, { type: 'audio/mpeg' });
+  const blob = new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
   if (blob.size < 50_000) throw new Error('File too small');
   return blob;
 }
