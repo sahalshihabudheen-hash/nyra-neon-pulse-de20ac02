@@ -163,9 +163,9 @@ async function streamProxy(req: Request, sourceUrl: string, mimeType: string, do
   }
 }
 
-function returnJson(url: string) {
+function returnJson(url: string, mimeType: string) {
   return new Response(
-    JSON.stringify({ audioUrl: url, audioUrl1: url, success: true }),
+    JSON.stringify({ audioUrl: url, audioUrl1: url, mimeType, success: true }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
 }
@@ -214,7 +214,7 @@ serve(async (req) => {
       // Redirecting to it won't work from the browser's IP.
       return await streamProxy(req, streamInfo.url, streamInfo.mimeType, shouldDownload, title);
     } else {
-      return returnJson(streamInfo.url);
+      return returnJson(streamInfo.url, streamInfo.mimeType);
     }
   } catch (error: any) {
     return new Response(

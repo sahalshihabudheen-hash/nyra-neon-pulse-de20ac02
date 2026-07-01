@@ -22,7 +22,6 @@ import Favorites from "./pages/Favorites";
 import Admin from "./pages/Admin";
 import Games from "./pages/Games";
 import AiDj from "./pages/AiDj";
-import DjMode from "./pages/DjMode";
 import YouTubeArtistPage from "./pages/YouTubeArtistPage";
 import OfflineDownloads from "./pages/OfflineDownloads";
 
@@ -52,7 +51,6 @@ const App = () => (
                 <Route path="/favorites" element={<Favorites />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/ai-dj" element={<AiDj />} />
-                <Route path="/dj" element={<DjMode />} />
                 <Route path="/games" element={<Games />} />
                 <Route path="/yt-artist/:channelId" element={<YouTubeArtistPage />} />
                 <Route path="/offline" element={<OfflineDownloads />} />
