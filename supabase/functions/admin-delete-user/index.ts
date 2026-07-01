@@ -61,7 +61,6 @@ serve(async (req) => {
       });
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(target_user_id);
 
     if (deleteError) throw deleteError;
