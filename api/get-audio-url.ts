@@ -38,6 +38,21 @@ const COBALT_INSTANCES = [
   'https://cobalt.shite.xyz',
 ];
 
+const ITAG_MIME: Record<string, string> = {
+  '251': 'audio/webm',
+  '250': 'audio/webm',
+  '249': 'audio/webm',
+  '140': 'audio/mp4',
+};
+
+function companionizeInvidiousUrl(rawUrl: string) {
+  const secureUrl = rawUrl.replace(/^http:\/\//, 'https://');
+  if (secureUrl.includes('/companion/videoplayback')) return secureUrl;
+  return secureUrl
+    .replace('/videoplayback?', '/companion/videoplayback?')
+    .replace('/videoplayback/', '/companion/videoplayback/');
+}
+
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -78,6 +93,24 @@ async function tryPiped(inst: string, videoId: string): Promise<{ url: string; m
 }
 
 async function tryInvidious(inst: string, videoId: string): Promise<{ url: string; mimeType: string } | null> {
+  for (const itag of ['251', '140', '250', '249']) {
+    try {
+      const latestUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=${itag}`;
+      const res = await fetch(latestUrl, {
+        signal: withTimeout(5000),
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Range': 'bytes=0-1' },
+        redirect: 'follow',
+      });
+      if (res.ok || res.status === 206) {
+        try { await res.body?.cancel(); } catch {}
+        return {
+          url: companionizeInvidiousUrl(res.url || latestUrl),
+          mimeType: (res.headers.get('content-type') || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
+        };
+      }
+    } catch {}
+  }
+
   try {
     const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
       signal: withTimeout(4000),
@@ -88,7 +121,7 @@ async function tryInvidious(inst: string, videoId: string): Promise<{ url: strin
     const formats: any[] = data.adaptiveFormats || [];
     const audio = formats.find((f: any) => f.type?.startsWith('audio/mp4')) ||
                   formats.find((f: any) => f.type?.startsWith('audio/'));
-    return audio?.url ? { url: audio.url, mimeType: audio.type || 'audio/webm' } : null;
+    return audio?.url ? { url: companionizeInvidiousUrl(audio.url), mimeType: audio.type || 'audio/webm' } : null;
   } catch {
     return null;
   }
@@ -233,9 +266,18 @@ async function streamProxy(
     };
     if (range) upstreamHeaders['Range'] = range;
 
-    const upstream = await fetch(sourceUrl, { headers: upstreamHeaders });
+    const candidates = [sourceUrl];
+    const companionUrl = companionizeInvidiousUrl(sourceUrl);
+    if (companionUrl !== sourceUrl) candidates.push(companionUrl);
 
-    if (!upstream.ok && upstream.status !== 206) {
+    let upstream: Response | null = null;
+    for (const candidate of candidates) {
+      upstream = await fetch(candidate, { headers: upstreamHeaders, redirect: 'follow' });
+      if (upstream.ok || upstream.status === 206) break;
+      try { await upstream.body?.cancel(); } catch {}
+    }
+
+    if (!upstream || (!upstream.ok && upstream.status !== 206)) {
       return Response.redirect(sourceUrl, 302);
     }
 

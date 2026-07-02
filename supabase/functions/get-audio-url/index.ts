@@ -27,6 +27,21 @@ const CURATED_INVIDIOUS = [
 let cachedInstances: string[] | null = null;
 let cachedAt = 0;
 
+const ITAG_MIME: Record<string, string> = {
+  '251': 'audio/webm',
+  '250': 'audio/webm',
+  '249': 'audio/webm',
+  '140': 'audio/mp4',
+};
+
+function companionizeInvidiousUrl(rawUrl: string) {
+  const secureUrl = rawUrl.replace(/^http:\/\//, 'https://');
+  if (secureUrl.includes('/companion/videoplayback')) return secureUrl;
+  return secureUrl
+    .replace('/videoplayback?', '/companion/videoplayback?')
+    .replace('/videoplayback/', '/companion/videoplayback/');
+}
+
 async function getInvidiousInstances(): Promise<string[]> {
   const now = Date.now();
   if (cachedInstances && now - cachedAt < 10 * 60 * 1000) return cachedInstances;
@@ -55,6 +70,29 @@ async function getInvidiousInstances(): Promise<string[]> {
 async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; mimeType: string } | null> {
   const instances = await getInvidiousInstances();
   for (const inst of instances) {
+    for (const itag of ['251', '140', '250', '249']) {
+      try {
+        const latestUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=${itag}`;
+        const res = await fetch(latestUrl, {
+          signal: AbortSignal.timeout(8000),
+          headers: {
+            'User-Agent': 'Mozilla/5.0',
+            'Range': 'bytes=0-1',
+          },
+          redirect: 'follow',
+        });
+        if (res.ok || res.status === 206) {
+          try { await res.body?.cancel(); } catch { /* ignore */ }
+          return {
+            url: companionizeInvidiousUrl(res.url || latestUrl),
+            mimeType: (res.headers.get('content-type') || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
+          };
+        }
+      } catch {
+        continue;
+      }
+    }
+
     try {
       const res = await fetch(`${inst}/api/v1/videos/${videoId}?local=true`, {
         signal: AbortSignal.timeout(8000),
@@ -68,7 +106,7 @@ async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; m
       let best = audio[0];
       if (!best?.url) continue;
       // Invidious returns local-proxy URLs sometimes as http:// — force https
-      const url = best.url.replace(/^http:\/\//, 'https://');
+      const url = companionizeInvidiousUrl(best.url);
       return { url, mimeType: (best.type || 'audio/webm').split(';')[0] };
     } catch {
       continue;
@@ -127,12 +165,25 @@ async function streamProxy(req: Request, sourceUrl: string, mimeType: string, do
     };
     if (range) upstreamHeaders['Range'] = range;
 
-    // No timeout - let the stream run for the full song duration
-    const upstream = await fetch(sourceUrl, { headers: upstreamHeaders, redirect: 'follow' });
+    // Invidious API URLs without /companion can 403 when re-proxied. Retry the
+    // companion proxy path before surfacing a 502 to the browser.
+    const sourceCandidates = [sourceUrl];
+    const companionUrl = companionizeInvidiousUrl(sourceUrl);
+    if (companionUrl !== sourceUrl) sourceCandidates.push(companionUrl);
 
-    if (!upstream.ok && upstream.status !== 206) {
+    let upstream: Response | null = null;
+    let lastStatus = 0;
+    for (const candidate of sourceCandidates) {
+      // No timeout - let the stream run for the full song duration
+      upstream = await fetch(candidate, { headers: upstreamHeaders, redirect: 'follow' });
+      lastStatus = upstream.status;
+      if (upstream.ok || upstream.status === 206) break;
+      try { await upstream.body?.cancel(); } catch { /* ignore */ }
+    }
+
+    if (!upstream || (!upstream.ok && upstream.status !== 206)) {
       return new Response(
-        JSON.stringify({ error: `Upstream returned ${upstream.status}` }),
+        JSON.stringify({ error: `Upstream returned ${lastStatus || 'unknown'}` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

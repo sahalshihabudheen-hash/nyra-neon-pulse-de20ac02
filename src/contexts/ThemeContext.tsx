@@ -74,6 +74,7 @@ interface AppSettings {
   rgbConfig: RgbConfig;
   mobileNavItems?: string[];
   downloadPreference?: 'ask' | 'device' | 'app';
+  backgroundVideoBrightness: number;
 }
 
 interface ThemeContextType {
@@ -166,6 +167,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
         speed: 1,
       },
       downloadPreference: 'ask' as 'ask' | 'device' | 'app',
+      backgroundVideoBrightness: 30,
     };
     const saved = localStorage.getItem('nyra-settings');
     if (!saved) return defaults;
