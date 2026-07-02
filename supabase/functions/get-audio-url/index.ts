@@ -14,7 +14,6 @@ const corsHeaders = {
 // instance host, NOT googlevideo, so it is NOT IP-locked and CAN be re-proxied by
 // our edge function. This is the most reliable free path for raw audio right now.
 const CURATED_INVIDIOUS = [
-  'https://inv.thepixora.com',
   'https://invidious.nerdvpn.de',
   'https://yewtu.be',
   'https://invidious.jing.rocks',
