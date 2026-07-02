@@ -42,6 +42,16 @@ function companionizeInvidiousUrl(rawUrl: string) {
     .replace('/videoplayback/', '/companion/videoplayback/');
 }
 
+function extensionForMime(mimeType: string) {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) return 'm4a';
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3';
+  return 'webm';
+}
+
+function safeTitle(title: string) {
+  return (title || 'audio').replace(/[^\w\s-]/g, '').trim() || 'audio';
+}
+
 async function getInvidiousInstances(): Promise<string[]> {
   const now = Date.now();
   if (cachedInstances && now - cachedAt < 10 * 60 * 1000) return cachedInstances;
@@ -189,12 +199,13 @@ async function streamProxy(req: Request, sourceUrl: string, mimeType: string, do
     }
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', mimeType || upstream.headers.get('content-type') || 'audio/webm');
+    const resolvedMimeType = (mimeType || upstream.headers.get('content-type') || 'audio/webm').split(';')[0];
+    responseHeaders.set('Content-Type', resolvedMimeType);
     responseHeaders.set('Accept-Ranges', 'bytes');
     responseHeaders.set('Cache-Control', 'no-cache');
 
     if (download) {
-      responseHeaders.set('Content-Disposition', `attachment; filename="${title.replace(/[^\w\s-]/g, '')}.mp3"`);
+      responseHeaders.set('Content-Disposition', `attachment; filename="${safeTitle(title)}.${extensionForMime(resolvedMimeType)}"`);
     }
 
     const contentLength = upstream.headers.get('content-length');

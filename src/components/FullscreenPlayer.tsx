@@ -346,8 +346,12 @@ const FullscreenPlayer = ({
                 style={{ opacity: Math.max(0, Math.min(100, settings.backgroundVideoBrightness ?? 30)) / 100 }}
               >
                 <iframe
-                  className="absolute left-1/2 top-1/2 h-[100dvh] w-[177.78dvh] min-h-[56.25vw] min-w-full -translate-x-1/2 -translate-y-1/2 border-0 pointer-events-none select-none"
-                  src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&disablekb=1`}
+                  className="absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 border-0 pointer-events-none select-none"
+                  style={{
+                    width: 'max(100vw, 177.78dvh)',
+                    height: 'max(100dvh, 56.25vw)',
+                  }}
+                  src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&disablekb=1&playsinline=1`}
                   title="Fullscreen Video Background"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

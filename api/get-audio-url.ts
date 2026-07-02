@@ -53,6 +53,16 @@ function companionizeInvidiousUrl(rawUrl: string) {
     .replace('/videoplayback/', '/companion/videoplayback/');
 }
 
+function extensionForMime(mimeType: string) {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) return 'm4a';
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3';
+  return 'webm';
+}
+
+function safeTitle(title: string) {
+  return (title || 'audio').replace(/[^\w\s-]/g, '').trim() || 'audio';
+}
+
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -278,15 +288,19 @@ async function streamProxy(
     }
 
     if (!upstream || (!upstream.ok && upstream.status !== 206)) {
-      return Response.redirect(sourceUrl, 302);
+      return new Response(JSON.stringify({ error: `Upstream returned ${upstream?.status || 'unknown'}` }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', mimeType || upstream.headers.get('content-type') || 'audio/webm');
+    const resolvedMimeType = (mimeType || upstream.headers.get('content-type') || 'audio/webm').split(';')[0];
+    responseHeaders.set('Content-Type', resolvedMimeType);
     responseHeaders.set('Accept-Ranges', 'bytes');
     responseHeaders.set('Cache-Control', 'no-cache');
     if (download) {
-      responseHeaders.set('Content-Disposition', `attachment; filename="${title.replace(/[^\w\s-]/g, '')}.mp3"`);
+      responseHeaders.set('Content-Disposition', `attachment; filename="${safeTitle(title)}.${extensionForMime(resolvedMimeType)}"`);
     }
     const contentLength = upstream.headers.get('content-length');
     const contentRange = upstream.headers.get('content-range');
@@ -294,8 +308,11 @@ async function streamProxy(
     if (contentRange) responseHeaders.set('Content-Range', contentRange);
 
     return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
-  } catch {
-    return Response.redirect(sourceUrl, 302);
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: `Stream proxy failed: ${error.message}` }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 }
 

@@ -226,8 +226,12 @@ async function fetchAudioBlob(
 }
 
 // Edge-function endpoint that resolves + proxies YouTube audio server-side.
-// The browser's own IP can't reach the IP-locked stream, so we always go via the function.
-const AUDIO_FN_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-audio-url`;
+// Prefer Supabase when configured; fall back to the Vercel /api route so exports
+// still work if the app is deployed without VITE_SUPABASE_URL.
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+const AUDIO_FN_BASE = SUPABASE_URL
+  ? `${SUPABASE_URL}/functions/v1/get-audio-url`
+  : '/api/get-audio-url';
 
 const buildAudioFunctionUrl = (
   track: { id: string; title: string },
@@ -269,6 +273,7 @@ const assertDownloadUrlReady = async (url: string) => {
   if (!response.ok && response.status !== 206) {
     throw new Error(`HTTP ${response.status}`);
   }
+  return (response.headers.get('content-type') || 'audio/webm').split(';')[0];
 };
 
 const triggerBrowserDownload = (url: string, title: string, mimeType = 'audio/webm') => {
@@ -331,17 +336,22 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
 
       try {
         toast.loading('Preparing download…', { id: `dl-${track.id}` });
-        let downloadUrl = buildAudioFunctionUrl(track, { download: true });
+        let downloadUrl = '';
         let mimeType = 'audio/webm';
 
         try {
-          await assertDownloadUrlReady(downloadUrl);
+          const serverAudio = await resolveServerAudioUrl(track);
+          mimeType = serverAudio.mimeType;
+          // Lock the browser download to the exact stream that passed resolve.
+          // This avoids a second random resolve on the final download request.
+          downloadUrl = buildAudioFunctionUrl(track, { proxyUrl: serverAudio.url, download: true });
+          mimeType = await assertDownloadUrlReady(downloadUrl);
         } catch (primaryErr) {
           console.warn('[Download] Primary proxy preflight failed, trying client-resolved proxy:', primaryErr);
           const fallbackUrl = await resolveAudioUrl(track.id);
           if (!fallbackUrl) throw new Error('Audio stream unavailable for this song');
           downloadUrl = buildAudioFunctionUrl(track, { proxyUrl: fallbackUrl, download: true });
-          await assertDownloadUrlReady(downloadUrl);
+          mimeType = await assertDownloadUrlReady(downloadUrl);
         }
 
         toast.dismiss(`dl-${track.id}`);
@@ -373,7 +383,8 @@ export function DownloadManagerProvider({ children }: { children: React.ReactNod
 
         let audioBlob: Blob | null = null;
         try {
-          const streamUrl = buildAudioFunctionUrl(track, { stream: true });
+          const serverAudio = await resolveServerAudioUrl(track);
+          const streamUrl = buildAudioFunctionUrl(track, { proxyUrl: serverAudio.url, stream: true });
           const result = await fetchAudioBlob(streamUrl, (p) =>
             updateItem(track.id, { progress: Math.round(10 + p * 0.75) })
           );
