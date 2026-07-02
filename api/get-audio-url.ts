@@ -63,6 +63,11 @@ function safeTitle(title: string) {
   return (title || 'audio').replace(/[^\w\s-]/g, '').trim() || 'audio';
 }
 
+function looksLikeAudio(contentType: string | null, url = '') {
+  const type = (contentType || '').toLowerCase();
+  return type.startsWith('audio/') || type.includes('octet-stream') || url.includes('/videoplayback');
+}
+
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -111,13 +116,15 @@ async function tryInvidious(inst: string, videoId: string): Promise<{ url: strin
         headers: { 'User-Agent': 'Mozilla/5.0', 'Range': 'bytes=0-1' },
         redirect: 'follow',
       });
-      if (res.ok || res.status === 206) {
+      const contentType = res.headers.get('content-type');
+      if ((res.ok || res.status === 206) && looksLikeAudio(contentType, res.url || latestUrl)) {
         try { await res.body?.cancel(); } catch {}
         return {
           url: companionizeInvidiousUrl(res.url || latestUrl),
-          mimeType: (res.headers.get('content-type') || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
+          mimeType: (contentType || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
         };
       }
+      try { await res.body?.cancel(); } catch {}
     } catch {}
   }
 

@@ -34,6 +34,12 @@ const ITAG_MIME: Record<string, string> = {
   '140': 'audio/mp4',
 };
 
+const COBALT_INSTANCES = [
+  'https://api.cobalt.tools',
+  'https://cobalt.api.ryboflops.lol',
+  'https://co.wuk.sh',
+];
+
 function companionizeInvidiousUrl(rawUrl: string) {
   const secureUrl = rawUrl.replace(/^http:\/\//, 'https://');
   if (secureUrl.includes('/companion/videoplayback')) return secureUrl;
@@ -50,6 +56,11 @@ function extensionForMime(mimeType: string) {
 
 function safeTitle(title: string) {
   return (title || 'audio').replace(/[^\w\s-]/g, '').trim() || 'audio';
+}
+
+function looksLikeAudio(contentType: string | null, url = '') {
+  const type = (contentType || '').toLowerCase();
+  return type.startsWith('audio/') || type.includes('octet-stream') || url.includes('/videoplayback');
 }
 
 async function getInvidiousInstances(): Promise<string[]> {
@@ -91,13 +102,15 @@ async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; m
           },
           redirect: 'follow',
         });
-        if (res.ok || res.status === 206) {
+        const contentType = res.headers.get('content-type');
+        if ((res.ok || res.status === 206) && looksLikeAudio(contentType, res.url || latestUrl)) {
           try { await res.body?.cancel(); } catch { /* ignore */ }
           return {
             url: companionizeInvidiousUrl(res.url || latestUrl),
-            mimeType: (res.headers.get('content-type') || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
+            mimeType: (contentType || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
           };
         }
+        try { await res.body?.cancel(); } catch { /* ignore */ }
       } catch {
         continue;
       }
@@ -111,7 +124,7 @@ async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; m
       if (!res.ok) continue;
       const data = await res.json();
       const audio = (data.adaptiveFormats || [])
-        .filter((f: any) => (f.type || '').startsWith('audio/'))
+        .filter((f: any) => (f.type || '').startsWith('audio/') && f.url)
         .sort((a: any, b: any) => Number(b.bitrate || 0) - Number(a.bitrate || 0));
       let best = audio[0];
       if (!best?.url) continue;
@@ -120,6 +133,28 @@ async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; m
       return { url, mimeType: (best.type || 'audio/webm').split(';')[0] };
     } catch {
       continue;
+    }
+  }
+  return null;
+}
+
+async function fetchViaCobalt(videoId: string): Promise<{ url: string; mimeType: string } | null> {
+  for (const inst of COBALT_INSTANCES) {
+    for (const [endpoint, body] of [
+      [`${inst}/`, JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}`, downloadMode: 'audio', audioFormat: 'mp3', audioBitrate: '128' })],
+      [`${inst}/api/json`, JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}`, isAudioOnly: true, downloadMode: 'audio', audioFormat: 'mp3', audioQuality: '128' })],
+    ] as [string, string][]) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body,
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (data?.url) return { url: data.url, mimeType: 'audio/mpeg' };
+      } catch { /* try next */ }
     }
   }
   return null;
@@ -159,6 +194,8 @@ async function getStreamInfo(videoId: string): Promise<{ url: string; mimeType: 
   if (inv) return inv;
   const piped = await fetchViaPiped(videoId);
   if (piped) return piped;
+  const cobalt = await fetchViaCobalt(videoId);
+  if (cobalt) return cobalt;
   return null;
 }
 
