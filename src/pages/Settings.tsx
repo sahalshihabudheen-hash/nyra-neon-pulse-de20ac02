@@ -867,6 +867,32 @@ const Settings = () => {
                   />
                 </div>
               </div>
+
+              <div className="border-t border-border pt-4">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground text-sm md:text-base">Fullscreen Video Brightness</p>
+                      <p className="text-xs md:text-sm text-muted-foreground">Adjust the muted background video behind the full-screen player</p>
+                    </div>
+                    <span className="text-sm font-bold text-primary tabular-nums min-w-12 text-right">
+                      {settings.backgroundVideoBrightness ?? 30}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[settings.backgroundVideoBrightness ?? 30]}
+                    onValueChange={([value]) => updateSettings({ backgroundVideoBrightness: value })}
+                    min={0}
+                    max={100}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-widest">
+                    <span>Dim</span>
+                    <span>Bright</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
           </div>

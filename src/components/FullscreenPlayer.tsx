@@ -341,10 +341,17 @@ const FullscreenPlayer = ({
           <>
             {/* Ambient Background Video or Offline/Downloaded Music Theme Visualizer */}
             {isOnline && !isOfflineTrack ? (
-              <div className="absolute inset-0 w-full h-full opacity-30 pointer-events-none scale-[1.35]">
+              <div
+                className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden"
+                style={{ opacity: Math.max(0, Math.min(100, settings.backgroundVideoBrightness ?? 30)) / 100 }}
+              >
                 <iframe
-                  className="w-full h-full object-cover pointer-events-none select-none"
-                  src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&disablekb=1`}
+                  className="absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 border-0 pointer-events-none select-none"
+                  style={{
+                    width: 'max(100vw, 177.78dvh)',
+                    height: 'max(100dvh, 56.25vw)',
+                  }}
+                  src={`https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentTrack.id}&modestbranding=1&rel=0&iv_load_policy=3&showinfo=0&disablekb=1&playsinline=1`}
                   title="Fullscreen Video Background"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

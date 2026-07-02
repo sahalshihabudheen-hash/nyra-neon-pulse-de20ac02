@@ -38,6 +38,51 @@ const COBALT_INSTANCES = [
   'https://cobalt.shite.xyz',
 ];
 
+const ITAG_MIME: Record<string, string> = {
+  '251': 'audio/webm',
+  '250': 'audio/webm',
+  '249': 'audio/webm',
+  '140': 'audio/mp4',
+};
+
+function companionizeInvidiousUrl(rawUrl: string) {
+  const secureUrl = rawUrl.replace(/^http:\/\//, 'https://');
+  if (secureUrl.includes('/companion/videoplayback')) return secureUrl;
+  return secureUrl
+    .replace('/videoplayback?', '/companion/videoplayback?')
+    .replace('/videoplayback/', '/companion/videoplayback/');
+}
+
+function extensionForMime(mimeType: string) {
+  if (mimeType.includes('mp4') || mimeType.includes('m4a') || mimeType.includes('aac')) return 'm4a';
+  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3';
+  return 'webm';
+}
+
+function safeTitle(title: string) {
+  return (title || 'audio').replace(/[^\w\s-]/g, '').trim() || 'audio';
+}
+
+function looksLikeAudio(contentType: string | null, url = '') {
+  const type = (contentType || '').toLowerCase();
+  return type.startsWith('audio/') || type.includes('octet-stream') || url.includes('/videoplayback');
+}
+
+async function canProxyAudio(url: string) {
+  try {
+    const res = await fetch(url, {
+      signal: withTimeout(7000),
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Range': 'bytes=0-1', 'Accept': '*/*' },
+      redirect: 'follow',
+    });
+    const ok = (res.ok || res.status === 206) && looksLikeAudio(res.headers.get('content-type'), res.url || url);
+    try { await res.body?.cancel(); } catch {}
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -78,6 +123,28 @@ async function tryPiped(inst: string, videoId: string): Promise<{ url: string; m
 }
 
 async function tryInvidious(inst: string, videoId: string): Promise<{ url: string; mimeType: string } | null> {
+  for (const itag of ['251', '140', '250', '249']) {
+    try {
+      const latestUrl = `${inst}/latest_version?id=${videoId}&local=true&itag=${itag}`;
+      const res = await fetch(latestUrl, {
+        signal: withTimeout(5000),
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Range': 'bytes=0-1' },
+        redirect: 'follow',
+      });
+      const contentType = res.headers.get('content-type');
+      if ((res.ok || res.status === 206) && looksLikeAudio(contentType, res.url || latestUrl)) {
+        try { await res.body?.cancel(); } catch {}
+        const candidate = companionizeInvidiousUrl(res.url || latestUrl);
+        if (!(await canProxyAudio(candidate))) continue;
+        return {
+          url: candidate,
+          mimeType: (contentType || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
+        };
+      }
+      try { await res.body?.cancel(); } catch {}
+    } catch {}
+  }
+
   try {
     const res = await fetch(`${inst}/api/v1/videos/${videoId}`, {
       signal: withTimeout(4000),
@@ -88,7 +155,9 @@ async function tryInvidious(inst: string, videoId: string): Promise<{ url: strin
     const formats: any[] = data.adaptiveFormats || [];
     const audio = formats.find((f: any) => f.type?.startsWith('audio/mp4')) ||
                   formats.find((f: any) => f.type?.startsWith('audio/'));
-    return audio?.url ? { url: audio.url, mimeType: audio.type || 'audio/webm' } : null;
+    if (!audio?.url) return null;
+    const candidate = companionizeInvidiousUrl(audio.url);
+    return (await canProxyAudio(candidate)) ? { url: candidate, mimeType: audio.type || 'audio/webm' } : null;
   } catch {
     return null;
   }
@@ -233,18 +302,31 @@ async function streamProxy(
     };
     if (range) upstreamHeaders['Range'] = range;
 
-    const upstream = await fetch(sourceUrl, { headers: upstreamHeaders });
+    const candidates = [sourceUrl];
+    const companionUrl = companionizeInvidiousUrl(sourceUrl);
+    if (companionUrl !== sourceUrl) candidates.push(companionUrl);
 
-    if (!upstream.ok && upstream.status !== 206) {
-      return Response.redirect(sourceUrl, 302);
+    let upstream: Response | null = null;
+    for (const candidate of candidates) {
+      upstream = await fetch(candidate, { headers: upstreamHeaders, redirect: 'follow' });
+      if (upstream.ok || upstream.status === 206) break;
+      try { await upstream.body?.cancel(); } catch {}
+    }
+
+    if (!upstream || (!upstream.ok && upstream.status !== 206)) {
+      return new Response(JSON.stringify({ error: `Upstream returned ${upstream?.status || 'unknown'}` }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const responseHeaders = new Headers(corsHeaders);
-    responseHeaders.set('Content-Type', mimeType || upstream.headers.get('content-type') || 'audio/webm');
+    const resolvedMimeType = (mimeType || upstream.headers.get('content-type') || 'audio/webm').split(';')[0];
+    responseHeaders.set('Content-Type', resolvedMimeType);
     responseHeaders.set('Accept-Ranges', 'bytes');
     responseHeaders.set('Cache-Control', 'no-cache');
     if (download) {
-      responseHeaders.set('Content-Disposition', `attachment; filename="${title.replace(/[^\w\s-]/g, '')}.mp3"`);
+      responseHeaders.set('Content-Disposition', `attachment; filename="${safeTitle(title)}.${extensionForMime(resolvedMimeType)}"`);
     }
     const contentLength = upstream.headers.get('content-length');
     const contentRange = upstream.headers.get('content-range');
@@ -252,8 +334,11 @@ async function streamProxy(
     if (contentRange) responseHeaders.set('Content-Range', contentRange);
 
     return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
-  } catch {
-    return Response.redirect(sourceUrl, 302);
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: `Stream proxy failed: ${error.message}` }), {
+      status: 502,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 }
 
@@ -265,42 +350,14 @@ export default async function handler(req: Request) {
   try {
     const url = new URL(req.url);
 
-    // Generic CORS proxy
+    // Generic audio proxy for an already-resolved URL. Keep this path using the
+    // same streamProxy helper so Vercel gets the same Invidious /companion retry
+    // behavior as the Supabase edge function.
     const proxyUrl = url.searchParams.get('proxyUrl');
     if (proxyUrl) {
-      try {
-        const decodedUrl = decodeURIComponent(proxyUrl);
-        const range = req.headers.get('range');
-        const upstreamHeaders: Record<string, string> = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': '*/*',
-        };
-        if (range) upstreamHeaders['Range'] = range;
-
-        const upstream = await fetch(decodedUrl, { headers: upstreamHeaders });
-        const responseHeaders = new Headers(corsHeaders);
-        responseHeaders.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
-        responseHeaders.set('Accept-Ranges', 'bytes');
-        responseHeaders.set('Cache-Control', 'no-cache');
-        
-        const shouldDownload = url.searchParams.get('download') === '1';
-        const title = url.searchParams.get('title') || 'audio';
-        if (shouldDownload) {
-          responseHeaders.set('Content-Disposition', `attachment; filename="${title.replace(/[^\w\s-]/g, '')}.mp3"`);
-        }
-
-        const contentLength = upstream.headers.get('content-length');
-        const contentRange = upstream.headers.get('content-range');
-        if (contentLength) responseHeaders.set('Content-Length', contentLength);
-        if (contentRange) responseHeaders.set('Content-Range', contentRange);
-
-        return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
-      } catch (proxyErr: any) {
-        return new Response(JSON.stringify({ error: proxyErr.message }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      const shouldDownload = url.searchParams.get('download') === '1';
+      const title = url.searchParams.get('title') || 'audio';
+      return await streamProxy(req, proxyUrl, '', shouldDownload, title);
     }
 
     let videoId = url.searchParams.get('videoId') || url.searchParams.get('id') || '';
@@ -333,7 +390,7 @@ export default async function handler(req: Request) {
     }
 
     return new Response(
-      JSON.stringify({ audioUrl: streamInfo.url, audioUrl1: streamInfo.url, success: true }),
+      JSON.stringify({ audioUrl: streamInfo.url, audioUrl1: streamInfo.url, mimeType: streamInfo.mimeType, success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
