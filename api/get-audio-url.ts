@@ -68,6 +68,21 @@ function looksLikeAudio(contentType: string | null, url = '') {
   return type.startsWith('audio/') || type.includes('octet-stream') || url.includes('/videoplayback');
 }
 
+async function canProxyAudio(url: string) {
+  try {
+    const res = await fetch(url, {
+      signal: withTimeout(7000),
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Range': 'bytes=0-1', 'Accept': '*/*' },
+      redirect: 'follow',
+    });
+    const ok = (res.ok || res.status === 206) && looksLikeAudio(res.headers.get('content-type'), res.url || url);
+    try { await res.body?.cancel(); } catch {}
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -119,8 +134,10 @@ async function tryInvidious(inst: string, videoId: string): Promise<{ url: strin
       const contentType = res.headers.get('content-type');
       if ((res.ok || res.status === 206) && looksLikeAudio(contentType, res.url || latestUrl)) {
         try { await res.body?.cancel(); } catch {}
+        const candidate = companionizeInvidiousUrl(res.url || latestUrl);
+        if (!(await canProxyAudio(candidate))) continue;
         return {
-          url: companionizeInvidiousUrl(res.url || latestUrl),
+          url: candidate,
           mimeType: (contentType || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
         };
       }
@@ -138,7 +155,9 @@ async function tryInvidious(inst: string, videoId: string): Promise<{ url: strin
     const formats: any[] = data.adaptiveFormats || [];
     const audio = formats.find((f: any) => f.type?.startsWith('audio/mp4')) ||
                   formats.find((f: any) => f.type?.startsWith('audio/'));
-    return audio?.url ? { url: companionizeInvidiousUrl(audio.url), mimeType: audio.type || 'audio/webm' } : null;
+    if (!audio?.url) return null;
+    const candidate = companionizeInvidiousUrl(audio.url);
+    return (await canProxyAudio(candidate)) ? { url: candidate, mimeType: audio.type || 'audio/webm' } : null;
   } catch {
     return null;
   }

@@ -14,6 +14,7 @@ const corsHeaders = {
 // instance host, NOT googlevideo, so it is NOT IP-locked and CAN be re-proxied by
 // our edge function. This is the most reliable free path for raw audio right now.
 const CURATED_INVIDIOUS = [
+  'https://inv.thepixora.com',
   'https://invidious.nerdvpn.de',
   'https://yewtu.be',
   'https://invidious.jing.rocks',
@@ -62,6 +63,21 @@ function looksLikeAudio(contentType: string | null, url = '') {
   return type.startsWith('audio/') || type.includes('octet-stream') || url.includes('/videoplayback');
 }
 
+async function canProxyAudio(url: string) {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(7000),
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Range': 'bytes=0-1', 'Accept': '*/*' },
+      redirect: 'follow',
+    });
+    const ok = (res.ok || res.status === 206) && looksLikeAudio(res.headers.get('content-type'), res.url || url);
+    try { await res.body?.cancel(); } catch { /* ignore */ }
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 async function getInvidiousInstances(): Promise<string[]> {
   const now = Date.now();
   if (cachedInstances && now - cachedAt < 10 * 60 * 1000) return cachedInstances;
@@ -104,8 +120,10 @@ async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; m
         const contentType = res.headers.get('content-type');
         if ((res.ok || res.status === 206) && looksLikeAudio(contentType, res.url || latestUrl)) {
           try { await res.body?.cancel(); } catch { /* ignore */ }
+          const candidate = companionizeInvidiousUrl(res.url || latestUrl);
+          if (!(await canProxyAudio(candidate))) continue;
           return {
-            url: companionizeInvidiousUrl(res.url || latestUrl),
+            url: candidate,
             mimeType: (contentType || ITAG_MIME[itag] || 'audio/webm').split(';')[0],
           };
         }
@@ -129,6 +147,7 @@ async function fetchViaInvidiousLocal(videoId: string): Promise<{ url: string; m
       if (!best?.url) continue;
       // Invidious returns local-proxy URLs sometimes as http:// — force https
       const url = companionizeInvidiousUrl(best.url);
+      if (!(await canProxyAudio(url))) continue;
       return { url, mimeType: (best.type || 'audio/webm').split(';')[0] };
     } catch {
       continue;
