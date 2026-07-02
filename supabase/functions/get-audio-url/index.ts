@@ -234,7 +234,7 @@ serve(async (req) => {
     // Allow direct proxying of an already-resolved client URL (used by client fallback).
     const proxyUrl = url.searchParams.get('proxyUrl');
     if (proxyUrl) {
-      return await streamProxy(req, proxyUrl, 'audio/webm', shouldDownload, title);
+      return await streamProxy(req, proxyUrl, '', shouldDownload, title);
     }
 
     if (!videoId) {

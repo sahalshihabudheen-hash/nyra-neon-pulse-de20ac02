@@ -307,42 +307,14 @@ export default async function handler(req: Request) {
   try {
     const url = new URL(req.url);
 
-    // Generic CORS proxy
+    // Generic audio proxy for an already-resolved URL. Keep this path using the
+    // same streamProxy helper so Vercel gets the same Invidious /companion retry
+    // behavior as the Supabase edge function.
     const proxyUrl = url.searchParams.get('proxyUrl');
     if (proxyUrl) {
-      try {
-        const decodedUrl = decodeURIComponent(proxyUrl);
-        const range = req.headers.get('range');
-        const upstreamHeaders: Record<string, string> = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': '*/*',
-        };
-        if (range) upstreamHeaders['Range'] = range;
-
-        const upstream = await fetch(decodedUrl, { headers: upstreamHeaders });
-        const responseHeaders = new Headers(corsHeaders);
-        responseHeaders.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
-        responseHeaders.set('Accept-Ranges', 'bytes');
-        responseHeaders.set('Cache-Control', 'no-cache');
-        
-        const shouldDownload = url.searchParams.get('download') === '1';
-        const title = url.searchParams.get('title') || 'audio';
-        if (shouldDownload) {
-          responseHeaders.set('Content-Disposition', `attachment; filename="${title.replace(/[^\w\s-]/g, '')}.mp3"`);
-        }
-
-        const contentLength = upstream.headers.get('content-length');
-        const contentRange = upstream.headers.get('content-range');
-        if (contentLength) responseHeaders.set('Content-Length', contentLength);
-        if (contentRange) responseHeaders.set('Content-Range', contentRange);
-
-        return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
-      } catch (proxyErr: any) {
-        return new Response(JSON.stringify({ error: proxyErr.message }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      const shouldDownload = url.searchParams.get('download') === '1';
+      const title = url.searchParams.get('title') || 'audio';
+      return await streamProxy(req, proxyUrl, '', shouldDownload, title);
     }
 
     let videoId = url.searchParams.get('videoId') || url.searchParams.get('id') || '';
@@ -375,7 +347,7 @@ export default async function handler(req: Request) {
     }
 
     return new Response(
-      JSON.stringify({ audioUrl: streamInfo.url, audioUrl1: streamInfo.url, success: true }),
+      JSON.stringify({ audioUrl: streamInfo.url, audioUrl1: streamInfo.url, mimeType: streamInfo.mimeType, success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
